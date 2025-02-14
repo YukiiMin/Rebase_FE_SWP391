@@ -1,7 +1,13 @@
 import React from "react";
+import Navigation from "../components/Navbar";
 
 function PriceListPage() {
-	return <div>PriceListPage</div>;
+	return (
+		<div>
+			<Navigation />
+			PriceListPage
+		</div>
+	);
 }
 
 export default PriceListPage;
