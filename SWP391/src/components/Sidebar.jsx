@@ -14,8 +14,8 @@ function Sidebar() {
 			<NavLink to={"/ManageCombo"} className={"nav-link"}>
 				Vaccine Combo
 			</NavLink>
-			<NavLink to={"#"} className={"nav-link"}>
-				###
+			<NavLink to={"/WorkSchedule"} className={"nav-link"}>
+				Work Schedule
 			</NavLink>
 		</Nav>
 	);

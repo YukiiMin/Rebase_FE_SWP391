@@ -1,6 +1,6 @@
 import React from "react";
 import Navigation from "../components/Navbar";
-import { Card, Col, Container, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import "../alt/notfound.jpg";
 
@@ -15,7 +15,10 @@ function HomePage() {
 					Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae dolorem tenetur necessitatibus ex eaque corrupti sed odit natus perferendis aperiam veniam a rerum nobis, cupiditate earum
 					blanditiis nostrum rem exercitationem.
 				</p>
-				<h2>Vaccine List:</h2>
+				<h2>
+					Vaccine List:<Link to={"/VaccineList"}>See all</Link>
+				</h2>
+
 				<Row xs={1} md={2} lg={4} className="g-4">
 					<Col>
 						<Card>
@@ -23,6 +26,9 @@ function HomePage() {
 							<Card.Body>
 								<Card.Title>Card title</Card.Title>
 								<Card.Text>This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</Card.Text>
+								<Link to={"/VaccineDetail"}>
+									<Button>Detail</Button>
+								</Link>
 							</Card.Body>
 						</Card>
 					</Col>
