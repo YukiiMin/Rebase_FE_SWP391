@@ -1,8 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 
 function BookingPage() {
+	const [username, setUsername] = useState("");
+
+	useEffect(() => {
+		const user = JSON.parse(localStorage.getItem("user"));
+	}, []);
 	return (
 		<>
 			<Navigation />
