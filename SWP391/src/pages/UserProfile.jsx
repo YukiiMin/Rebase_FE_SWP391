@@ -2,16 +2,14 @@ import React from "react";
 import Navigation from "../components/Navbar";
 import { Container } from "react-bootstrap";
 
-function ComboList() {
+function UserProfile() {
 	return (
 		<div>
 			<Navigation />
 			<br />
-			<Container>
-				<h2>Vaccine combo list:</h2>
-			</Container>
+			<Container>UserProfile</Container>
 		</div>
 	);
 }
 
-export default ComboList;
+export default UserProfile;

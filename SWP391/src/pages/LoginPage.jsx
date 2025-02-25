@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 function LoginPage() {
 	const navigate = useNavigate();
-	const accountAPI = "";
+	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
 	const formik = useFormik({
 		initialValues: {
 			username: "",
@@ -13,12 +13,31 @@ function LoginPage() {
 		},
 		onSubmit: (values) => {
 			handleLogin(values);
-			navigate("/");
 		},
 	});
 
-	const handleLogin = (values) => {
-		console.log(values);
+	const handleLogin = async (values) => {
+		try {
+			const response = await fetch(accountAPI);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const accounts = await response.json();
+			const user = accounts.find((account) => account.username === values.username && account.password === values.password);
+
+			if (user) {
+				console.log("Login successful:", user);
+				// Store user information in local storage
+				localStorage.setItem("user", JSON.stringify(user));
+				navigate("/");
+			} else {
+				console.log("Login failed: Invalid username or password");
+				alert("Invalid username or password");
+			}
+		} catch (error) {
+			console.error("Login error:", error);
+			alert("An error occurred during login. Please try again.");
+		}
 	};
 
 	return (

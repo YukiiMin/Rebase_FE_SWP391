@@ -13,6 +13,7 @@ import WorkSchedule from "./admin/WorkSchedule";
 import BookingPage from "./pages/BookingPage";
 import VaccineList from "./pages/VaccineList";
 import ComboList from "./pages/ComboList";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
 	return (
@@ -26,6 +27,8 @@ function App() {
 			<Route path={"/VaccineList"} element={<VaccineList />} />
 			<Route path={"/ComboList"} element={<ComboList />} />
 			<Route path={"/VaccineDetail"} element={<VaccineDetail />} />
+
+			<Route path={"/Profile"} element={<UserProfile />} />
 
 			{/*Admin page*/}
 			<Route path={"/ManageAccount"} element={<AccountManage />} />

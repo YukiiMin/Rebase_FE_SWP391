@@ -24,26 +24,30 @@ function RegisterPage() {
 		onSubmit: (values) => {
 			handleRegister(values);
 		},
-		validationSchema: Yup.object({
-			firstname: Yup.string().required("Enter first name").min(1, "Must enter"),
-		}),
 	});
 
-	const handleRegister = (values) => {
-		console.log(values);
-		fetch(accountAPI, {
-			method: "POST",
-			body: JSON.stringify(values),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "same-origin",
-		})
-			.then(() => {
-				window.alert("Success");
-				navigate("/Login");
-			})
-			.catch((err) => console.log(err));
+	const handleRegister = async (values) => {
+		try {
+			const response = await fetch(accountAPI, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(values),
+			});
+
+			if (response.ok) {
+				console.log("Registration successful");
+				alert("Registration successful!");
+				navigate("/login");
+			} else {
+				console.error("Registration failed:", response.status);
+				alert("Registration failed. Please try again.");
+			}
+		} catch (error) {
+			console.error("Registration error:", error);
+			alert("An error occurred during registration. Please try again.");
+		}
 	};
 
 	return (

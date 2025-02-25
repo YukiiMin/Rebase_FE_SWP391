@@ -1,8 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navbar, Container, Nav, NavDropdown } from "react-bootstrap";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 function Navigation() {
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [username, setUsername] = useState("");
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const user = JSON.parse(localStorage.getItem("user"));
+		if (user) {
+			setIsLoggedIn(true);
+			setUsername(user.username);
+		} else {
+			setIsLoggedIn(false);
+			setUsername("");
+		}
+	}, []);
+
+	const handleLogout = () => {
+		localStorage.removeItem("user");
+		setIsLoggedIn(false);
+		setUsername("");
+		navigate("/Login"); // Navigate to Login page after logout
+	};
+
 	return (
 		<>
 			<Container>
@@ -11,20 +33,21 @@ function Navigation() {
 						<Navbar.Brand href="/">Vaccine Schedule System</Navbar.Brand>
 					</Container>
 					<Nav className="justify-content-end">
-						<NavDropdown title="Username" id="basic-nav-dropdown">
-							<NavLink to={"/"} className={"dropdown-item"}>
-								Profile
+						{isLoggedIn ? (
+							<NavDropdown title={username} id="basic-nav-dropdown">
+								<NavLink to={"/Profile"} className={"dropdown-item"}>
+									Profile
+								</NavLink>
+								<NavLink to={"/ChildrenManagement"} className={"dropdown-item"}>
+									Children Management
+								</NavLink>
+								<NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
+							</NavDropdown>
+						) : (
+							<NavLink to={"/Login"} className={"nav-link"}>
+								Login
 							</NavLink>
-							<NavLink to={"/"} className={"dropdown-item"}>
-								Children Management
-							</NavLink>
-							<NavLink to={"/"} className={"dropdown-item"}>
-								Logout
-							</NavLink>
-						</NavDropdown>
-						<NavLink to={"/Login"} className={"nav-link"}>
-							Login
-						</NavLink>
+						)}
 					</Nav>
 				</Navbar>
 			</Container>
