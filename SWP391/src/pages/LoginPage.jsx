@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 function LoginPage() {
 	const navigate = useNavigate();
 	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
+	// const accountAPI = "http://localhost:8080/auth/login";
 	const formik = useFormik({
 		initialValues: {
 			username: "",
@@ -27,7 +28,6 @@ function LoginPage() {
 
 			if (user) {
 				console.log("Login successful:", user);
-				// Store user information in local storage
 				localStorage.setItem("user", JSON.stringify(user));
 				navigate("/");
 			} else {

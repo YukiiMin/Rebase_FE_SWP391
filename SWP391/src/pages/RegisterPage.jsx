@@ -7,18 +7,19 @@ import * as Yup from "yup";
 function RegisterPage() {
 	const navigate = useNavigate();
 	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
+	// const accountAPI = "http://localhost:8080/users/register";
 
 	const formik = useFormik({
 		initialValues: {
-			firstname: "",
-			lastname: "",
+			firstName: "",
+			lastName: "",
 			gender: "male",
 			username: "",
 			password: "",
-			confirm: "",
 			email: "",
 			phoneNumber: "",
 			address: "",
+			urlImage: "",
 			roleid: "1",
 		},
 		onSubmit: (values) => {
@@ -57,12 +58,12 @@ function RegisterPage() {
 				<Row className="mb-3">
 					<Form.Group as={Col} controlId="txtFirstname">
 						<Form.Label>First Name</Form.Label>
-						<Form.Control type="text" placeholder="Enter first name" name="firstname" value={formik.values.firstname} onChange={formik.handleChange} />
+						<Form.Control type="text" placeholder="Enter first name" name="firstName" value={formik.values.firstName} onChange={formik.handleChange} />
 					</Form.Group>
 
 					<Form.Group as={Col} controlId="txtLastname">
 						<Form.Label>Last name</Form.Label>
-						<Form.Control type="text" placeholder="Enter last name" name="lastname" value={formik.values.lastname} onChange={formik.handleChange} />
+						<Form.Control type="text" placeholder="Enter last name" name="lastName" value={formik.values.lastName} onChange={formik.handleChange} />
 					</Form.Group>
 				</Row>
 
@@ -83,7 +84,7 @@ function RegisterPage() {
 
 				<Form.Group className="mb-3" controlId="txtConfirm">
 					<Form.Label>Confirm password</Form.Label>
-					<Form.Control type="password" placeholder="Confirm password" name="confirm" value={formik.values.confirm} onChange={formik.handleChange} />
+					<Form.Control type="password" placeholder="Confirm password" name="confirm" /*value={formik.values.confirm} onChange={formik.handleChange}*/ />
 				</Form.Group>
 
 				<Row className="mb-3">

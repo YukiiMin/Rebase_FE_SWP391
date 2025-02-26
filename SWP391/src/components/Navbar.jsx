@@ -41,6 +41,16 @@ function Navigation() {
 								<NavLink to={"/ChildrenManagement"} className={"dropdown-item"}>
 									Children Management
 								</NavLink>
+								<NavLink to={"#"} className={"dropdown-item"}>
+									Booking Schedule
+								</NavLink>
+								<NavLink to={"#"} className={"dropdown-item"}>
+									Vaccination History
+								</NavLink>
+								<NavLink to={"#"} className={"dropdown-item"}>
+									Health Record
+								</NavLink>
+								<NavDropdown.Divider />
 								<NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
 							</NavDropdown>
 						) : (
