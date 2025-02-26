@@ -32,21 +32,21 @@ function SideMenu() {
 				<NavLink to={"/Profile"} className={"nav-link"}>
 					Profile
 				</NavLink>
-				<NavLink to={"/Children Management"} className={"nav-link"}>
+				<NavLink to={"/Children"} className={"nav-link"}>
 					Children Management
 				</NavLink>
-				<NavLink to={"#"} className={"nav-link"}>
+				<NavLink to={"/Scheduling"} className={"nav-link"}>
 					Booking Schedule
 				</NavLink>
-				<NavLink to={"#"} className={"nav-link"}>
+				<NavLink to={"/History"} className={"nav-link"}>
 					Vaccination History
 				</NavLink>
-				<NavLink to={"#"} className={"nav-link"}>
+				<NavLink to={"/Record"} className={"nav-link"}>
 					Health Record
 				</NavLink>
-				<Nav.Item className="nav-link" onClick={handleLogout}>
+				<NavLink className="nav-link" onClick={handleLogout}>
 					Log out
-				</Nav.Item>
+				</NavLink>
 			</Nav>
 		</Col>
 	);

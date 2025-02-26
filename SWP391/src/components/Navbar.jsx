@@ -5,6 +5,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 function Navigation() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [username, setUsername] = useState("");
+	const [role, setRole] = useState("");
 	const navigate = useNavigate();
 
 	useEffect(() => {
@@ -12,9 +13,11 @@ function Navigation() {
 		if (user) {
 			setIsLoggedIn(true);
 			setUsername(user.username);
+			setRole(user.roleid);
 		} else {
 			setIsLoggedIn(false);
 			setUsername("");
+			setRole("");
 		}
 	}, []);
 
@@ -22,6 +25,7 @@ function Navigation() {
 		localStorage.removeItem("user");
 		setIsLoggedIn(false);
 		setUsername("");
+		setRole("");
 		navigate("/Login"); // Navigate to Login page after logout
 	};
 
@@ -38,16 +42,16 @@ function Navigation() {
 								<NavLink to={"/Profile"} className={"dropdown-item"}>
 									Profile
 								</NavLink>
-								<NavLink to={"/ChildrenManagement"} className={"dropdown-item"}>
+								<NavLink to={"/Children"} className={"dropdown-item"}>
 									Children Management
 								</NavLink>
-								<NavLink to={"#"} className={"dropdown-item"}>
+								<NavLink to={"/Scheduling"} className={"dropdown-item"}>
 									Booking Schedule
 								</NavLink>
-								<NavLink to={"#"} className={"dropdown-item"}>
+								<NavLink to={"/History"} className={"dropdown-item"}>
 									Vaccination History
 								</NavLink>
-								<NavLink to={"#"} className={"dropdown-item"}>
+								<NavLink to={"/Record"} className={"dropdown-item"}>
 									Health Record
 								</NavLink>
 								<NavDropdown.Divider />
@@ -85,6 +89,13 @@ function Navigation() {
 							Booking
 						</NavLink>
 					</Nav>
+					{role == "0" && (
+						<Nav className="justify-content-end">
+							<NavLink to={"/ManageAccount"} className={"nav-link"}>
+								Admin Page
+							</NavLink>
+						</Nav>
+					)}
 				</Container>
 			</Navbar>
 		</>

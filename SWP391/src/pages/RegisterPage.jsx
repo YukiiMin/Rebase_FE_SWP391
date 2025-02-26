@@ -69,6 +69,7 @@ function RegisterPage() {
 
 	return (
 		<Container>
+			<Link to={"/"}>Home</Link>
 			<h1>Register</h1>
 			<Form method="POST" onSubmit={formik.handleSubmit}>
 				<Row className="mb-3">

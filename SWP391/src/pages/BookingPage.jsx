@@ -3,11 +3,8 @@ import Navigation from "../components/Navbar";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 
 function BookingPage() {
-	const [username, setUsername] = useState("");
+	const user = JSON.parse(localStorage.getItem("user"));
 
-	useEffect(() => {
-		const user = JSON.parse(localStorage.getItem("user"));
-	}, []);
 	return (
 		<>
 			<Navigation />
@@ -25,13 +22,31 @@ function BookingPage() {
 						</Form.Select>
 						<Button>Add child</Button>
 					</InputGroup>
-					<p>Choose vaccine type</p>
-					<Button>Single</Button>
-					<Button>Combo</Button>
-					<Form.Group className="mb-3" controlId="vaccinationDate">
-						<Form.Label>Choose vaccination date</Form.Label>
-						<Form.Control type="date" placeholder="Choose Date" />
-					</Form.Group>
+					<Row>
+						<Col>
+							<b>Choose vaccine type:</b>
+							<Button>Single</Button>
+							<Button>Combo</Button>
+						</Col>
+						<Col>
+							<Form.Group className="mb-3" controlId="vaccinationDate">
+								<Form.Label>
+									<b>Choose vaccination date:</b>
+								</Form.Label>
+								<Form.Control type="date" placeholder="Choose Date" />
+							</Form.Group>
+							<Form.Group className="mb-3">
+								<Form.Label>
+									<b>Choose payment method: </b>
+								</Form.Label>
+								<br />
+								<Form.Check defaultChecked label="Payment by credit card." name="payment" type="radio" id="credit" value="credit" />
+								<Form.Check label="Cash payment at the cashier." name="payment" type="radio" id="cash" value="cash" />
+								<Form.Check label="Payment via e-commerce applications, mobile payment services, VNPAY-QR e-wallets, Momo,..." name="payment" type="radio" id="app" value="app" />
+							</Form.Group>
+							<Button type="submit">Proceed</Button>
+						</Col>
+					</Row>
 				</Form>
 			</Container>
 		</>

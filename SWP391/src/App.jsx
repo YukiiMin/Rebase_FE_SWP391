@@ -14,6 +14,10 @@ import BookingPage from "./pages/BookingPage";
 import VaccineList from "./pages/VaccineList";
 import ComboList from "./pages/ComboList";
 import UserProfile from "./pages/UserProfile";
+import UserChildren from "./pages/UserChildren";
+import UserScheduling from "./pages/UserScheduling";
+import UserHistory from "./pages/UserHistory";
+import HealthRecord from "./pages/HealthRecord";
 
 function App() {
 	const navigate = useNavigate();
@@ -52,6 +56,10 @@ function App() {
 
 			{/*User only */}
 			<Route path={"/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />
+			<Route path={"/Children"} element={<ProtectedRoute element={UserChildren} userOnly />} />
+			<Route path={"/Scheduling"} element={<ProtectedRoute element={UserScheduling} userOnly />} />
+			<Route path={"/History"} element={<ProtectedRoute element={UserHistory} userOnly />} />
+			<Route path={"/Record"} element={<ProtectedRoute element={HealthRecord} userOnly />} />
 
 			{/*Admin only*/}
 			<Route path={"/ManageAccount"} element={<ProtectedRoute element={AccountManage} adminOnly />} />

@@ -17,7 +17,7 @@ function AccountManage() {
 	}, []);
 
 	return (
-		<div>
+		<Container>
 			<Row>
 				<Sidebar />
 				<Col>
@@ -64,7 +64,7 @@ function AccountManage() {
 					</Container>
 				</Col>
 			</Row>
-		</div>
+		</Container>
 	);
 }
 
