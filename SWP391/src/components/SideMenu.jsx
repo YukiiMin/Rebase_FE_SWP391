@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Col, Nav } from "react-bootstrap";
+import { Col, Image, Nav } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
 
 function SideMenu() {
@@ -26,6 +26,9 @@ function SideMenu() {
 	return (
 		<Col sm={3}>
 			<Nav className="me-auto flex-column" defaultActiveKey={"/Profile"}>
+				<Image src="src/alt/notfound.jpg" rounded fluid />
+				<b style={{ textAlign: "center" }}>{username}</b>
+				<hr></hr>
 				<NavLink to={"/Profile"} className={"nav-link"}>
 					Profile
 				</NavLink>

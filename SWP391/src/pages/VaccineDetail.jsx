@@ -4,8 +4,9 @@ import { Container, Spinner } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 
 function VaccineDetail() {
-	const [vaccine, setVaccine] = useState({});
+	const [vaccine, setVaccine] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 	const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const { id } = useParams();
 
@@ -22,11 +23,27 @@ function VaccineDetail() {
 				setLoading(false);
 			} catch (err) {
 				console.log(err);
+				setError(err);
 				setLoading(false);
 			}
 		};
 		fetchAPI();
 	}, [id]);
+
+	//If something went wrong
+	if (error) {
+		return (
+			<div>
+				<Navigation />
+				<br />
+				<Container>
+					{console.log(error)}
+					<h2>Error Loading Vaccine Details</h2>
+					<p>{error.message}</p>
+				</Container>
+			</div>
+		);
+	}
 
 	return (
 		<div>

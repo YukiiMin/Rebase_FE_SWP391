@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import Navigation from "../components/Navbar";
-import { Col, Container, Row } from "react-bootstrap";
+import { Button, Col, Container, Row } from "react-bootstrap";
 import SideMenu from "../components/SideMenu";
 
 function UserProfile() {
+	const user = JSON.parse(localStorage.getItem("user"));
+	const [isOpen, setIsOpen] = useState(false); //use this to open user update form
+
 	return (
 		<div>
 			<Navigation />
@@ -15,12 +18,18 @@ function UserProfile() {
 						<h2>User Profile:</h2>
 						<hr></hr>
 						<Container>
-							<b>Fullname: </b> ABCXYZ <br />
-							<b>Gender: </b> Male <br />
-							<b>Email: </b> abcxyz@gmail.com <br />
-							<b>Phone number: </b> 1234567890 <br />
-							<b>Address: </b> 123ABC, NY, USA <br />
-							<b>Username: </b> tester1 <br />
+							<b>Fullname: </b> {user.firstName} {user.lastName} <br />
+							<b>Gender: </b> {user.gender} <br />
+							<b>Email: </b> {user.email} <br />
+							<b>Phone number: </b> {user.phoneNumber} <br />
+							<b>Address: </b> {user.address} <br />
+							<b>Username: </b> {user.username} <br />
+							<Button
+								onClick={() => {
+									setIsOpen(true);
+								}}>
+								Edit profile
+							</Button>
 						</Container>
 					</Col>
 				</Row>
