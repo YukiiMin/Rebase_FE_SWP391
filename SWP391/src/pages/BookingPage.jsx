@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
+import AddChild from "../components/AddChild";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 
 function BookingPage() {
 	const user = JSON.parse(localStorage.getItem("user"));
+	const [isOpen, setIsOpen] = useState(false);
 
 	return (
 		<>
@@ -20,7 +22,13 @@ function BookingPage() {
 							<option value="2">Child 2</option>
 							<option value="3">Child 3</option>
 						</Form.Select>
-						<Button>Add child</Button>
+						<Button
+							onClick={() => {
+								setIsOpen(true);
+							}}>
+							Add child
+						</Button>
+						{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} />}
 					</InputGroup>
 					<Row>
 						<Col>
