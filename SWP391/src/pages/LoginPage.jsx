@@ -1,33 +1,85 @@
+import { useFormik } from "formik";
 import React from "react";
-import { Button, Form } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Button, Col, Container, Form, Row } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 
 function LoginPage() {
-	return (
-		<>
-			<h1>Login</h1>
-			<Form>
-				<Form.Group className="mb-3" controlId="formBasicEmail">
-					<Form.Label>Email address</Form.Label>
-					<Form.Control type="email" placeholder="Enter email" />
-					<Form.Text className="text-muted">We'll never share your email with anyone else.</Form.Text>
-				</Form.Group>
+	const navigate = useNavigate();
+	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
+	// const accountAPI = "http://localhost:8080/auth/login";
 
-				<Form.Group className="mb-3" controlId="formBasicPassword">
-					<Form.Label>Password</Form.Label>
-					<Form.Control type="password" placeholder="Password" />
-				</Form.Group>
-				<Form.Group className="mb-3" controlId="formBasicCheckbox">
-					<Form.Check type="checkbox" label="Check me out" />
-				</Form.Group>
-				<Button variant="primary" type="submit">
-					Submit
-				</Button>
-			</Form>
+	const formik = useFormik({
+		initialValues: {
+			username: "",
+			password: "",
+		},
+		onSubmit: (values) => {
+			handleLogin(values);
+		},
+	});
+
+	const handleLogin = async (values) => {
+		try {
+			const response = await fetch(accountAPI);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const accounts = await response.json();
+			const user = accounts.find((account) => account.username === values.username && account.password === values.password);
+
+			if (user) {
+				console.log("Login successful:", user);
+				localStorage.setItem("user", JSON.stringify(user));
+				navigate("/");
+			} else {
+				console.log("Login failed: Invalid username or password");
+				alert("Invalid username or password");
+			}
+		} catch (error) {
+			console.error("Login error:", error);
+			alert("An error occurred during login. Please try again.");
+		}
+	};
+
+	return (
+		<Container>
+			<Link to={"/"}>Home</Link>
+			<h1>Login</h1>
+			<Row>
+				<Col>
+					<Form method="POST" onSubmit={formik.handleSubmit}>
+						<Row className="mb-3">
+							<Form.Group as={Col} controlId="txtUsername">
+								<Form.Label>Username</Form.Label>
+								<Form.Control type="text" placeholder="Enter username" name="username" value={formik.values.username} onChange={formik.handleChange} />
+							</Form.Group>
+
+							<Form.Group as={Col} controlId="txtPassword">
+								<Form.Label>Password</Form.Label>
+								<Form.Control type="password" placeholder="Password" name="password" value={formik.values.password} onChange={formik.handleChange} />
+							</Form.Group>
+						</Row>
+						<Button variant="primary" type="submit">
+							Submit
+						</Button>
+					</Form>
+				</Col>
+				<Col className="d-flex flex-column align-items-center">
+					<div className="d-flex align-items-center my-3">
+						<hr className="flex-grow-1" style={{ borderTop: "1px solid #ccc" }} />
+						<span className="mx-2">OR</span>
+						<hr className="flex-grow-1" style={{ borderTop: "1px solid #ccc" }} />
+					</div>
+
+					<p>Continue with Google</p>
+					<Button>Google</Button>
+				</Col>
+			</Row>
+
 			<p>
-				New to our website? <Link to={"/Register"}>Register</Link> now
+				New to our website? <Link to={"/Register"}>Register</Link> now.
 			</p>
-		</>
+		</Container>
 	);
 }
 
