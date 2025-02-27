@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import Navigation from "../components/Navbar";
+import AddChild from "../components/AddChild";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import SideMenu from "../components/SideMenu";
 
 function UserChildren() {
+	const [isOpen, setIsOpen] = useState(false);
+
 	return (
 		<div>
 			<Navigation />
@@ -17,8 +20,14 @@ function UserChildren() {
 								<h2>Children</h2>
 							</Col>
 							<Col className="text-end">
-								<Button>Add</Button>
+								<Button
+									onClick={() => {
+										setIsOpen(true);
+									}}>
+									Add
+								</Button>
 							</Col>
+							{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} />}
 						</Row>
 						<hr></hr>
 						<Container>
