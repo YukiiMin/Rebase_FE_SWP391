@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Nav, NavDropdown } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 function Navigation() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -9,23 +10,25 @@ function Navigation() {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		const user = JSON.parse(localStorage.getItem("user"));
-		if (user) {
+		const token = localStorage.getItem("token");
+		if (token) {
 			setIsLoggedIn(true);
-			setUsername(user.username);
-			setRole(user.roleid);
+			try {
+				const decodedToken = jwtDecode(token);
+				console.log(decodedToken);
+				setUsername(decodedToken.username);
+				setRole(decodedToken.scope);
+			} catch (err) {
+				console.error("Error decoding token:", err);
+			}
 		} else {
 			setIsLoggedIn(false);
-			setUsername("");
-			setRole("");
 		}
-	}, []);
+	}, [navigate]);
 
 	const handleLogout = () => {
-		localStorage.removeItem("user");
+		localStorage.removeItem("token");
 		setIsLoggedIn(false);
-		setUsername("");
-		setRole("");
 		navigate("/Login"); // Navigate to Login page after logout
 	};
 
@@ -89,10 +92,25 @@ function Navigation() {
 							Booking
 						</NavLink>
 					</Nav>
-					{role == "0" && (
+					{/* 
+					{isLoggedIn && (
 						<Nav className="justify-content-end">
-							<NavLink to={"/ManageAccount"} className={"nav-link"}>
+							<NavLink to={"/Dashboard"} className={"nav-link"}>
 								Admin Page
+							</NavLink>
+							<NavLink to={"/StaffPage"} className={"nav-link"}>
+								Staff Page
+							</NavLink>
+						</Nav>
+					)}
+					 */}
+					{role == "ADMIN" && (
+						<Nav className="justify-content-end">
+							<NavLink to={"/Dashboard"} className={"nav-link"}>
+								Admin Page
+							</NavLink>
+							<NavLink to={"/StaffPage"} className={"nav-link"}>
+								Staff Page
 							</NavLink>
 						</Nav>
 					)}

@@ -2,11 +2,11 @@ import React from "react";
 import { Col, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 
-function Sidebar() {
+function StaffMenu() {
 	return (
 		<Col sm={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
 			<Navbar>
-				<Nav defaultActiveKey="/Dashboard" className="flex-column">
+				<Nav defaultActiveKey="/StaffPage" className="flex-column">
 					<Navbar.Brand
 						href="/"
 						style={{
@@ -18,7 +18,7 @@ function Sidebar() {
 						Vaccine Schedule
 					</Navbar.Brand>
 					<NavLink
-						to={"/Dashboard"}
+						to={"/StaffPage"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -27,10 +27,10 @@ function Sidebar() {
 							marginBottom: "5px",
 							color: "#343a40",
 						})}>
-						Dashboard
+						Staff Home
 					</NavLink>
 					<NavLink
-						to={"/ManageAccount"}
+						to={"/CheckIn"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -39,10 +39,10 @@ function Sidebar() {
 							marginBottom: "5px",
 							color: "#343a40",
 						})}>
-						Account
+						Customer Check-In
 					</NavLink>
 					<NavLink
-						to={"/ManageVaccine"}
+						to={"/Schedule"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -51,9 +51,9 @@ function Sidebar() {
 							marginBottom: "5px",
 							color: "#343a40",
 						})}>
-						Vaccine
+						Work Schedule
 					</NavLink>
-					<NavLink
+					{/* <NavLink
 						to={"/ManageCombo"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
@@ -76,11 +76,11 @@ function Sidebar() {
 							color: "#343a40",
 						})}>
 						Work Schedule
-					</NavLink>
+					</NavLink> */}
 				</Nav>
 			</Navbar>
 		</Col>
 	);
 }
 
-export default Sidebar;
+export default StaffMenu;

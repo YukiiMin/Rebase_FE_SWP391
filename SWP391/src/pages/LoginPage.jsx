@@ -5,8 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 
 function LoginPage() {
 	const navigate = useNavigate();
-	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
-	// const accountAPI = "http://localhost:8080/auth/login";
+	// const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
+	const accountAPI = "http://localhost:8080/auth/login";
 
 	const formik = useFormik({
 		initialValues: {
@@ -19,25 +19,45 @@ function LoginPage() {
 	});
 
 	const handleLogin = async (values) => {
-		try {
-			const response = await fetch(accountAPI);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			const accounts = await response.json();
-			const user = accounts.find((account) => account.username === values.username && account.password === values.password);
+		// try {
+		// 	const response = await fetch(accountAPI);
+		// 	if (!response.ok) {
+		// 		throw new Error(`HTTP error! status: ${response.status}`);
+		// 	}
+		// 	const accounts = await response.json();
+		// 	console.log(accounts);
+		// 	const user = accounts.find((account) => account.username === values.username && account.password === values.password);
 
-			if (user) {
-				console.log("Login successful:", user);
-				localStorage.setItem("user", JSON.stringify(user));
-				navigate("/");
-			} else {
-				console.log("Login failed: Invalid username or password");
-				alert("Invalid username or password");
-			}
-		} catch (error) {
-			console.error("Login error:", error);
-			alert("An error occurred during login. Please try again.");
+		// 	if (user) {
+		// 		console.log("Login successful:", user);
+		// 		localStorage.setItem("user", JSON.stringify(user));
+		// 		navigate("/");
+		// 	} else {
+		// 		console.log("Login failed: Invalid username or password");
+		// 		alert("Invalid username or password");
+		// 	}
+		// } catch (error) {
+		// 	console.error("Login error:", error);
+		// 	alert("An error occurred during login. Please try again.");
+		// }
+		const response = await fetch(accountAPI, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(values),
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			const token = data.result.token;
+			localStorage.setItem("token", token);
+			console.log("Login successful");
+			alert("Login successful!");
+			navigate("/");
+		} else {
+			console.error("Login failed:", response.status);
+			alert("Login failed. Please try again.");
 		}
 	};
 

@@ -6,35 +6,46 @@ import * as Yup from "yup";
 
 function RegisterPage() {
 	const navigate = useNavigate();
-	const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
-	// const accountAPI = "http://localhost:8080/users/register";
+	// const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
+	const accountAPI = "http://localhost:8080/users/register";
 
 	const validation = Yup.object().shape({
 		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
 		lastName: Yup.string().required("Last name is required").min(2, "Last name must be at least 2 characters"),
-		username: Yup.string().required("Username is required").min(5, "Username must be at least 5 characters"),
-		password: Yup.string().required("Password is required").min(5, "Password must be at least 2 characters"),
+		username: Yup.string().required("Username is required").min(3, "Username must be at least 3 characters").max(50, "Username must be at most 50 characters"),
+		password: Yup.string().required("Password is required").min(3, "Password must be at least 2 characters").max(50, "Password must be at most 16 characters"),
 		confirmPassword: Yup.string()
 			.oneOf([Yup.ref("password"), null], "Passwords must match")
 			.required("Confirm password is required"),
-		email: Yup.string().email("Invalid email").required("Email is required"),
-		phoneNumber: Yup.string().required("Phone number is required"),
-		address: Yup.string().required("Address is required").min(5, "Address must be at least 5 characters"),
+		email: Yup.string()
+			.email("Invalid email")
+			.matches(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email must have a '.' after '@'")
+			.required("Email is required")
+			.max(50, "Email must be at most 50 characters"),
+		phoneNumber: Yup.string()
+			.required("Phone number is required")
+			.matches(/^0\d+$/, "Phone number must start with 0 and contain only digits")
+			.min(10, "Phone number must be at least 10 digits")
+			.max(12, "Phone number cannot be longer than 12 digits"),
+		address: Yup.string().required("Address is required").min(5, "Address must be at least 5 characters").max(100, "Address must be at most 100 characters"),
 	});
+
+	const handleFileChange = (event) => {
+		formik.setFieldValue("urlImage", event.currentTarget.files[0]);
+	};
 
 	const formik = useFormik({
 		initialValues: {
 			firstName: "",
 			lastName: "",
-			gender: "male",
+			gender: "MALE",
 			username: "",
 			password: "",
 			confirmPassword: "",
 			email: "",
 			phoneNumber: "",
 			address: "",
-			urlImage: "",
-			roleid: "1",
+			urlImage: "http://example.com/image.jpg",
 		},
 		onSubmit: (values) => {
 			handleRegister(values);
@@ -45,6 +56,7 @@ function RegisterPage() {
 	const handleRegister = async (values) => {
 		try {
 			const { confirmPassword, ...registerValues } = values;
+			console.log(registerValues);
 			const response = await fetch(accountAPI, {
 				method: "POST",
 				headers: {
@@ -101,8 +113,8 @@ function RegisterPage() {
 				</Row>
 
 				<Form.Group className="mb-3">
-					<Form.Check inline defaultChecked label="Male" name="gender" type="radio" id="Male" value="male" onChange={formik.handleChange} />
-					<Form.Check inline label="Female" name="gender" type="radio" id="Female" value="female" onChange={formik.handleChange} />
+					<Form.Check inline defaultChecked label="Male" name="gender" type="radio" id="Male" value="MALE" onChange={formik.handleChange} />
+					<Form.Check inline label="Female" name="gender" type="radio" id="Female" value="FEMALE" onChange={formik.handleChange} />
 				</Form.Group>
 
 				<Form.Group className="mb-3" controlId="txtUsername">
@@ -163,6 +175,13 @@ function RegisterPage() {
 						<Form.Control.Feedback type="invalid">{formik.errors.address}</Form.Control.Feedback>
 					</Form.Group>
 				</Row>
+
+				{/* 
+				<Form.Group controlId="image" className="mb-3">
+					<Form.Label>Image</Form.Label>
+					<Form.Control type="file" onChange={handleFileChange} aria-label="Vaccine Image" isInvalid={formik.touched.urlImage && formik.errors.urlImage} />
+					<Form.Control.Feedback type="invalid">{formik.errors.urlImage}</Form.Control.Feedback>
+				</Form.Group> */}
 
 				<Button variant="primary" type="submit">
 					Submit

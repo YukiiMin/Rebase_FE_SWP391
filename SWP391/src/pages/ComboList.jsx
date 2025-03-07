@@ -1,25 +1,49 @@
 import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
-import { Button, Container, Form, InputGroup, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 function ComboList() {
-	const comboAPI = "";
+	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
 	const [comboList, setComboList] = useState([]);
 
 	useEffect(() => {
 		fetch(comboAPI)
 			.then((response) => response.json())
 			.then((data) => {
-				setComboList(data);
+				const groupedCombos = groupCombos(data.result);
+				setComboList(groupedCombos);
+				// setComboList(data.result);
 			})
 			.catch((error) => console.error("Error fetching combos:", error));
 	}, []);
+
+	//Group vaccine with the same comboId
+	const groupCombos = (combosData) => {
+		const grouped = {};
+		combosData.forEach((combo) => {
+			if (!grouped[combo.comboId]) {
+				grouped[combo.comboId] = {
+					comboId: combo.comboId,
+					comboName: combo.comboName,
+					description: combo.description,
+					ageGroup: combo.ageGroup,
+					saleOff: combo.saleOff,
+					vaccines: [], // Initialize vaccines array
+				};
+			}
+			grouped[combo.comboId].vaccines.push(combo.vaccineName);
+		});
+		// Convert grouped object to array
+		return Object.values(grouped);
+	};
 
 	return (
 		<div>
 			<Navigation />
 			<br />
 			<Container>
+				{console.log(comboList)}
 				<h2>Vaccine combo list:</h2>
 				<Form>
 					<InputGroup className="mb-3">
@@ -35,8 +59,11 @@ function ComboList() {
 							<Card>
 								<Card.Img variant="top" /*src={vaccine.image}*/ src={"src/alt/notfound.jpg"} />
 								<Card.Body>
-									<Card.Title>{combo.comboname}</Card.Title>
-									<Card.Text>Price: {combo.price}$</Card.Text>
+									<Card.Title>{combo.comboName}</Card.Title>
+									<Card.Text>Include: {combo.vaccines.join(", ")}</Card.Text>
+									<Card.Text>
+										<b>Description:</b> {combo.description}
+									</Card.Text>
 									<Link to={`/ComboDetail/${combo.id}`}>
 										<Button>Detail</Button>
 									</Link>
