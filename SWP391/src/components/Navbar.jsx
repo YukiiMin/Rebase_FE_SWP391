@@ -42,19 +42,19 @@ function Navigation() {
 					<Nav className="justify-content-end">
 						{isLoggedIn ? (
 							<NavDropdown title={username} id="basic-nav-dropdown">
-								<NavLink to={"/Profile"} className={"dropdown-item"}>
+								<NavLink to={"/User/Profile"} className={"dropdown-item"}>
 									Profile
 								</NavLink>
-								<NavLink to={"/Children"} className={"dropdown-item"}>
+								<NavLink to={"/User/Children"} className={"dropdown-item"}>
 									Children Management
 								</NavLink>
-								<NavLink to={"/Scheduling"} className={"dropdown-item"}>
+								<NavLink to={"/User/Scheduling"} className={"dropdown-item"}>
 									Booking Schedule
 								</NavLink>
-								<NavLink to={"/History"} className={"dropdown-item"}>
+								<NavLink to={"/User/History"} className={"dropdown-item"}>
 									Vaccination History
 								</NavLink>
-								<NavLink to={"/Record"} className={"dropdown-item"}>
+								<NavLink to={"/User/Record"} className={"dropdown-item"}>
 									Health Record
 								</NavLink>
 								<NavDropdown.Divider />
@@ -106,13 +106,18 @@ function Navigation() {
 					 */}
 					{role == "ADMIN" && (
 						<Nav className="justify-content-end">
-							<NavLink to={"/Dashboard"} className={"nav-link"}>
+							<NavLink to={"/Admin/Dashboard"} className={"nav-link"}>
 								Admin Page
 							</NavLink>
-							<NavLink to={"/StaffPage"} className={"nav-link"}>
+							<NavLink to={"/Staff/StaffPage"} className={"nav-link"}>
 								Staff Page
 							</NavLink>
 						</Nav>
+					)}
+					{role == "STAFF" && (
+						<NavLink to={"/Staff/StaffPage"} className={"nav-link"}>
+							Staff Page
+						</NavLink>
 					)}
 				</Container>
 			</Navbar>

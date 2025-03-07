@@ -58,6 +58,7 @@ function AddCombo({ setIsOpen, open }) {
 			const response = await fetch(addComboAPI, {
 				method: "POST",
 				headers: {
+					Authorization: `Bearer ${token}`,
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(values),
@@ -95,7 +96,7 @@ function AddCombo({ setIsOpen, open }) {
 					console.log("Add combo detail successful");
 					alert("Adding combo successful");
 					handleClose();
-					navigate('/admin/combo-manage');
+					navigate("/Admin/ManageCombo");
 					window.location.reload(); // Reload page after redirect
 				} else {
 					console.error("Add combo detail error: ", response.status);

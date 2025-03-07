@@ -24,6 +24,7 @@ import CheckIn from "./staff/CheckIn";
 import Schedule from "./staff/Schedule";
 import TransactionPage from "./pages/TransactionPage";
 import { jwtDecode } from "jwt-decode";
+import ComboDetail from "./pages/ComboDetail";
 
 function App() {
 	const navigate = useNavigate();
@@ -66,44 +67,46 @@ function App() {
 			<Route path={"/VaccineList"} element={<VaccineList />} />
 			<Route path={"/ComboList"} element={<ComboList />} />
 			<Route path={"/VaccineDetail/:id"} element={<VaccineDetail />} />
+			<Route path={"/ComboDetail/:id"} element={<ComboDetail />} />
 
 			{/*Guest only*/}
 			<Route path={"/Login"} element={<ProtectedRoute element={LoginPage} guestOnly />} />
 			<Route path={"/Register"} element={<ProtectedRoute element={RegisterPage} guestOnly />} />
 
 			{/*User only */}
-			<Route path={"/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />
-			<Route path={"/Children"} element={<ProtectedRoute element={UserChildren} userOnly />} />
-			<Route path={"/Scheduling"} element={<ProtectedRoute element={UserScheduling} userOnly />} />
-			<Route path={"/History"} element={<ProtectedRoute element={UserHistory} userOnly />} />
-			<Route path={"/Record"} element={<ProtectedRoute element={HealthRecord} userOnly />} />
+			<Route path={"/User/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />
+			<Route path={"/User/Children"} element={<ProtectedRoute element={UserChildren} userOnly />} />
+			<Route path={"/User/Scheduling"} element={<ProtectedRoute element={UserScheduling} userOnly />} />
+			<Route path={"/User/History"} element={<ProtectedRoute element={UserHistory} userOnly />} />
+			<Route path={"/User/Record"} element={<ProtectedRoute element={HealthRecord} userOnly />} />
+
 			<Route path={"/Transaction"} element={<ProtectedRoute element={TransactionPage} userOnly />} />
 
 			{/*Admin only*/}
 			{/* 
-			<Route path={"/Dashboard"} element={<ProtectedRoute element={Dashboard} adminOnly />} />
-			<Route path={"/ManageAccount"} element={<ProtectedRoute element={AccountManage} adminOnly />} />
-			<Route path={"/ManageVaccine"} element={<ProtectedRoute element={VaccineManage} adminOnly />} />
-			<Route path={"/ManageCombo"} element={<ProtectedRoute element={ComboManage} adminOnly />} />
-			<Route path={"/WorkSchedule"} element={<ProtectedRoute element={WorkSchedule} adminOnly />} />
+			<Route path={"/Admin/Dashboard"} element={<ProtectedRoute element={Dashboard} adminOnly />} />
+			<Route path={"/Admin/ManageAccount"} element={<ProtectedRoute element={AccountManage} adminOnly />} />
+			<Route path={"/Admin/ManageVaccine"} element={<ProtectedRoute element={VaccineManage} adminOnly />} />
+			<Route path={"/Admin/ManageCombo"} element={<ProtectedRoute element={ComboManage} adminOnly />} />
+			<Route path={"/Admin/WorkSchedule"} element={<ProtectedRoute element={WorkSchedule} adminOnly />} />
 			 */}
 
 			{/*Staff only */}
 			{/* 
-			<Route path={"/StaffPage"} element={<ProtectedRoute element={StaffHome} staffOnly />} />
-			<Route path={"/CheckIn"} element={<ProtectedRoute element={CheckIn} staffOnly />} />
-			<Route path={"/Schedule"} element={<ProtectedRoute element={Schedule} staffOnly />} />
+			<Route path={"/Staff/StaffPage"} element={<ProtectedRoute element={StaffHome} staffOnly />} />
+			<Route path={"/Staff/CheckIn"} element={<ProtectedRoute element={CheckIn} staffOnly />} />
+			<Route path={"/Staff/Schedule"} element={<ProtectedRoute element={Schedule} staffOnly />} />
 			 */}
 
 			{/*Use this path only in developement. When role is OK, use the Admin and Staff only route */}
-			<Route path={"/Dashboard"} element={<ProtectedRoute element={Dashboard} userOnly />} />
-			<Route path={"/ManageAccount"} element={<ProtectedRoute element={AccountManage} userOnly />} />
-			<Route path={"/ManageVaccine"} element={<ProtectedRoute element={VaccineManage} userOnly />} />
-			<Route path={"/ManageCombo"} element={<ProtectedRoute element={ComboManage} userOnly />} />
-			<Route path={"/WorkSchedule"} element={<ProtectedRoute element={WorkSchedule} userOnly />} />
-			<Route path={"/StaffPage"} element={<ProtectedRoute element={StaffHome} userOnly />} />
-			<Route path={"/CheckIn"} element={<ProtectedRoute element={CheckIn} userOnly />} />
-			<Route path={"/Schedule"} element={<ProtectedRoute element={Schedule} userOnly />} />
+			<Route path={"/Admin/Dashboard"} element={<ProtectedRoute element={Dashboard} userOnly />} />
+			<Route path={"/Admin/ManageAccount"} element={<ProtectedRoute element={AccountManage} userOnly />} />
+			<Route path={"/Admin/ManageVaccine"} element={<ProtectedRoute element={VaccineManage} userOnly />} />
+			<Route path={"/Admin/ManageCombo"} element={<ProtectedRoute element={ComboManage} userOnly />} />
+			<Route path={"/Admin/WorkSchedule"} element={<ProtectedRoute element={WorkSchedule} userOnly />} />
+			<Route path={"/Staff/StaffPage"} element={<ProtectedRoute element={StaffHome} userOnly />} />
+			<Route path={"/Staff/CheckIn"} element={<ProtectedRoute element={CheckIn} userOnly />} />
+			<Route path={"/Staff/Schedule"} element={<ProtectedRoute element={Schedule} userOnly />} />
 		</Routes>
 	);
 }

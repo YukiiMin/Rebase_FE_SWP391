@@ -6,7 +6,7 @@ function Sidebar() {
 	return (
 		<Col sm={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
 			<Navbar>
-				<Nav defaultActiveKey="/Dashboard" className="flex-column">
+				<Nav defaultActiveKey="/Admin/Dashboard" className="flex-column">
 					<Navbar.Brand
 						href="/"
 						style={{
@@ -18,7 +18,7 @@ function Sidebar() {
 						Vaccine Schedule
 					</Navbar.Brand>
 					<NavLink
-						to={"/Dashboard"}
+						to={"/Admin/Dashboard"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -30,7 +30,7 @@ function Sidebar() {
 						Dashboard
 					</NavLink>
 					<NavLink
-						to={"/ManageAccount"}
+						to={"/Admin/ManageAccount"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -42,7 +42,7 @@ function Sidebar() {
 						Account
 					</NavLink>
 					<NavLink
-						to={"/ManageVaccine"}
+						to={"/Admin/ManageVaccine"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -54,7 +54,7 @@ function Sidebar() {
 						Vaccine
 					</NavLink>
 					<NavLink
-						to={"/ManageCombo"}
+						to={"/Admin/ManageCombo"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -66,7 +66,7 @@ function Sidebar() {
 						Vaccine Combo
 					</NavLink>
 					<NavLink
-						to={"/WorkSchedule"}
+						to={"/Admin/WorkSchedule"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",

@@ -1,14 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Image, Modal, Row, Table } from "react-bootstrap";
+import { Badge, Button, Col, Container, Form, Image, Modal, Pagination, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddVaccine from "../components/AddVaccine";
 
 function VaccineManage() {
-	const [vaccines, setVaccines] = useState([]);
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
+	const [vaccines, setVaccines] = useState([]);
 	const vaccineAPI = "http://localhost:8080/vaccine/get";
 
-	const [isOpen, setIsOpen] = useState(false);
+	const [isOpen, setIsOpen] = useState(false); //Form Add Vaccine
+
+	//For pagination
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 5; // Number of items per page
+	const indexOfLastItems = currentPage * itemsPerPage;
+	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
+	const currentVaccines = vaccines.slice(indexOfFirstItems, indexOfLastItems);
+	const totalPages = Math.ceil(vaccines.length / itemsPerPage);
+
+	const handlePageChange = (pageNumber) => {
+		setCurrentPage(pageNumber);
+	};
+
+	let items = [];
+	for (let number = 1; number <= totalPages; number++) {
+		items.push(
+			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
+				{number}
+			</Pagination.Item>
+		);
+	}
+
+	const pagination = (
+		<Pagination>
+			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+			{items}
+			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
+		</Pagination>
+	);
 
 	useEffect(() => {
 		fetch(vaccineAPI)
@@ -54,8 +85,10 @@ function VaccineManage() {
 								</tr>
 							</thead>
 							<tbody>
-								{vaccines.length > 0 ? (
-									vaccines.map((vaccine) => (
+								{/* {vaccines.length > 0 ? (
+									vaccines.map((vaccine) => ( */}
+								{currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
+									currentVaccines.map((vaccine) => (
 										<tr key={vaccine.id}>
 											<td>{vaccine.id}</td>
 											<td>{vaccine.name}</td>
@@ -63,7 +96,7 @@ function VaccineManage() {
 											<td>{vaccine.description}</td>
 											<td>{vaccine.manufacturer}</td>
 											<td>{vaccine.quantity}</td>
-											<td>{vaccine.status}</td>
+											<td>{vaccine.status ? <Badge bg="success">Available</Badge> : <Badge bg="danger">Unavailable</Badge>}</td>
 											<td colSpan={2}>
 												<Button variant="info" size="sm" className="mb-2">
 													Update
@@ -77,30 +110,13 @@ function VaccineManage() {
 								) : (
 									<>
 										<tr>
-											<td>ID</td>
-											<td>Covid19 Vaccine</td>
-											<td>
-												<Image src="src/alt/notfound.jpg" thumbnail height={30} />
-											</td>
-											<td>
-												Lorem ipsum, dolor sit amet consectetur adipisicing elit. Aut aspernatur voluptatibus sunt illo natus, soluta eius esse explicabo quas laboriosam? Rem exercitationem quis culpa iure cumque
-												molestiae libero, voluptate dolore.
-											</td>
-											<td>ABC Co.</td>
-											<td>30</td>
-											<td>Available</td>
-											<td colSpan={2}>
-												<Button>Update</Button>
-												<Button>Delete</Button>
-											</td>
-										</tr>
-										<tr>
 											<td colSpan={8}>No vaccine added yet</td>
 										</tr>
 									</>
 								)}
 							</tbody>
 						</Table>
+						{pagination}
 					</Container>
 				</Col>
 			</Row>

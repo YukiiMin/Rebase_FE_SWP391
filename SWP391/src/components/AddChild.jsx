@@ -38,7 +38,7 @@ function AddChild({ setIsOpen, open }) {
 				console.log("Adding child successful");
 				alert("Adding child successful!");
 				handleClose();
-				navigate('/children');
+				navigate("/children");
 				window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding child failed: ", response.status);

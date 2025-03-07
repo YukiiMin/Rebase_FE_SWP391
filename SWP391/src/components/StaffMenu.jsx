@@ -6,7 +6,7 @@ function StaffMenu() {
 	return (
 		<Col sm={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
 			<Navbar>
-				<Nav defaultActiveKey="/StaffPage" className="flex-column">
+				<Nav defaultActiveKey="/Staff/StaffPage" className="flex-column">
 					<Navbar.Brand
 						href="/"
 						style={{
@@ -18,7 +18,7 @@ function StaffMenu() {
 						Vaccine Schedule
 					</Navbar.Brand>
 					<NavLink
-						to={"/StaffPage"}
+						to={"/Staff/StaffPage"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -30,7 +30,7 @@ function StaffMenu() {
 						Staff Home
 					</NavLink>
 					<NavLink
-						to={"/CheckIn"}
+						to={"/Staff/CheckIn"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
@@ -42,7 +42,7 @@ function StaffMenu() {
 						Customer Check-In
 					</NavLink>
 					<NavLink
-						to={"/Schedule"}
+						to={"/Staff/Schedule"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",

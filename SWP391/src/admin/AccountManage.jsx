@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Button, Col, Container, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import UpdateRole from "../components/UpdateRole";
+import AddAccount from "../components/AddAccount";
 
 function AccountManage() {
 	const token = localStorage.getItem("token");
 	const [accounts, setAccounts] = useState([]);
+	const [isOpen, setIsOpen] = useState(false);
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 
 	const [selectedAccount, setSelectedAccount] = useState("");
@@ -14,26 +16,31 @@ function AccountManage() {
 	const accountAPI = "http://localhost:8080/users/getAllUser";
 
 	useEffect(() => {
-		const fetchAccount = async () => {
-			const response = await fetch(accountAPI, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				setAccounts(data.result);
-			} else {
-				console.error();
-			}
-		};
 		fetchAccount();
 	}, [accountAPI, token]);
+
+	const fetchAccount = async () => {
+		const response = await fetch(accountAPI, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-type": "application/json",
+			},
+		});
+		if (response.ok) {
+			const data = await response.json();
+			setAccounts(data.result);
+		} else {
+			console.error();
+		}
+	};
 
 	const handleUpdateClick = (accountId) => {
 		setSelectedAccount(accountId);
 		setIsUpdateOpen(true);
+	};
+
+	const handleAddAccount = (newAccount) => {
+		fetchAccount();
 	};
 
 	// .then((response) => response.json())
@@ -48,7 +55,18 @@ function AccountManage() {
 				<Col>
 					{console.log(accounts)}
 					<Container className="py-4">
-						<h1 className="mb-4 text-primary">Account Management</h1>
+						{/* <h1 className="mb-4 text-primary">Account Management</h1> */}
+						<Row className="mb-4 align-items-center">
+							<Col>
+								<h1 className="text-primary">Account Management</h1>
+							</Col>
+							<Col className="text-end">
+								<Button variant="primary" onClick={() => setIsOpen(true)}>
+									Add Account
+								</Button>
+							</Col>
+							{isOpen && <AddAccount setIsOpen={setIsOpen} open={isOpen} onAccountAdded={handleAddAccount} />}
+						</Row>
 						<hr className="mb-4"></hr>
 						<Table striped bordered hover responsive>
 							<thead>
