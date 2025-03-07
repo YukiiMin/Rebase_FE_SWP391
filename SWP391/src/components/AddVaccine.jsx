@@ -2,8 +2,10 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function AddVaccine({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const vaccineAPI = "http://localhost:8080/vaccine/addVaccine";
 
@@ -70,6 +72,8 @@ function AddVaccine({ setIsOpen, open }) {
 				console.log("Adding vaccine successful");
 				alert("Adding vaccine successful!");
 				handleClose();
+				navigate('/admin/vaccine-manage');
+				window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding vaccine failed: ", response.status);
 				alert("Adding vaccine failed. Please try again.");

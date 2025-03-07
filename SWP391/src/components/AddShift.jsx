@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function AddShift({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const shiftAPI = "http://localhost:8080/working";
 
@@ -22,12 +24,17 @@ function AddShift({ setIsOpen, open }) {
 				body: JSON.stringify(values),
 			});
 			if (response.ok) {
+				alert("Adding shift successful!");
 				handleClose();
+				navigate('/admin/work-schedule');
+				window.location.reload(); // Reload page after redirect
 			} else {
 				console.log("Adding shift error: ", response.status);
+				alert("Adding shift failed. Please try again.");
 			}
 		} catch (err) {
 			console.log(err);
+			alert("An error occurred during adding shift. Please try again.");
 		}
 	};
 

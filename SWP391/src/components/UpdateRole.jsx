@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function UpdateRole({ setIsOpen, open, userId }) {
+	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const userAPI = "http://localhost:8080/users";
 	const [role, setRole] = useState();
@@ -56,12 +58,17 @@ function UpdateRole({ setIsOpen, open, userId }) {
 				}),
 			});
 			if (response.ok) {
+				alert("Update role successful!");
 				handleClose();
+				navigate('/admin/account-manage');
+				window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Failed to update user:", response.status);
+				alert("Update role failed. Please try again.");
 			}
 		} catch (err) {
 			console.error("Error updating user role: ", err);
+			alert("An error occurred during update. Please try again.");
 		}
 	};
 

@@ -1,8 +1,34 @@
 import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function UpdateUser({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	const handleClose = () => setIsOpen(false); //Close modal
+
+	const handleSubmit = async (values) => {
+		try {
+			const response = await fetch("http://localhost:8080/user/update", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(values),
+			});
+			if (response.ok) {
+				alert("Update profile successful!");
+				handleClose();
+				navigate('/profile');
+				window.location.reload(); // Reload page after redirect
+			} else {
+				console.error("Update profile failed: ", response.status);
+				alert("Update profile failed. Please try again.");
+			}
+		} catch (err) {
+			console.error("Update profile error:", err);
+			alert("An error occurred during update. Please try again.");
+		}
+	};
 
 	return (
 		<div>

@@ -2,8 +2,10 @@ import { useFormik } from "formik";
 import React, { useState } from "react";
 import * as Yup from "yup";
 import { Button, Col, Form, InputGroup, Modal, Row, Table } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function AddCombo({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	const searchVaccAPI = "http://localhost:8080/vaccine";
 	const addComboAPI = "http://localhost:8080/vaccine/combo/add";
 	const addComDetailAPI = "http://localhost:8080/vaccine/combo/detail";
@@ -81,7 +83,6 @@ function AddCombo({ setIsOpen, open }) {
 	const handleAddComboDetail = async (values, comboId) => {
 		try {
 			console.log(values, `comboId: ${comboId}`, selectedVaccs);
-			// const response = await fetch(addComDetailAPI + "/" + comboId + "/" + vaccineId);
 			for (const item of selectedVaccs) {
 				const response = await fetch(`${addComDetailAPI}/${comboId}/${item.vaccine.id}`, {
 					method: "POST",
@@ -94,6 +95,8 @@ function AddCombo({ setIsOpen, open }) {
 					console.log("Add combo detail successful");
 					alert("Adding combo successful");
 					handleClose();
+					navigate('/admin/combo-manage');
+					window.location.reload(); // Reload page after redirect
 				} else {
 					console.error("Add combo detail error: ", response.status);
 				}

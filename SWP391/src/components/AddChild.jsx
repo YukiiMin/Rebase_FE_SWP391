@@ -1,8 +1,10 @@
 import { useFormik } from "formik";
 import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 function AddChild({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	const childAPI = "";
 
 	const handleClose = () => setIsOpen(false); //Close modal
@@ -36,6 +38,8 @@ function AddChild({ setIsOpen, open }) {
 				console.log("Adding child successful");
 				alert("Adding child successful!");
 				handleClose();
+				navigate('/children');
+				window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding child failed: ", response.status);
 				alert("Adding child failed. Please try again.");
