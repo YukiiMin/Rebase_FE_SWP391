@@ -5,11 +5,9 @@ import { Button, Col, Form, InputGroup, Modal, Row, Table } from "react-bootstra
 import { useNavigate } from "react-router-dom";
 
 function AddCombo({ setIsOpen, open }) {
-	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const searchVaccAPI = "http://localhost:8080/vaccine";
-	const addComboAPI = "http://localhost:8080/vaccine/combo/add";
-	const addComDetailAPI = "http://localhost:8080/vaccine/combo/detail";
+	const comboAPI = "http://localhost:8080/vaccine/combo";
 
 	const [search, setSearch] = useState("");
 	const [searchResult, setSearchResult] = useState([]);
@@ -55,59 +53,121 @@ function AddCombo({ setIsOpen, open }) {
 	//Add the vaccine combo first
 	const handleAddCombo = async (values) => {
 		try {
-			console.log(values);
-			const response = await fetch(addComboAPI, {
+			const comboData = {
+				comboName: values.comboName,
+				description: values.description,
+			};
+			const response = await fetch(`${comboAPI}/add`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify(values),
+				body: JSON.stringify(comboData),
 			});
 			if (response.ok) {
-				console.log("Add combo successful, proceed to adding combo detail");
-				//Get new id from the response
-				const responseData = await response.json();
-				const comboId = responseData.id;
-				console.log("id:", comboId);
+				const data = await response.json();
+				const comboId = data.result.id;
+				console.log("ComboId: ", comboId, ". Next is adding combo detail"); //Get the comboId for the addComboDetail func
 				handleAddComboDetail(values, comboId);
 			} else {
 				console.error("Adding combo failed: ", response.status);
-				alert("Adding combo failed. Please try again.");
 			}
 		} catch (err) {
-			console.error("Add combo error:", err);
-			alert("An error occurred during adding child. Please try again.");
+			console.log("Add combo failed: ", err);
 		}
 	};
 
+	// const handleAddCombo = async (values) => {
+	// 	try {
+	// 		console.log(values);
+	// 		const response = await fetch(`${comboAPI}/add`, {
+	// 			method: "POST",
+	// 			headers: {
+	// 				Authorization: `Bearer ${token}`,
+	// 				"Content-Type": "application/json",
+	// 			},
+	// 			body: JSON.stringify(values),
+	// 		});
+	// 		if (response.ok) {
+	// 			console.log("Add combo successful, proceed to adding combo detail");
+	// 			//Get new id from the response
+	// 			const responseData = await response.json();
+	// 			const comboId = responseData.result.id;
+	// 			console.log("id:", comboId);
+	// 			handleAddComboDetail(values, comboId);
+	// 		} else {
+	// 			console.error("Adding combo failed: ", response.status);
+	// 		}
+	// 	} catch (err) {
+	// 		console.error("Add combo error:", err);
+	// 	}
+	// };
+
 	//Add vaccine combo detail using the newly create comboId
+
 	const handleAddComboDetail = async (values, comboId) => {
+		console.log(selectedVaccs);
 		try {
-			console.log(values, `comboId: ${comboId}`, selectedVaccs);
+			let success = true;
 			for (const item of selectedVaccs) {
-				const response = await fetch(`${addComDetailAPI}/${comboId}/${item.vaccine.id}`, {
+				console.log(item.vaccine.id);
+				const detailData = {
+					dose: item.dose,
+					ageGroup: values.ageGroup,
+					saleOff: values.saleOff,
+				};
+				console.log(detailData);
+				const response = await fetch(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`, {
 					method: "POST",
 					headers: {
+						Authorization: `Bearer ${token}`,
 						"Content-Type": "application/json",
 					},
-					body: JSON.stringify(values),
+					body: JSON.stringify(detailData),
 				});
 				if (response.ok) {
-					console.log("Add combo detail successful");
-					alert("Adding combo successful");
-					handleClose();
-					navigate("/Admin/ManageCombo");
-					window.location.reload(); // Reload page after redirect
+					console.log(`Adding detail for vaccineId ${item.vaccine.id} success`);
 				} else {
-					console.error("Add combo detail error: ", response.status);
+					console.error(`Adding detail for vaccine ${item.vaccine.id} failed: `, response.status);
+					success = false;
 				}
 			}
+			if (success) {
+				alert("Adding combo successful!!!");
+				handleClose();
+			}
 		} catch (err) {
-			console.error("Add combo error:", err);
-			alert("An error occurred during adding child. Please try again.");
+			console.error("Add detail failed: ", err);
 		}
 	};
+
+	// const handleAddComboDetail = async (values, comboId) => {
+	// 	try {
+	// 		console.log(values, `comboId: ${comboId}`, selectedVaccs);
+	// 		for (const item of selectedVaccs) {
+	// 			console.log(item)
+	// 			const response = await fetch(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`, {
+	// 				method: "POST",
+	// 				headers: {
+	// 					"Content-Type": "application/json",
+	// 				},
+	// 				body: JSON.stringify(values),
+	// 			});
+	// 			if (response.ok) {
+	// 				console.log("Add combo detail successful");
+	// 				alert("Adding combo successful");
+	// 				handleClose();
+	// 				// navigate("/Admin/ManageCombo");
+	// 				// window.location.reload(); // Reload page after redirect
+	// 			} else {
+	// 				console.error("Add combo detail error: ", response.status);
+	// 			}
+	// 		}
+	// 	} catch (err) {
+	// 		console.error("Add combo error:", err);
+	// 	}
+	// };
 
 	//Function search vaccine for the form
 	const handleSearch = async (search) => {
@@ -169,7 +229,6 @@ function AddCombo({ setIsOpen, open }) {
 									</Button>
 								</InputGroup>
 								<Table striped bordered hover responsive>
-									{console.log(searchResult)}
 									<thead>
 										<tr>
 											<th></th>

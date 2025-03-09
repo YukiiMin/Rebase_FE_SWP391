@@ -72,6 +72,7 @@ function AccountManage() {
 							<thead>
 								<tr>
 									<th>#</th>
+									<th>AccountID</th>
 									<th>Full Name</th>
 									<th>Username</th>
 									<th>Gender</th>
@@ -85,8 +86,9 @@ function AccountManage() {
 							</thead>
 							<tbody>
 								{accounts.length > 0 ? (
-									accounts.map((user) => (
+									accounts.map((user, index) => (
 										<tr key={user.accountId}>
+											<td>{index + 1}</td>
 											<td>{user.accountId}</td>
 											<td>
 												{user.firstName} {user.lastName}

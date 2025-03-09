@@ -28,7 +28,8 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		compatibility: Yup.string().required("Compatibility is required").min(30, "Compatibility must be at least 30 characters"),
 		// imageUrl: Yup.mixed().required("Vaccine Image is required"),
 		quantity: Yup.number().required("Quantity is required").min(0, "Quantity cannot be negative"),
-		price: Yup.number().required("Price is required").min(0, "Price cannot be negative"),
+		unitPrice: Yup.number().required("Unit price is required").min(0, "Unit price cannot be negative"),
+		salePrice: Yup.number().required("Sale price is required").min(0, "Sale price cannot be negative").moreThan(Yup.ref("unitPrice"), "Sale price must be higher than Unit price"),
 		status: Yup.boolean().required("Status is required"),
 	});
 
@@ -49,7 +50,8 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			compatibility: "",
 			imagineUrl: "https://example.com/vaccine-image.jpg", //Tam thoi de URL cho den khi su dung duoc Upload img
 			quantity: "",
-			price: "",
+			unitPrice: "",
+			salePrice: "",
 			status: true,
 		},
 		onSubmit: (values) => {
@@ -72,9 +74,9 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				console.log("Adding vaccine successful");
 				alert("Adding vaccine successful!");
 				const newVaccine = await response.json();
-				console.log(newVaccine);
+				console.log(newVaccine.result);
 				handleClose();
-				onAdded(newVaccine);
+				onAdded(newVaccine.result);
 
 				// navigate("/Admin/ManageVaccine");
 				// window.location.reload(); // Reload page after redirect
@@ -282,10 +284,30 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 								<Form.Control.Feedback type="invalid">{formik.errors.quantity}</Form.Control.Feedback>
 							</Form.Group>
 
-							<Form.Group as={Col} controlId="price">
+							<Form.Group as={Col} controlId="unitPPrice">
 								<Form.Label>Unit Price ($)</Form.Label>
-								<Form.Control type="number" placeholder="Enter Price" name="price" value={formik.values.price} onChange={formik.handleChange} isInvalid={formik.touched.price && formik.errors.price} />
-								<Form.Control.Feedback type="invalid">{formik.errors.price}</Form.Control.Feedback>
+								<Form.Control
+									type="number"
+									placeholder="Enter Unit Price"
+									name="unitPrice"
+									value={formik.values.unitPrice}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.unitPrice && formik.errors.unitPrice}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.unitPrice}</Form.Control.Feedback>
+							</Form.Group>
+
+							<Form.Group as={Col} controlId="salePsalePrice">
+								<Form.Label>Sale Price ($)</Form.Label>
+								<Form.Control
+									type="number"
+									placeholder="Enter Sale Price"
+									name="salePrice"
+									value={formik.values.salePrice}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.salePrice && formik.errors.salePrice}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.salePrice}</Form.Control.Feedback>
 							</Form.Group>
 
 							{/* <Form.Group as={Col} controlId="status">
