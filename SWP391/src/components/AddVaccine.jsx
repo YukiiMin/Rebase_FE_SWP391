@@ -4,7 +4,7 @@ import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
-function AddVaccine({ setIsOpen, open }) {
+function AddVaccine({ setIsOpen, open, onAdded }) {
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
@@ -50,7 +50,7 @@ function AddVaccine({ setIsOpen, open }) {
 			imagineUrl: "https://example.com/vaccine-image.jpg", //Tam thoi de URL cho den khi su dung duoc Upload img
 			quantity: "",
 			price: "",
-			status: "",
+			status: true,
 		},
 		onSubmit: (values) => {
 			handleAddVaccine(values);
@@ -60,8 +60,6 @@ function AddVaccine({ setIsOpen, open }) {
 
 	const handleAddVaccine = async (values) => {
 		try {
-			console.log(vaccineAPI);
-			console.log(values);
 			const response = await fetch(vaccineAPI, {
 				method: "POST",
 				headers: {
@@ -73,9 +71,13 @@ function AddVaccine({ setIsOpen, open }) {
 			if (response.ok) {
 				console.log("Adding vaccine successful");
 				alert("Adding vaccine successful!");
+				const newVaccine = await response.json();
+				console.log(newVaccine);
 				handleClose();
-				navigate("/Admin/ManageVaccine");
-				window.location.reload(); // Reload page after redirect
+				onAdded(newVaccine);
+
+				// navigate("/Admin/ManageVaccine");
+				// window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding vaccine failed: ", response.status);
 				alert("Adding vaccine failed. Please try again.");
@@ -286,7 +288,7 @@ function AddVaccine({ setIsOpen, open }) {
 								<Form.Control.Feedback type="invalid">{formik.errors.price}</Form.Control.Feedback>
 							</Form.Group>
 
-							<Form.Group as={Col} controlId="status">
+							{/* <Form.Group as={Col} controlId="status">
 								<Form.Label>Status</Form.Label>
 								<Form.Select name="status" value={formik.values.status} onChange={formik.handleChange} isInvalid={formik.touched.status && formik.errors.status}>
 									<option value="">---Choose Status---</option>
@@ -294,9 +296,7 @@ function AddVaccine({ setIsOpen, open }) {
 									<option value="false">Not Available</option>
 								</Form.Select>
 								<Form.Control.Feedback type="invalid">{formik.errors.status}</Form.Control.Feedback>
-								{/* <Form.Control type="text" placeholder="Enter Status" name="status" value={formik.values.status} onChange={formik.handleChange} isInvalid={formik.touched.status && formik.errors.status} />
-								<Form.Control.Feedback type="invalid">{formik.errors.status}</Form.Control.Feedback> */}
-							</Form.Group>
+							</Form.Group> */}
 						</Row>
 
 						{/* <Form.Group controlId="formGridImage" className="mb-3">

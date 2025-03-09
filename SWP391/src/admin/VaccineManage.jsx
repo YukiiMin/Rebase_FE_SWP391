@@ -15,7 +15,8 @@ function VaccineManage() {
 	const itemsPerPage = 5; // Number of items per page
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentVaccines = vaccines.slice(indexOfFirstItems, indexOfLastItems);
+	// const currentVaccines = vaccines.slice(indexOfFirstItems, indexOfLastItems);
+	const currentVaccines = vaccines && vaccines.length > 0 ? vaccines.slice(indexOfFirstItems, indexOfLastItems) : [];
 	const totalPages = Math.ceil(vaccines.length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
@@ -42,15 +43,36 @@ function VaccineManage() {
 	);
 
 	useEffect(() => {
-		fetch(vaccineAPI)
-			.then((response) => response.json())
-			.then((data) => {
-				setVaccines(data.result);
-			})
-			.catch((error) => console.error("Error fetching vaccines:", error));
+		// fetch(vaccineAPI)
+		// 	.then((response) => response.json())
+		// 	.then((data) => {
+		// 		setVaccines(data.result);
+		// 	})
+		// 	.catch((error) => console.error("Error fetching vaccines:", error));
+		fetchVaccine();
 	}, []);
 
-	//Need pagination here. Max 10 items per
+	const fetchVaccine = async () => {
+		try {
+			const response = await fetch(vaccineAPI);
+			if (response.ok) {
+				const data = await response.json();
+				setVaccines(data.result);
+			} else {
+				console.error("Fetching vaccine failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Error fetching vaccine: ", err);
+		}
+	};
+
+	const handleVaccineAdded = (newVaccine) => {
+		if (newVaccine) {
+			setVaccines([newVaccine, ...vaccines]);
+		} else {
+			fetchVaccine();
+		}
+	};
 
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
@@ -69,7 +91,7 @@ function VaccineManage() {
 								</Button>
 							</Col>
 						</Row>
-						{isOpen && <AddVaccine setIsOpen={setIsOpen} open={isOpen} />}
+						{isOpen && <AddVaccine setIsOpen={setIsOpen} open={isOpen} onAdded={handleVaccineAdded} />}
 						<hr className="mb-4"></hr>
 						<Table striped bordered hover responsive>
 							<thead>
@@ -96,7 +118,7 @@ function VaccineManage() {
 											<td>{vaccine.description}</td>
 											<td>{vaccine.manufacturer}</td>
 											<td>{vaccine.quantity}</td>
-											<td>{vaccine.status ? <Badge bg="success">Available</Badge> : <Badge bg="danger">Unavailable</Badge>}</td>
+											<td>{vaccine.status ? vaccine.quantity > 0 ? <Badge bg="success">Available</Badge> : <Badge bg="warning">Unavailable</Badge> : <Badge bg="danger">Disable</Badge>}</td>
 											<td colSpan={2}>
 												<Button variant="info" size="sm" className="mb-2">
 													Update

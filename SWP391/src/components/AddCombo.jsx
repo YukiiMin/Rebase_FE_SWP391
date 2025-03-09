@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 function AddCombo({ setIsOpen, open }) {
 	const navigate = useNavigate();
+	const token = localStorage.getItem("token");
 	const searchVaccAPI = "http://localhost:8080/vaccine";
 	const addComboAPI = "http://localhost:8080/vaccine/combo/add";
 	const addComDetailAPI = "http://localhost:8080/vaccine/combo/detail";
@@ -167,7 +168,6 @@ function AddCombo({ setIsOpen, open }) {
 										Search
 									</Button>
 								</InputGroup>
-								Dang bi loi, nho fix
 								<Table striped bordered hover responsive>
 									{console.log(searchResult)}
 									<thead>
@@ -175,7 +175,7 @@ function AddCombo({ setIsOpen, open }) {
 											<th></th>
 											<th>#</th>
 											<th>Vaccine name</th>
-											<th>Category</th>
+											<th>Unit Price</th>
 											<th>Dose</th>
 										</tr>
 									</thead>
