@@ -67,6 +67,7 @@ function ComboManage() {
 									<th>Vaccines</th>
 									<th>Target Age Group</th>
 									<th>Sale %</th>
+									<th>Total Price</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -80,6 +81,7 @@ function ComboManage() {
 											<td>{combo.vaccines.join(", ")}</td>
 											<td>{combo.ageGroup}</td>
 											<td>{combo.saleOff}%</td>
+											<td>Price</td>
 										</tr>
 									))
 								) : (
