@@ -20,7 +20,7 @@ function AddCombo({ setIsOpen, open }) {
 		comboName: Yup.string().required("Combo Name is required"),
 		description: Yup.string().required("Description is required").min(30, "Description must be at least 30 characters"),
 		saleOff: Yup.number().min(0, "Sale cannot be negative"),
-		ageGroup: Yup.string().required("Age group is required"),
+		comboCategory: Yup.string().required("Combo category is required"),
 	});
 
 	const formik = useFormik({
@@ -28,7 +28,7 @@ function AddCombo({ setIsOpen, open }) {
 			comboName: "",
 			description: "",
 			saleOff: 0,
-			ageGroup: "",
+			comboCategory: "",
 		},
 		onSubmit: (values) => {
 			handleAddCombo(values);
@@ -114,10 +114,11 @@ function AddCombo({ setIsOpen, open }) {
 				console.log(item.vaccine.id);
 				const detailData = {
 					dose: item.dose,
-					ageGroup: values.ageGroup,
+					comboCategory: values.comboCategory,
 					saleOff: values.saleOff,
 				};
 				console.log(detailData);
+				console.log(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`);
 				const response = await fetch(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`, {
 					method: "POST",
 					headers: {
@@ -276,16 +277,21 @@ function AddCombo({ setIsOpen, open }) {
 									<Form.Control.Feedback type="invalid">{formik.errors.saleOff}</Form.Control.Feedback>
 								</Form.Group>
 								<Form.Group className="mb-3" controlId="ageGroup">
-									<Form.Label>Age group</Form.Label>
-									<Form.Control
+									<Form.Label>Combo Category</Form.Label>
+									<Form.Select name="comboCategory" value={formik.values.comboCategory} onChange={formik.handleChange} isInvalid={formik.touched.comboCategory && formik.errors.comboCategory}>
+										<option value="">---Choose Category---</option>
+										<option value="0-12thang">0 - 12 Months Old</option>
+										<option value="1 year old">1 year old or above</option>
+									</Form.Select>
+									{/* <Form.Control
 										type="text"
-										placeholder="Enter age group"
-										name="ageGroup"
-										value={formik.values.ageGroup}
+										placeholder="Enter combo category"
+										name="comboCategory"
+										value={formik.values.comboCategory}
 										onChange={formik.handleChange}
-										isInvalid={formik.touched.ageGroup && formik.errors.ageGroup}
-									/>
-									<Form.Control.Feedback type="invalid">{formik.errors.ageGroup}</Form.Control.Feedback>
+										isInvalid={formik.touched.comboCategory && formik.errors.comboCategory}
+									/> */}
+									<Form.Control.Feedback type="invalid">{formik.errors.comboCategory}</Form.Control.Feedback>
 								</Form.Group>
 							</Col>
 						</Row>

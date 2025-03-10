@@ -97,11 +97,14 @@ function VaccineManage() {
 							<thead>
 								<tr>
 									<th>#</th>
+									<th>ID</th>
 									<th>Vaccine Name</th>
 									<th>Image</th>
 									<th>Description</th>
 									<th>Manufacturer</th>
 									<th>Quantity</th>
+									<th>Unit Price ($)</th>
+									<th>Sale Price ($)</th>
 									<th>Status</th>
 									<th colSpan={2}></th>
 								</tr>
@@ -110,14 +113,17 @@ function VaccineManage() {
 								{/* {vaccines.length > 0 ? (
 									vaccines.map((vaccine) => ( */}
 								{currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
-									currentVaccines.map((vaccine) => (
+									currentVaccines.map((vaccine, index) => (
 										<tr key={vaccine.id}>
+											<td>{index + 1}</td>
 											<td>{vaccine.id}</td>
 											<td>{vaccine.name}</td>
 											<td>{vaccine.imagineUrl}</td>
 											<td>{vaccine.description}</td>
 											<td>{vaccine.manufacturer}</td>
 											<td>{vaccine.quantity}</td>
+											<td>{vaccine.unitPrice}</td>
+											<td>{vaccine.salePrice}</td>
 											<td>{vaccine.status ? vaccine.quantity > 0 ? <Badge bg="success">Available</Badge> : <Badge bg="warning">Unavailable</Badge> : <Badge bg="danger">Disable</Badge>}</td>
 											<td colSpan={2}>
 												<Button variant="info" size="sm" className="mb-2">
@@ -132,7 +138,7 @@ function VaccineManage() {
 								) : (
 									<>
 										<tr>
-											<td colSpan={8}>No vaccine added yet</td>
+											<td colSpan={12}>No vaccine added yet</td>
 										</tr>
 									</>
 								)}

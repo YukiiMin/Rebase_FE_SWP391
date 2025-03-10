@@ -43,22 +43,28 @@ function HomePage() {
 				</div>
 
 				<Row xs={1} md={2} lg={4} className="g-4">
-					{randomVaccines.map((vaccine) => (
-						<Col key={vaccine.id}>
-							<Card className="h-100 shadow-sm">
-								<Card.Img variant="top" src={vaccine.imagineUrl} alt={vaccine.id} style={{ height: "200px", objectFit: "cover" }} />
-								<Card.Body className="d-flex flex-column">
-									<Card.Title className="fw-bold">{vaccine.name}</Card.Title>
-									<Card.Text className="flex-grow-1">Price: {vaccine.price}$</Card.Text>
-									<Link to={`/VaccineDetail/${vaccine.id}`} className="mt-3">
-										<Button variant="info" className="w-100">
-											Detail
-										</Button>
-									</Link>
-								</Card.Body>
-							</Card>
-						</Col>
-					))}
+					{vaccinesList.length > 0 ? (
+						randomVaccines.map((vaccine) => (
+							<Col key={vaccine.id}>
+								<Card className="h-100 shadow-sm">
+									<Card.Img variant="top" src={vaccine.imagineUrl} alt={vaccine.id} style={{ height: "200px", objectFit: "cover" }} />
+									<Card.Body className="d-flex flex-column">
+										<Card.Title className="fw-bold">{vaccine.name}</Card.Title>
+										<Card.Text className="flex-grow-1">Price: {vaccine.price}$</Card.Text>
+										<Link to={`/VaccineDetail/${vaccine.id}`} className="mt-3">
+											<Button variant="info" className="w-100">
+												Detail
+											</Button>
+										</Link>
+									</Card.Body>
+								</Card>
+							</Col>
+						))
+					) : (
+						<p className="text-center w-100 mt-3">
+							<span className="text-danger fw-bold">No data retrieved.</span> Please check your network connection.
+						</p>
+					)}
 				</Row>
 				<hr className="my-5"></hr>
 				<h3 className="mb-3">Our service:</h3>

@@ -1,14 +1,18 @@
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import AddCategory from "./AddCategory";
 
 function AddVaccine({ setIsOpen, open, onAdded }) {
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
-	const vaccineAPI = "http://localhost:8080/vaccine/addVaccine";
+	const vaccineAPI = "http://localhost:8080/vaccine";
+
+	const [categories, setCategories] = useState([]);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	const handleClose = () => setIsOpen(false); //Close modal
 
@@ -16,7 +20,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		name: Yup.string().required("Vaccine Name is required"),
 		description: Yup.string().required("Description is required").min(30, "Description must be at least 30 characters"),
 		manufacturer: Yup.string().required("Manufacturer is required"),
-		category: Yup.string().required("Category is required"),
+		categoryId: Yup.string().required("Category is required"),
 		dosage: Yup.number().required("Dosage is required").min(0, "Dosage cannot be negative"),
 		contraindications: Yup.string().required("Contraindications are required").min(30, "Contraindications must be at least 30 characters"),
 		precautions: Yup.string().required("Precautions are required").min(30, "Precautions must be at least 30 characters"),
@@ -38,7 +42,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			name: "",
 			description: "",
 			manufacturer: "",
-			category: "",
+			categoryId: "",
 			dosage: "",
 			contraindications: "",
 			precautions: "",
@@ -48,7 +52,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			recommended: "",
 			preVaccination: "",
 			compatibility: "",
-			imagineUrl: "https://example.com/vaccine-image.jpg", //Tam thoi de URL cho den khi su dung duoc Upload img
+			imagineUrl: "https://vnvc.vn/wp-content/uploads/2024/09/vaccine-qdenga-1.jpg", //Tam thoi de URL cho den khi su dung duoc Upload img
 			quantity: "",
 			unitPrice: "",
 			salePrice: "",
@@ -60,15 +64,55 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		validationSchema: validation,
 	});
 
+	useEffect(() => {
+		fetchCategory();
+	}, []);
+
+	const fetchCategory = async () => {
+		try {
+			const response = await fetch(`${vaccineAPI}/getCategory`);
+			if (response.ok) {
+				const data = await response.json();
+				console.log(data);
+				setCategories(data.result);
+			} else {
+				console.error("Fetching category failed: ", response.status);
+			}
+		} catch (err) {
+			console.err("Fetching category failed: ", err);
+		}
+	};
+
 	const handleAddVaccine = async (values) => {
 		try {
-			const response = await fetch(vaccineAPI, {
+			const categoryId = values.categoryId;
+			const vaccineData = {
+				name: values.name,
+				description: values.description,
+				manufacturer: values.manufacturer,
+				dosage: values.dosage,
+				contraindications: values.contraindications,
+				precautions: values.precautions,
+				interactions: values.interactions,
+				adverseReaction: values.adverseReaction,
+				storageConditions: values.storageConditions,
+				recommended: values.recommended,
+				preVaccination: values.preVaccination,
+				compatibility: values.compatibility,
+				imagineUrl: values.imagineUrl,
+				quantity: values.quantity,
+				unitPrice: values.unitPrice,
+				salePrice: values.salePrice,
+				status: values.status,
+			};
+			console.log(categoryId, vaccineData);
+			const response = await fetch(`${vaccineAPI}/addVaccine/${categoryId}`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify(values),
+				body: JSON.stringify(vaccineData),
 			});
 			if (response.ok) {
 				console.log("Adding vaccine successful");
@@ -82,11 +126,18 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				// window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding vaccine failed: ", response.status);
-				alert("Adding vaccine failed. Please try again.");
 			}
 		} catch (err) {
 			console.error("Add vaccine error:", err);
-			alert("An error occurred during adding vaccine. Please try again.");
+		}
+	};
+
+	//Function to set the new vaccine category to the top of the list
+	const handleCategoryAdded = (newCategory) => {
+		if (newCategory) {
+			setCategories([newCategory, ...categories]);
+		} else {
+			fetchCategory();
 		}
 	};
 
@@ -123,6 +174,81 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 							</Form.Group>
 						</Row>
 
+						<Row className="mb-3">
+							<Form.Group as={Col} controlId="category">
+								<div className="d-flex justify-content-between align-items-center">
+									<Form.Label className="mb-0">Category</Form.Label>
+									<Button size="sm" variant="outline-primary" onClick={() => setIsModalOpen(true)}>
+										Add category
+									</Button>
+								</div>
+								{/* <Form.Control
+									type="text"
+									placeholder="Enter Category"
+									name="category"
+									value={formik.values.category}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.category && formik.errors.category}
+								/> */}
+								<Form.Select name="categoryId" value={formik.values.categoryId} onChange={formik.handleChange} isInvalid={formik.touched.categoryId && formik.errors.categoryId}>
+									<option value="">---Choose Category---</option>
+									{/* {categories.map((category) => (
+										<option value={category.id}>Category</option>
+									))} */}
+									<option value="1">Hepatitus</option>
+									<option value="2">Covid</option>
+								</Form.Select>
+								<Form.Control.Feedback type="invalid">{formik.errors.categoryId}</Form.Control.Feedback>
+								{isModalOpen && <AddCategory open={isModalOpen} setIsOpen={setIsModalOpen} onAddedCategory={handleCategoryAdded} />}
+							</Form.Group>
+
+							<Form.Group as={Col} controlId="dosage">
+								<Form.Label>Dosage</Form.Label>
+								<Form.Control type="number" placeholder="Enter Dosage" name="dosage" value={formik.values.dosage} onChange={formik.handleChange} isInvalid={formik.touched.dosage && formik.errors.dosage} />
+								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
+							</Form.Group>
+						</Row>
+
+						<Row className="mb-3">
+							<Form.Group as={Col} controlId="quantity">
+								<Form.Label>Quantity</Form.Label>
+								<Form.Control
+									type="number"
+									placeholder="Enter Quantity"
+									name="quantity"
+									value={formik.values.quantity}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.quantity && formik.errors.quantity}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.quantity}</Form.Control.Feedback>
+							</Form.Group>
+
+							<Form.Group as={Col} controlId="unitPPrice">
+								<Form.Label>Unit Price ($)</Form.Label>
+								<Form.Control
+									type="number"
+									placeholder="Enter Unit Price"
+									name="unitPrice"
+									value={formik.values.unitPrice}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.unitPrice && formik.errors.unitPrice}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.unitPrice}</Form.Control.Feedback>
+							</Form.Group>
+
+							<Form.Group as={Col} controlId="salePsalePrice">
+								<Form.Label>Sale Price ($)</Form.Label>
+								<Form.Control
+									type="number"
+									placeholder="Enter Sale Price"
+									name="salePrice"
+									value={formik.values.salePrice}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.salePrice && formik.errors.salePrice}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.salePrice}</Form.Control.Feedback>
+							</Form.Group>
+						</Row>
 						<Form.Group className="mb-3" controlId="description">
 							<Form.Label>Description</Form.Label>
 							<Form.Control
@@ -136,27 +262,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 							/>
 							<Form.Control.Feedback type="invalid">{formik.errors.description}</Form.Control.Feedback>
 						</Form.Group>
-
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="category">
-								<Form.Label>Category</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter Category"
-									name="category"
-									value={formik.values.category}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.category && formik.errors.category}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.category}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="dosage">
-								<Form.Label>Dosage</Form.Label>
-								<Form.Control type="number" placeholder="Enter Dosage" name="dosage" value={formik.values.dosage} onChange={formik.handleChange} isInvalid={formik.touched.dosage && formik.errors.dosage} />
-								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
 
 						<Form.Group className="mb-3" controlId="contraindications">
 							<Form.Label>Contraindications</Form.Label>
@@ -270,47 +375,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 							<Form.Control.Feedback type="invalid">{formik.errors.compatibility}</Form.Control.Feedback>
 						</Form.Group>
 
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="quantity">
-								<Form.Label>Quantity</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Quantity"
-									name="quantity"
-									value={formik.values.quantity}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.quantity && formik.errors.quantity}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.quantity}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="unitPPrice">
-								<Form.Label>Unit Price ($)</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Unit Price"
-									name="unitPrice"
-									value={formik.values.unitPrice}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.unitPrice && formik.errors.unitPrice}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.unitPrice}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="salePsalePrice">
-								<Form.Label>Sale Price ($)</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Sale Price"
-									name="salePrice"
-									value={formik.values.salePrice}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.salePrice && formik.errors.salePrice}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.salePrice}</Form.Control.Feedback>
-							</Form.Group>
-
-							{/* <Form.Group as={Col} controlId="status">
+						{/* <Form.Group as={Col} controlId="status">
 								<Form.Label>Status</Form.Label>
 								<Form.Select name="status" value={formik.values.status} onChange={formik.handleChange} isInvalid={formik.touched.status && formik.errors.status}>
 									<option value="">---Choose Status---</option>
@@ -319,7 +384,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 								</Form.Select>
 								<Form.Control.Feedback type="invalid">{formik.errors.status}</Form.Control.Feedback>
 							</Form.Group> */}
-						</Row>
 
 						{/* <Form.Group controlId="formGridImage" className="mb-3">
 							<Form.Label>Vaccine Image</Form.Label>

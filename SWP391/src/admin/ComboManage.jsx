@@ -29,7 +29,7 @@ function ComboManage() {
 					comboId: combo.comboId,
 					comboName: combo.comboName,
 					description: combo.description,
-					ageGroup: combo.ageGroup,
+					comboCategory: combo.comboCategory,
 					saleOff: combo.saleOff,
 					total: combo.total,
 					vaccines: [], // Initialize vaccines array
@@ -93,7 +93,7 @@ function ComboManage() {
 												</ul>
 											</td>
 											{/*Vaccine(dose), Vaccine(dose) */}
-											<td>{combo.ageGroup}</td>
+											<td>{combo.comboCategory}</td>
 											<td>{combo.saleOff}%</td>
 											<td>{parseFloat(combo.total).toFixed(2)}</td>
 										</tr>

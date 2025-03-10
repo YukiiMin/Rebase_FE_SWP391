@@ -26,7 +26,7 @@ function AddShift({ setIsOpen, open }) {
 			if (response.ok) {
 				alert("Adding shift successful!");
 				handleClose();
-				navigate('/admin/work-schedule');
+				navigate("/admin/work-schedule");
 				window.location.reload(); // Reload page after redirect
 			} else {
 				console.log("Adding shift error: ", response.status);
@@ -43,7 +43,7 @@ function AddShift({ setIsOpen, open }) {
 			<Modal show={open} onHide={handleClose} size="xl">
 				<Form method="POST">
 					<Modal.Header closeButton>
-						<Modal.Title>Create shift</Modal.Title>
+						<Modal.Title>Add Schedule</Modal.Title>
 					</Modal.Header>
 					<Modal.Body>
 						<Form.Group className="mb-3" controlId="Shift name">
