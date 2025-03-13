@@ -118,7 +118,10 @@ function VaccineManage() {
 											<td>{index + 1}</td>
 											<td>{vaccine.id}</td>
 											<td>{vaccine.name}</td>
-											<td>{vaccine.imagineUrl}</td>
+											{/* <td>{vaccine.imagineUrl}</td> */}
+											<td>
+												<Image src={vaccine.imagineUrl} alt={`${vaccine.name} image`} thumbnail />
+											</td>
 											<td>{vaccine.description}</td>
 											<td>{vaccine.manufacturer}</td>
 											<td>{vaccine.quantity}</td>

@@ -1,13 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
 import { Container, Table } from "react-bootstrap";
 
 function PriceListPage() {
+	const vaccineAPI = "http://localhost:8080/vaccine";
+	const [vaccineList, setVaccineList] = useState([]);
+	const token = localStorage.getItem("token");
+
+	useEffect(() => {
+		getVaccine();
+	}, []);
+
+	const getVaccine = async () => {
+		try {
+			const response = await fetch(`${vaccineAPI}/get`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			if (response.ok) {
+				const data = await response.json();
+				setVaccineList(data.result);
+			} else {
+				console.error("Fetching vaccine failed: ", response.status);
+			}
+		} catch (err) {
+			console.log("Something went wrong when fetching vaccines: ", err);
+		}
+	};
+
 	return (
 		<div>
 			<Navigation />
 			<br />
 			<Container>
+				{console.log(vaccineList)}
 				<h2>Vaccination price list and payment methods:</h2>
 				<br />
 				<h3>Vaccination price list</h3>
@@ -17,32 +44,26 @@ function PriceListPage() {
 							<th>#</th>
 							<th>Vaccine name</th>
 							<th>Origin</th>
-							<th>Price/Dose (VND)</th>
+							<th>Price/Dose ($)</th>
 							<th>Status</th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-							<td>1</td>
-							<td>Pentaxim</td>
-							<td>France</td>
-							<td>795000</td>
-							<td>Available</td>
-						</tr>
-						<tr>
-							<td>2</td>
-							<td>Rotateq</td>
-							<td>USA</td>
-							<td>665000</td>
-							<td>Unavailable</td>
-						</tr>
-						<tr>
-							<td>3</td>
-							<td>Rotavin</td>
-							<td>Vietnam</td>
-							<td>490000</td>
-							<td>Available</td>
-						</tr>
+						{vaccineList.length > 0 ? (
+							vaccineList.map((vaccine) => (
+								<tr>
+									<td>{vaccine.id}</td>
+									<td>{vaccine.name}</td>
+									<td>{vaccine.manufacturer}</td>
+									<td>{vaccine.salePrice}</td>
+									<td>{vaccine.status ? "Available" : "Unavailable"}</td>
+								</tr>
+							))
+						) : (
+							<tr>
+								<td colSpan={5}>No data</td>
+							</tr>
+						)}
 					</tbody>
 				</Table>
 				<br />

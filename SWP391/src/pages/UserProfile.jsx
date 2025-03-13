@@ -10,7 +10,7 @@ function UserProfile() {
 	const userAPI = "http://localhost:8080/users";
 
 	const token = localStorage.getItem("token");
-	const [user, setUser] = useState();
+	const [user, setUser] = useState({});
 	const [userId, setUserId] = useState("");
 	const [isOpen, setIsOpen] = useState(false); //use this to open user update form
 	const navigate = useNavigate();
@@ -19,8 +19,6 @@ function UserProfile() {
 		if (token) {
 			const decodedToken = jwtDecode(token);
 			setUserId(decodedToken.sub);
-		} else {
-			navigate("/");
 		}
 	}, [navigate]);
 
@@ -79,7 +77,7 @@ function UserProfile() {
 										}}>
 										Edit profile
 									</Button>
-									{isOpen && <UpdateUser setIsOpen={setIsOpen} open={isOpen} />}
+									{isOpen && <UpdateUser setIsOpen={setIsOpen} open={isOpen} user={user} />}
 								</Card.Body>
 							</Card>
 						</Container>

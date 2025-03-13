@@ -53,11 +53,12 @@ function ComboList() {
 						</Button>
 					</InputGroup>
 				</Form>
+
 				<Row xs={1} md={2} lg={4} className="g-4">
 					{comboList.map((combo) => (
-						<Col key={combo.id}>
+						<Col key={combo.comboId}>
 							<Card>
-								<Card.Img variant="top" /*src={vaccine.image}*/ src={"src/alt/notfound.jpg"} />
+								<Card.Img variant="top" src={"src/alt/notfound.jpg"} />
 								<Card.Body>
 									<Card.Title>{combo.comboName}</Card.Title>
 									<Card.Text>Include: {combo.vaccines.join(", ")}</Card.Text>
@@ -71,6 +72,18 @@ function ComboList() {
 							</Card>
 						</Col>
 					))}
+				</Row>
+
+				<Row>
+					{comboList.length > 0 ? (
+						comboList.map((combo) => {
+							<div key={combo.comboId}>
+								<h5>{combo.comboName}</h5>
+							</div>;
+						})
+					) : (
+						<>No data</>
+					)}
 				</Row>
 			</Container>
 		</div>

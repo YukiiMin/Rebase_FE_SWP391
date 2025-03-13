@@ -7,17 +7,20 @@ import { useNavigate } from "react-router-dom";
 function BookingPage() {
 	const vaccineAPI = "http://localhost:8080/vaccine";
 	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
+	const childAPI = "http://localhost:8080/children";
 	const token = localStorage.getItem("token");
 
 	const navigate = useNavigate();
 	const [vaccinesList, setVaccinesList] = useState([]);
 	const [comboList, setComboList] = useState([]);
+	const [childs, setChilds] = useState([]);
 
 	const [type, setType] = useState("single");
 
 	const [isOpen, setIsOpen] = useState(false);
 
 	useEffect(() => {
+		getChild();
 		getVaccines();
 		getCombo();
 	}, []);
@@ -25,7 +28,11 @@ function BookingPage() {
 	//Get list of single Vaccine
 	const getVaccines = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/get`);
+			const response = await fetch(`${vaccineAPI}/get`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
 			if (response.ok) {
 				const data = await response.json();
 				setVaccinesList(data.result);
@@ -40,7 +47,11 @@ function BookingPage() {
 	//Get list of Combo
 	const getCombo = async () => {
 		try {
-			const response = await fetch(`${comboAPI}`);
+			const response = await fetch(`${comboAPI}`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
 			if (response.ok) {
 				const data = await response.json();
 				// setComboList(data.result);
@@ -51,6 +62,22 @@ function BookingPage() {
 			}
 		} catch (err) {
 			console.error(err);
+		}
+	};
+
+	const getChild = async () => {
+		try {
+			const response = await fetch(`${childAPI}`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			if (response.ok) {
+				const data = await response.json();
+				setChilds(data);
+			}
+		} catch (err) {
+			console.log(err);
 		}
 	};
 
@@ -88,17 +115,22 @@ function BookingPage() {
 			<Navigation />
 			<br />
 			<Container>
-				{console.log(vaccinesList)}
-				{console.log(comboList)}
+				{console.log(childs, comboList)}
 				<h2>Vaccination Booking</h2>
 				<br />
 				<Form method="POST">
 					<InputGroup className="mb-3">
 						<Form.Select aria-label="Default select example">
-							<option>Choose child</option>
-							<option value="1">Child 1</option>
-							<option value="2">Child 2</option>
-							<option value="3">Child 3</option>
+							{childs.length > 0 ? (
+								<>
+									<option>---Choose child---</option>
+									{childs.map((child) => (
+										<option value={child.child_id}>{child.name}</option>
+									))}
+								</>
+							) : (
+								<option>No data</option>
+							)}
 						</Form.Select>
 						<Button
 							onClick={() => {
@@ -129,7 +161,7 @@ function BookingPage() {
 													label={vaccine.name}
 													// onChange={(e) => handleVaccineSelection(vaccine, e.target.checked)}
 												/>
-												<Card.Text>{vaccine.price}$</Card.Text>
+												<Card.Text>{vaccine.salePrice}$</Card.Text>
 											</Card.Body>
 										</Card>
 									))}
@@ -146,6 +178,7 @@ function BookingPage() {
 													// onChange={(e) => handleVaccineSelection(vaccine, e.target.checked)}
 												/>
 												<Card.Text>{combo.vaccines.join(", ")}</Card.Text>
+												{/* <Card.Text>{combo.total}$</Card.Text> */}
 											</Card.Body>
 										</Card>
 									))}

@@ -137,6 +137,8 @@ function AddCombo({ setIsOpen, open }) {
 			if (success) {
 				alert("Adding combo successful!!!");
 				handleClose();
+				navigate("/Admin/ManageCombo");
+				window.location.reload(); // Reload page after redirect
 			}
 		} catch (err) {
 			console.error("Add detail failed: ", err);
@@ -280,8 +282,8 @@ function AddCombo({ setIsOpen, open }) {
 									<Form.Label>Combo Category</Form.Label>
 									<Form.Select name="comboCategory" value={formik.values.comboCategory} onChange={formik.handleChange} isInvalid={formik.touched.comboCategory && formik.errors.comboCategory}>
 										<option value="">---Choose Category---</option>
-										<option value="0-12thang">0 - 12 Months Old</option>
-										<option value="1 year old">1 year old or above</option>
+										<option value="Combo for kids">Combo for kids</option>
+										<option value="Combo for preschool children">Combo for preschool children</option>
 									</Form.Select>
 									{/* <Form.Control
 										type="text"

@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Col, Container, Form, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddShift from "../components/AddShift";
 
 function WorkSchedule() {
+	const scheduleAPI = "http://localhost:8080/working";
+	const token = localStorage.getItem("token");
+
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // Default to current month
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -15,6 +18,8 @@ function WorkSchedule() {
 		// Add more staff members as needed
 		// Need to fetch list of staff from API
 	];
+
+	const [schedule, setSchedule] = useState([{}]); //Array object which each object is a staff schedule
 
 	const handleMonthChange = (event) => {
 		setSelectedMonth(parseInt(event.target.value));
@@ -32,7 +37,7 @@ function WorkSchedule() {
 		setDaysInMonth(days);
 	};
 
-	React.useEffect(() => {
+	useEffect(() => {
 		updateDaysInMonth(selectedMonth, selectedYear);
 	}, [selectedMonth, selectedYear]);
 
@@ -47,6 +52,23 @@ function WorkSchedule() {
 			);
 		}
 		return years;
+	};
+
+	const fetchSchedule = async () => {
+		try {
+			const response = await fetch(`${scheduleAPI}/allworkdate/`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			if (response.ok) {
+				const data = response.json();
+			} else {
+				console.log("Fetching schedule failed: ", response.status);
+			}
+		} catch (err) {
+			console.log(err);
+		}
 	};
 
 	return (

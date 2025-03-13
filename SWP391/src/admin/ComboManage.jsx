@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Col, Container, Form, Modal, Row, Table } from "react-bootstrap";
+import { Accordion, Button, Col, Container, Form, Modal, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddCombo from "../components/AddCombo";
 
@@ -60,7 +60,57 @@ function ComboManage() {
 						</Row>
 						{isOpen && <AddCombo setIsOpen={setIsOpen} open={isOpen} />}
 						<hr className="mb-4"></hr>
-						<Table striped bordered hover responsive>
+						<Accordion alwaysOpen>
+							{combos.length > 0 ? (
+								combos.map((combo) => (
+									<Accordion.Item eventKey={combo.comboId} key={combo.comboId} className="mb-3">
+										<Accordion.Header className="bg-light">
+											<div className="d-flex justify-content-between w-100">
+												<span className="fw-bold">{combo.comboName}</span>
+												<span>
+													<b>Total Price: </b> {parseFloat(combo.total).toFixed(2)}
+												</span>
+											</div>
+										</Accordion.Header>
+										<Accordion.Body>
+											<p>
+												<b>Description:</b> {combo.description}
+											</p>
+											<p>
+												<b>Combo category:</b> {combo.comboCategory}
+											</p>
+											<p>
+												<b>Sale off:</b> {combo.saleOff}
+											</p>
+											<Table striped bordered hover responsive className="table-sm">
+												<thead>
+													<tr>
+														<th>#</th>
+														<th>Vaccine name</th>
+														<th>Manufacturer</th>
+														<th>Dose</th>
+													</tr>
+												</thead>
+												<tbody>
+													{combo.vaccines.map((vaccine, index) => (
+														<tr key={index}>
+															<td>{index + 1}</td>
+															<td>{vaccine.name}</td>
+															<td>{vaccine.manufacturer}</td>
+															<td>{vaccine.dose}</td>
+														</tr>
+													))}
+												</tbody>
+											</Table>
+										</Accordion.Body>
+									</Accordion.Item>
+								))
+							) : (
+								<p className="text-center mt-3">No data</p>
+							)}
+						</Accordion>
+
+						{/* <Table striped bordered hover responsive>
 							<thead>
 								<tr>
 									<th>#</th>
@@ -82,8 +132,8 @@ function ComboManage() {
 											<td>{combo.comboName}</td>
 											<td>{combo.description}</td>
 											{/* <td>{combo.vaccineName}</td> */}
-											{/* <td>{combo.vaccines.join(", ")}</td> */}
-											<td>
+						{/* <td>{combo.vaccines.join(", ")}</td> */}
+						{/* <td>
 												<ul>
 													{combo.vaccines.map((vaccine, index) => (
 														<li key={index}>
@@ -91,9 +141,9 @@ function ComboManage() {
 														</li>
 													))}
 												</ul>
-											</td>
-											{/*Vaccine(dose), Vaccine(dose) */}
-											<td>{combo.comboCategory}</td>
+											</td> */}
+						{/*Vaccine(dose), Vaccine(dose) */}
+						{/* <td>{combo.comboCategory}</td>
 											<td>{combo.saleOff}%</td>
 											<td>{parseFloat(combo.total).toFixed(2)}</td>
 										</tr>
@@ -104,7 +154,7 @@ function ComboManage() {
 									</tr>
 								)}
 							</tbody>
-						</Table>
+						</Table> */}
 					</Container>
 				</Col>
 			</Row>
