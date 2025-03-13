@@ -3,12 +3,14 @@ import Navigation from "../components/Navbar";
 import AddChild from "../components/AddChild";
 import { Button, Card, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 function BookingPage() {
 	const vaccineAPI = "http://localhost:8080/vaccine";
 	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
-	const childAPI = "http://localhost:8080/children";
+	const userAPI = "http://localhost:8080/users";
 	const token = localStorage.getItem("token");
+	const decodedToken = token ? jwtDecode(token) : null;
 
 	const navigate = useNavigate();
 	const [vaccinesList, setVaccinesList] = useState([]);
@@ -20,10 +22,15 @@ function BookingPage() {
 	const [isOpen, setIsOpen] = useState(false);
 
 	useEffect(() => {
+		if (!token) {
+			navigate("/Login");
+			alert("You must login to use this feature");
+			return;
+		}
 		getChild();
 		getVaccines();
 		getCombo();
-	}, []);
+	}, [navigate, token]);
 
 	//Get list of single Vaccine
 	const getVaccines = async () => {
@@ -44,7 +51,7 @@ function BookingPage() {
 		}
 	};
 
-	//Get list of Combo
+	//Get list of Combo Vaccine
 	const getCombo = async () => {
 		try {
 			const response = await fetch(`${comboAPI}`, {
@@ -65,19 +72,33 @@ function BookingPage() {
 		}
 	};
 
+	//Get account's children
 	const getChild = async () => {
 		try {
-			const response = await fetch(`${childAPI}`, {
+			const accountId = decodedToken.sub;
+			const response = await fetch(`${userAPI}/${accountId}/children`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
 			if (response.ok) {
 				const data = await response.json();
-				setChilds(data);
+				console.log(data);
+				setChilds(data.children);
+			} else {
+				console.error("Get children failed: ", response.status);
 			}
 		} catch (err) {
 			console.log(err);
+		}
+	};
+
+	//Get the new child
+	const handleChildAdd = (newChild) => {
+		if (newChild) {
+			setChilds([newChild, ...childs]);
+		} else {
+			getChild();
 		}
 	};
 
@@ -120,7 +141,7 @@ function BookingPage() {
 				<br />
 				<Form method="POST">
 					<InputGroup className="mb-3">
-						<Form.Select aria-label="Default select example">
+						<Form.Select aria-label="childId" name="childId">
 							{childs.length > 0 ? (
 								<>
 									<option>---Choose child---</option>
@@ -138,7 +159,7 @@ function BookingPage() {
 							}}>
 							Add child
 						</Button>
-						{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} />}
+						{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} onAdded={handleChildAdd} />}
 					</InputGroup>
 					<Row>
 						<Col>

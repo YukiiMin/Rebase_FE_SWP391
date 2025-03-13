@@ -50,7 +50,7 @@ function HomePage() {
 									<Card.Img variant="top" src={vaccine.imagineUrl} alt={vaccine.id} style={{ height: "200px", objectFit: "cover" }} />
 									<Card.Body className="d-flex flex-column">
 										<Card.Title className="fw-bold">{vaccine.name}</Card.Title>
-										<Card.Text className="flex-grow-1">Price: {vaccine.price}$</Card.Text>
+										<Card.Text className="flex-grow-1">Price: {vaccine.salePrice}$</Card.Text>
 										<Link to={`/VaccineDetail/${vaccine.id}`} className="mt-3">
 											<Button variant="info" className="w-100">
 												Detail

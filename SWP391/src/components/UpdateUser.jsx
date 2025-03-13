@@ -42,6 +42,7 @@ function UpdateUser({ setIsOpen, open, user }) {
 			email: user.email,
 			phoneNumber: user.phoneNumber,
 			address: user.address,
+			urlImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIFYgpCPMtvHYo7rQ8fFSEgLa1BO78b_9hHA&s",
 		},
 		onSubmit: (values) => {
 			handleSubmit(values);
@@ -59,8 +60,11 @@ function UpdateUser({ setIsOpen, open, user }) {
 				phoneNumber: values.phoneNumber,
 				address: values.address,
 				gender: values.gender,
+				urlImage: values.urlImage,
 			};
 			const userId = values.accountId;
+			console.log(userId);
+			console.log(userData);
 			const response = await fetch(`${userAPI}/${userId}`, {
 				method: "PATCH",
 				headers: {
@@ -75,6 +79,8 @@ function UpdateUser({ setIsOpen, open, user }) {
 				navigate("/User/Profile");
 				// window.location.reload(); // Reload page after redirect
 			} else {
+				const data = await response.json();
+				console.log(data);
 				console.error("Update profile failed: ", response.status);
 				alert("Update profile failed. Please try again.");
 			}
@@ -88,7 +94,7 @@ function UpdateUser({ setIsOpen, open, user }) {
 		<div>
 			{console.log(user)}
 			<Modal show={open} onHide={handleClose} size="xl">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
+				<Form method="PATCH" onSubmit={formik.handleSubmit}>
 					<Modal.Header closeButton>
 						<Modal.Title>Update Profile</Modal.Title>
 					</Modal.Header>

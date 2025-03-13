@@ -3,20 +3,27 @@ import Navigation from "../components/Navbar";
 import AddChild from "../components/AddChild";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import SideMenu from "../components/SideMenu";
+import { jwtDecode } from "jwt-decode";
+import UpdateChild from "../components/UpdateChild";
 
 function UserChildren() {
 	const token = localStorage.getItem("token");
-	const childAPI = "http://localhost:8080/children";
-	const [isOpen, setIsOpen] = useState(false);
+	const decodedToken = jwtDecode(token);
+	const userAPI = "http://localhost:8080/users";
+	const [isAddOpen, setIsAddOpen] = useState(false); //For add child form
+	const [isUpdateOpen, setIsUpdateOpen] = useState(false); //For update child form
 	const [childs, setChilds] = useState([]);
 
+	const [selectedChild, setSelectedChild] = useState("");
+
 	useEffect(() => {
-		fetchChild();
+		getChild();
 	}, []);
 
-	const fetchChild = async () => {
+	const getChild = async () => {
 		try {
-			const response = await fetch(`${childAPI}`, {
+			const accountId = decodedToken.sub;
+			const response = await fetch(`${userAPI}/${accountId}/children`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
@@ -24,12 +31,36 @@ function UserChildren() {
 			if (response.ok) {
 				const data = await response.json();
 				console.log(data);
-				setChilds(data);
+				setChilds(data.children);
 			} else {
-				console.error("Fetching child failed: ", response.status);
+				console.error("Get children failed: ", response.status);
 			}
 		} catch (err) {
 			console.error("SOmething went wrong when fetching child: ", err);
+		}
+	};
+
+	//After adding child
+	const handleChildAdd = (newChild) => {
+		if (newChild) {
+			setChilds([newChild, ...childs]);
+		} else {
+			getChild();
+		}
+	};
+
+	//Assign childId to the button
+	const handleUpdateClick = (childId) => {
+		setSelectedChild(childId);
+		setIsUpdateOpen(true);
+	};
+
+	//After updating child
+	const handleChildUpdate = (child) => {
+		if (child) {
+			setChilds([child, ...childs]);
+		} else {
+			getChild();
 		}
 	};
 
@@ -49,18 +80,18 @@ function UserChildren() {
 							<Col className="text-end">
 								<Button
 									onClick={() => {
-										setIsOpen(true);
+										setIsAddOpen(true);
 									}}>
 									Add
 								</Button>
 							</Col>
-							{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} />}
+							{isAddOpen && <AddChild setIsOpen={setIsAddOpen} open={isAddOpen} onAdded={handleChildAdd} />}
 						</Row>
 						<hr />
 						<Container>
 							{childs.length > 0 ? (
 								childs.map((child) => (
-									<Card className="shadow-sm">
+									<Card className="shadow-sm" key={child.id}>
 										<Card.Header as="h5" className="bg-white">
 											{child.name}
 										</Card.Header>
@@ -70,7 +101,7 @@ function UserChildren() {
 													<Col xs={6}>
 														<strong>Id:</strong>
 													</Col>
-													<Col xs={6}>{child.child_id}</Col>
+													<Col xs={6}>{child.id}</Col>
 													<Col xs={6}>
 														<strong>Gender:</strong>
 													</Col>
@@ -95,12 +126,18 @@ function UserChildren() {
 										<b>Weight:</b> 1kg <b>Height:</b> 20cm */}
 											</Card.Text>
 											<div className="d-flex justify-content-end">
-												<Button variant="info" className="me-2">
+												<Button
+													variant="info"
+													className="me-2"
+													onClick={() => {
+														handleUpdateClick(child.id);
+													}}>
 													Edit
 												</Button>
 												<Button variant="danger">Delete</Button>
 											</div>
 										</Card.Body>
+										{isUpdateOpen && <UpdateChild setIsOpen={setIsUpdateOpen} open={isUpdateOpen} childId={selectedChild} onUpdate={handleChildUpdate} />}
 									</Card>
 								))
 							) : (

@@ -43,7 +43,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			email: "",
 			phoneNumber: "",
 			address: "",
-			urlImage: "http://example.com/image.jpg",
+			urlImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIFYgpCPMtvHYo7rQ8fFSEgLa1BO78b_9hHA&s",
 			// role: "",
 		},
 		onSubmit: (values) => {
@@ -64,7 +64,9 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 				body: JSON.stringify(values),
 			});
 			if (response.ok) {
-				const newAccount = "";
+				const data = await response.json();
+				const newAccount = data.result;
+				console.log(newAccount);
 				// const newAccount = await response.json();
 				console.log("Hien tai do cai Register tra ve 1 chuoi vo nghia nen ko lay ra duoc thang moi tao. Khi lam cai add account BE can tra ve dung");
 				handleClose();

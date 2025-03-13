@@ -8,15 +8,32 @@ function ComboList() {
 	const [comboList, setComboList] = useState([]);
 
 	useEffect(() => {
-		fetch(comboAPI)
-			.then((response) => response.json())
-			.then((data) => {
-				const groupedCombos = groupCombos(data.result);
-				setComboList(groupedCombos);
-				// setComboList(data.result);
-			})
-			.catch((error) => console.error("Error fetching combos:", error));
+		getCombo();
+		// fetch(comboAPI)
+		// 	.then((response) => response.json())
+		// 	.then((data) => {
+		// 		const groupedCombos = groupCombos(data.result);
+		// 		setComboList(groupedCombos);
+		// 		// setComboList(data.result);
+		// 	})
+		// 	.catch((error) => console.error("Error fetching combos:", error));
 	}, []);
+
+	const getCombo = async () => {
+		try {
+			const response = await fetch(`${comboAPI}`);
+			if (response.ok) {
+				const data = await response.json();
+				const groupedCombos = groupCombos(data.result);
+				// console.log(data, groupedCombos);
+				setComboList(groupedCombos);
+			} else {
+				console.error("Fetching combos failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Something went wrong when getting combos: ", err);
+		}
+	};
 
 	//Group vaccine with the same comboId
 	const groupCombos = (combosData) => {
@@ -43,7 +60,7 @@ function ComboList() {
 			<Navigation />
 			<br />
 			<Container>
-				{console.log(comboList)}
+				{/* {console.log(comboList)} */}
 				<h2>Vaccine combo list:</h2>
 				<Form>
 					<InputGroup className="mb-3">

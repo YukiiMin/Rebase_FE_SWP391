@@ -13,11 +13,7 @@ function PriceListPage() {
 
 	const getVaccine = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/get`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+			const response = await fetch(`${vaccineAPI}/get`);
 			if (response.ok) {
 				const data = await response.json();
 				setVaccineList(data.result);
@@ -34,10 +30,9 @@ function PriceListPage() {
 			<Navigation />
 			<br />
 			<Container>
-				{console.log(vaccineList)}
-				<h2>Vaccination price list and payment methods:</h2>
-				<br />
-				<h3>Vaccination price list</h3>
+				<h2 className="mt-4 mb-4">Vaccination price list and payment methods</h2>
+
+				<h3 className="mb-3">Vaccination price list</h3>
 				<Table striped>
 					<thead>
 						<tr>
@@ -51,7 +46,7 @@ function PriceListPage() {
 					<tbody>
 						{vaccineList.length > 0 ? (
 							vaccineList.map((vaccine) => (
-								<tr>
+								<tr key={vaccine.id}>
 									<td>{vaccine.id}</td>
 									<td>{vaccine.name}</td>
 									<td>{vaccine.manufacturer}</td>
@@ -67,7 +62,7 @@ function PriceListPage() {
 					</tbody>
 				</Table>
 				<br />
-				<h3>Payment methods:</h3>
+				<h3 className="mt-4 mb-3">Payment methods</h3>
 				<ul>
 					<li>Cash payment at the cashier.</li>
 					<li>Payment by credit card.</li>

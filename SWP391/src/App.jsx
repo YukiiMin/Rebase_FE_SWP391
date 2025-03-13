@@ -30,29 +30,26 @@ function App() {
 	const navigate = useNavigate();
 	const api = "http://localhost:8080/auth/refresh";
 	const token = localStorage.getItem("token");
-	let decodedToken = "";
-	if (token) {
-		decodedToken = jwtDecode(token);
-	}
+	const decodedToken = token ? jwtDecode(token) : null;
 
-	const refreshToken = async (token) => {
-		try {
-			const response = await fetch(`${api}`, {
-				method: "POST",
-				body: JSON.stringify(token),
-			});
-			if (response.ok) {
-				console.log("Refreshing token complete");
-				const data = response.json();
-				const newToken = data.result;
-				console.log(newToken);
-			} else {
-				console.error("Refreshing token failed: ", response.status);
-			}
-		} catch (err) {
-			console.log("Something went wrong when refreshing token: ", err);
-		}
-	};
+	// const refreshToken = async (token) => {
+	// 	try {
+	// 		const response = await fetch(`${api}`, {
+	// 			method: "POST",
+	// 			body: JSON.stringify(token),
+	// 		});
+	// 		if (response.ok) {
+	// 			console.log("Refreshing token complete");
+	// 			const data = response.json();
+	// 			const newToken = data.result;
+	// 			console.log(newToken);
+	// 		} else {
+	// 			console.error("Refreshing token failed: ", response.status);
+	// 		}
+	// 	} catch (err) {
+	// 		console.log("Something went wrong when refreshing token: ", err);
+	// 	}
+	// };
 
 	const isLoggedIn = !!token;
 

@@ -15,7 +15,7 @@ function Navigation() {
 			setIsLoggedIn(true);
 			try {
 				const decodedToken = jwtDecode(token);
-				console.log(decodedToken);
+				// console.log(decodedToken);
 				setUsername(decodedToken.username);
 				setRole(decodedToken.scope);
 			} catch (err) {

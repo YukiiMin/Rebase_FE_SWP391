@@ -4,9 +4,9 @@ import { Card, Col, Container, Image, Row, Spinner } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 
 function VaccineDetail() {
+	const [vaccineList, setVaccineList] = useState([]);
 	const [vaccine, setVaccine] = useState();
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const vaccineAPI = "http://localhost:8080/vaccine";
 	const { id } = useParams();
@@ -15,47 +15,33 @@ function VaccineDetail() {
 		fetchAPI();
 	}, [id]);
 
+	useEffect(() => {
+		if (vaccineList && id) {
+			const foundVaccine = vaccineList.find((vaccine) => vaccine.id === parseInt(id));
+			setVaccine(foundVaccine || null); // Set vaccine to null if not found
+		}
+	}, [vaccineList, id]);
+
 	const fetchAPI = async () => {
 		setLoading(true);
 		try {
-			const response = await fetch(`${vaccineAPI}/${id}`);
+			const response = await fetch(`${vaccineAPI}/get`);
 			if (response.ok) {
 				const data = await response.json();
-				console.log(data);
-				setVaccine(data.result[0]);
+				setVaccineList(data.result);
 				setLoading(false);
 			} else {
-				throw new Error(`Error: ${response.status}`);
+				console.error("Fetching vaccines failed: ", response.status);
 			}
-			// if (!response.ok) {
-			// 	throw new Error(`Error: ${response.status}`);
-			// }
-			// const data = await response.json();
-			// setVaccine(data.result);
-			// setLoading(false);
 		} catch (err) {
 			console.log(err);
-			setError(err);
 			setLoading(false);
 		}
 	};
-	//If something went wrong
-	if (error) {
-		return (
-			<div>
-				<Navigation />
-				<br />
-				<Container>
-					{console.log(error)}
-					<h2>Error Loading Vaccine Details</h2>
-					<p>{error.message}</p>
-				</Container>
-			</div>
-		);
-	}
 
 	return (
 		<div>
+			{console.log(vaccineList)}
 			<Navigation />
 			<br />
 			<Container className="my-4">
@@ -79,7 +65,7 @@ function VaccineDetail() {
 											<strong>Manufacturer:</strong> {vaccine.manufacturer}
 										</p>
 										<p>
-											<strong>Unit price:</strong> {vaccine.price}$
+											<strong> Price:</strong> {vaccine.salePrice}$
 										</p>
 									</Col>
 								</Row>

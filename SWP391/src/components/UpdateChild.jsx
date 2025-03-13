@@ -1,17 +1,11 @@
 import { useFormik } from "formik";
-import { jwtDecode } from "jwt-decode";
 import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 
-function AddChild({ setIsOpen, open, onAdded }) {
-	const navigate = useNavigate();
+function UpdateChild({ setIsOpen, childId, open, onUpdate }) {
 	const token = localStorage.getItem("token");
-	const decodedToken = token ? jwtDecode(token) : null;
 	const childAPI = "http://localhost:8080/children";
-
-	const handleClose = () => setIsOpen(false); //Close modal
 
 	const validation = Yup.object().shape({
 		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
@@ -31,64 +25,47 @@ function AddChild({ setIsOpen, open, onAdded }) {
 			height: "",
 			weight: "",
 			gender: "MALE",
-			// imageUrl: "string",
 			imageUrl: "https://media.npr.org/assets/img/2013/03/11/istock-4306066-baby_custom-00a02f589803ea4cb7b723dd1df6981d77e7cdc7.jpg",
 		},
 		onSubmit: (values) => {
-			handleAddChild(values);
+			handleSubmit(values);
 		},
 		validationSchema: validation,
 	});
 
-	const handleAddChild = async (values) => {
+	const handleClose = () => {
+		setIsOpen(false);
+	};
+
+	const handleSubmit = async (values) => {
+		// console.log(values);
 		try {
-			const childData = {
-				name: `${values.firstName} ${values.lastName}`,
-				dob: values.dob,
-				height: values.height,
-				weight: values.weight,
-				gender: values.gender,
-				urlImage: values.imageUrl,
-			};
-			const accountId = decodedToken.sub;
-			console.log(accountId);
-			const response = await fetch(`${childAPI}/${accountId}/create`, {
-				method: "POST",
+			const response = await fetch(`${childAPI}/${childId}`, {
+				method: "PATCH",
 				headers: {
 					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
+					"Content-type": "application/json",
 				},
-				body: JSON.stringify(childData),
+				body: JSON.stringify(values),
 			});
 			if (response.ok) {
-				console.log("Adding child successful");
-				alert("Adding child successful!");
-				handleClose();
-				const newChild = await response.json();
-				onAdded(newChild);
-				console.log(newChild);
-				// navigate("/children");
-				// window.location.reload(); // Reload page after redirect
+				const data = await response.json();
+				const newChild = data.result;
+				onUpdate(newChild);
 			} else {
-				console.error("Something went wrong when adding child: ", response.status);
-				alert("Adding child failed. Please try again.");
+				console.error("Updating child failed: ", response.status);
 			}
 		} catch (err) {
-			console.error("Add child error:", err);
-			alert("An error occurred during adding child. Please try again.");
+			console.error("Something went wrong when updating child: ", err);
 		}
 	};
-
-	const handleFileChange = (event) => {
-		formik.setFieldValue("imageUrl", event.currentTarget.files[0]);
-	};
-
 	return (
 		<div>
+			{console.log(childId)}
 			<Modal show={open} onHide={handleClose}>
-				<Form method="POST" onSubmit={formik.handleSubmit}>
+				<Form method="PATCH" onSubmit={formik.handleSubmit}>
 					<Modal.Header closeButton>
-						<Modal.Title>Add child</Modal.Title>
+						<Modal.Title>Update child</Modal.Title>
 					</Modal.Header>
 					<Modal.Body>
 						<Row className="mb-3">
@@ -146,16 +123,16 @@ function AddChild({ setIsOpen, open, onAdded }) {
 						</Row>
 
 						{/* <Form.Group controlId="formFile" className="mb-3">
-							<Form.Label>Child Image</Form.Label>
-							<Form.Control type="file" name="imageUrl" onChange={handleFileChange} />
-						</Form.Group> */}
+                    <Form.Label>Child Image</Form.Label>
+                    <Form.Control type="file" name="imageUrl" onChange={handleFileChange} />
+                </Form.Group> */}
 					</Modal.Body>
 					<Modal.Footer>
 						<Button variant="secondary" onClick={handleClose}>
 							Close
 						</Button>
 						<Button type="submit" variant="primary">
-							Add
+							Update
 						</Button>
 					</Modal.Footer>
 				</Form>
@@ -164,4 +141,4 @@ function AddChild({ setIsOpen, open, onAdded }) {
 	);
 }
 
-export default AddChild;
+export default UpdateChild;

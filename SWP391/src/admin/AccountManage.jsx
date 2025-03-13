@@ -40,7 +40,11 @@ function AccountManage() {
 	};
 
 	const handleAddAccount = (newAccount) => {
-		fetchAccount();
+		if (newAccount) {
+			setAccounts([newAccount, ...accounts]);
+		} else {
+			fetchAccount();
+		}
 	};
 
 	// .then((response) => response.json())
