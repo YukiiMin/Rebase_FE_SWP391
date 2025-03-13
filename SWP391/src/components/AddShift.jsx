@@ -11,12 +11,42 @@ function AddShift({ setIsOpen, open }) {
 	const shiftAPI = "http://localhost:8080/working";
 
 	const [staffs, setStaffs] = useState([]);
+	const [chosenStaff, setChosenStaff] = useState([]);
+	const [staffError, setStaffError] = useState();
 
 	const [repeat, setRepeat] = useState(false);
+
+	// const validation = Yup.object({
+	// 	scheduleName: Yup.string().required("Schedule name is required"),
+	// 	shiftType: Yup.string().required("Choose a shift type"),
+	// 	startDate: Yup.date()
+	// 		.transform((currentValue, originalValue) => {
+	// 			return originalValue ? new Date(originalValue) : null;
+	// 		})
+	// 		.nullable()
+	// 		.required("Start date is required")
+	// 		.min(new Date(new Date().setDate(new Date().getDate())), "Start date cannot be today or before"),
+	// 	endDate: Yup.date()
+	// 		.transform((currentValue, originalValue) => {
+	// 			return originalValue ? new Date(originalValue) : null;
+	// 		})
+	// 		.nullable()
+	// 		.required("End date is required")
+	// 		.when("startDate", (startDate, schema) => {
+	// 			return schema.test("endDate-after-startDate", "End date cannot be sooner than start date", function (endDate) {
+	// 				const { startDate: startDateValue } = this.parent; // Access startDate from form values
+	// 				if (!startDateValue || !endDate) {
+	// 					return true; // Skip validation if either date is empty
+	// 				}
+	// 				return new Date(endDate) >= new Date(startDateValue);
+	// 			});
+	// 		}),
+	// });
 
 	const validation = Yup.object({
 		scheduleName: Yup.string().required("Schedule name is required"),
 		shiftType: Yup.string().required("Choose a shift type"),
+		//Bat buoc co startDate, khong duoc chon ngay trong qua khu
 		startDate: Yup.date()
 			.transform((currentValue, originalValue) => {
 				return originalValue ? new Date(originalValue) : null;
@@ -24,6 +54,7 @@ function AddShift({ setIsOpen, open }) {
 			.nullable()
 			.required("Start date is required")
 			.min(new Date(new Date().setDate(new Date().getDate())), "Start date cannot be today or before"),
+		//Bat buoc co endDate, phai sau startDate, cach startDate khong qua 1 nam (tranh viec fetching qua dai)
 		endDate: Yup.date()
 			.transform((currentValue, originalValue) => {
 				return originalValue ? new Date(originalValue) : null;
@@ -31,13 +62,24 @@ function AddShift({ setIsOpen, open }) {
 			.nullable()
 			.required("End date is required")
 			.when("startDate", (startDate, schema) => {
-				return schema.test("endDate-after-startDate", "End date cannot be sooner than start date", function (endDate) {
-					const { startDate: startDateValue } = this.parent; // Access startDate from form values
-					if (!startDateValue || !endDate) {
-						return true; // Skip validation if either date is empty
-					}
-					return new Date(endDate) >= new Date(startDateValue);
-				});
+				return schema
+					.test("endDate-after-startDate", "End date cannot be sooner than start date", function (endDate) {
+						const { startDate: startDateValue } = this.parent;
+						if (!startDateValue || !endDate) {
+							return true;
+						}
+						return new Date(endDate) >= new Date(startDateValue);
+					})
+					.test("endDate-within-one-year", "End date must be within one year of start date", function (endDate) {
+						const { startDate: startDateValue } = this.parent;
+						if (!startDateValue || !endDate) {
+							return true;
+						}
+						const oneYearLater = new Date(startDateValue);
+						oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+						return new Date(endDate) <= oneYearLater;
+					});
 			}),
 	});
 
@@ -51,6 +93,10 @@ function AddShift({ setIsOpen, open }) {
 			repeatDays: [],
 		},
 		onSubmit: (values) => {
+			if (chosenStaff.length == 0) {
+				setStaffError("Choose at least 1 staff!!!");
+				return;
+			}
 			handleAddShift(values);
 		},
 		validationSchema: validation,
@@ -67,7 +113,6 @@ function AddShift({ setIsOpen, open }) {
 	const handleStartDateChange = (e) => {
 		formik.setFieldValue("startDate", e.target.value);
 	};
-
 	const handleEndDateChange = (e) => {
 		formik.setFieldValue("endDate", e.target.value);
 	};
@@ -84,6 +129,7 @@ function AddShift({ setIsOpen, open }) {
 		formik.setFieldValue("repeatDays", repeatDays);
 	};
 
+	//Creating work shift
 	const handleAddShift = async (values) => {
 		try {
 			console.log(values);
@@ -98,7 +144,9 @@ function AddShift({ setIsOpen, open }) {
 			if (response.ok) {
 				alert("Adding shift successful! Now adding staffs to shift");
 				const data = await response.json();
-				console.log(data);
+				const schedule = data.result;
+				// console.log(data);
+				handleAddStaff(schedule);
 				// handleClose()
 			} else {
 				console.log("Adding shift error: ", response.status);
@@ -108,14 +156,46 @@ function AddShift({ setIsOpen, open }) {
 		}
 	};
 
-	const handleAddStaff = async (values) => {
+	const handleAddStaff = async (schedule) => {
 		try {
-			const response = await fetch(`${shiftAPI}/`);
+			let success = true;
+			// console.log(schedule.workDates, chosenStaff);
+			const shift = schedule.workDates;
+			if (shift) {
+				for (const day of shift) {
+					// console.log(day.id);
+					for (const man of chosenStaff) {
+						console.log(day.id, man.accountId);
+						const response = await fetch(`${shiftAPI}/working/${day.id}/${man.accountId}`, {
+							method: "POST",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-type": "application/json",
+							},
+						});
+						if (response.ok) {
+							console.log(`Adding workday detail for day ${day.id} and staff ${man.accountId} success`);
+						} else {
+							console.error("Add staffs to schedule failed: ", response.status);
+							success = false;
+							//Stop the process if something broke
+							if (!success) {
+								return;
+							}
+						}
+					}
+				}
+			}
+			if (success) {
+				alert("Adding all staffs to schedule success");
+				handleClose();
+			}
 		} catch (err) {
 			console.error("Something went wrong when adding staffs to schedule: ", err);
 		}
 	};
 
+	//Get all account which have role == STAFF
 	const fetchStaff = async () => {
 		try {
 			const response = await fetch(`${userAPI}/getAllUser`, {
@@ -131,6 +211,16 @@ function AddShift({ setIsOpen, open }) {
 			}
 		} catch (err) {
 			console.error("Something went wrong while fetching accounts: ", err);
+		}
+	};
+
+	//Get the chosen staffs
+	const handleStaffSelection = (staff) => {
+		const isSelected = chosenStaff.some((s) => s.accountId === staff.accountId);
+		if (isSelected) {
+			setChosenStaff(chosenStaff.filter((s) => s.accountId !== staff.accountId));
+		} else {
+			setChosenStaff([...chosenStaff, staff]);
 		}
 	};
 
@@ -220,10 +310,11 @@ function AddShift({ setIsOpen, open }) {
 							</>
 						)}
 						<hr />
-						<h3>Choose Staff</h3>
+
 						{console.log(staffs)}
 						<Row>
 							<Col>
+								<h3>Choose Staff</h3>
 								<Table striped bordered hover responsive>
 									<thead>
 										<tr>
@@ -237,7 +328,7 @@ function AddShift({ setIsOpen, open }) {
 											staffs.map((staff) => (
 												<tr>
 													<td>
-														<Form.Check />
+														<Form.Check checked={chosenStaff.some((s) => s.accountId === staff.accountId)} onChange={() => handleStaffSelection(staff)} />
 													</td>
 													<td>{staff.accountId}</td>
 													<td>{`${staff.firstName} ${staff.lastName}`}</td>
@@ -250,7 +341,13 @@ function AddShift({ setIsOpen, open }) {
 								</Table>
 							</Col>
 							<Col>
-								<p>Chosen Staff:</p>
+								<h3>Chosen Staff:</h3>
+								{chosenStaff.length === 0 && staffError && <p className="text-danger">{staffError}</p>}
+								<ul>
+									{chosenStaff.map((staff) => (
+										<li key={staff.accountId}>{`${staff.firstName} ${staff.lastName}`}</li>
+									))}
+								</ul>
 							</Col>
 						</Row>
 					</Modal.Body>

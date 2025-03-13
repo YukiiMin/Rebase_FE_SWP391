@@ -4,6 +4,8 @@ import AddChild from "../components/AddChild";
 import { Button, Card, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 function BookingPage() {
 	const vaccineAPI = "http://localhost:8080/vaccine";
@@ -21,7 +23,26 @@ function BookingPage() {
 
 	const [isOpen, setIsOpen] = useState(false);
 
+	const validation = Yup.object({
+		childId: Yup.number().required("Choose your child."),
+		vaccinationDate: Yup.date().required("Choose a vaccination date."),
+		payment: Yup.string().required("Choose your payment method"),
+	});
+
+	const formik = useFormik({
+		initialValues: {
+			childId: "",
+			vaccinationDate: "",
+			payment: "credit",
+		},
+		onSubmit: (values) => {
+			handleSubmit(values);
+		},
+		validationSchema: validation,
+	});
+
 	useEffect(() => {
+		//User must login to use this feature
 		if (!token) {
 			navigate("/Login");
 			alert("You must login to use this feature");
@@ -127,7 +148,7 @@ function BookingPage() {
 		setType(type);
 	};
 
-	const handleSubmit = () => {
+	const handleSubmit = (values) => {
 		navigate("/Transaction");
 	};
 
@@ -139,14 +160,14 @@ function BookingPage() {
 				{console.log(childs, comboList)}
 				<h2>Vaccination Booking</h2>
 				<br />
-				<Form method="POST">
+				<Form method="POST" onSubmit={formik.handleSubmit}>
 					<InputGroup className="mb-3">
-						<Form.Select aria-label="childId" name="childId">
+						<Form.Select aria-label="childId" name="childId" value={formik.values.childId} onChange={formik.handleChange} isInvalid={formik.touched.childId && formik.errors.childId}>
 							{childs.length > 0 ? (
 								<>
 									<option>---Choose child---</option>
 									{childs.map((child) => (
-										<option value={child.child_id}>{child.name}</option>
+										<option value={child.id}>{child.name}</option>
 									))}
 								</>
 							) : (
@@ -154,11 +175,13 @@ function BookingPage() {
 							)}
 						</Form.Select>
 						<Button
+							variant="outline-dark"
 							onClick={() => {
 								setIsOpen(true);
 							}}>
 							Add child
 						</Button>
+						<Form.Control.Feedback type="invalid">{formik.errors.childId}</Form.Control.Feedback>
 						{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} onAdded={handleChildAdd} />}
 					</InputGroup>
 					<Row>
@@ -211,7 +234,15 @@ function BookingPage() {
 								<Form.Label>
 									<b>Choose vaccination date:</b>
 								</Form.Label>
-								<Form.Control type="date" placeholder="Choose Date" />
+								<Form.Control
+									type="date"
+									placeholder="Choose Date"
+									name="vaccinationDate"
+									value={formik.values.vaccinationDate}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.vaccinationDate && formik.errors.vaccinationDate}
+								/>
+								<Form.Control.Feedback type="invalid">{formik.errors.vaccinationDate}</Form.Control.Feedback>
 							</Form.Group>
 							<Form.Group className="mb-3">
 								<Form.Label>
@@ -221,8 +252,9 @@ function BookingPage() {
 								<Form.Check defaultChecked label="Payment by credit card." name="payment" type="radio" id="credit" value="credit" />
 								<Form.Check label="Cash payment at the cashier." name="payment" type="radio" id="cash" value="cash" disabled />
 								<Form.Check label="Payment via e-commerce applications, mobile payment services, VNPAY-QR e-wallets, Momo,..." name="payment" type="radio" id="app" value="app" disabled />
+								<Form.Control.Feedback type="invalid">{formik.errors.payment}</Form.Control.Feedback>
 							</Form.Group>
-							<Button onClick={handleSubmit}>Proceed</Button>
+							<Button type="submit">Proceed</Button>
 						</Col>
 					</Row>
 				</Form>
