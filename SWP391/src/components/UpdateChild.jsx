@@ -3,7 +3,7 @@ import React from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import * as Yup from "yup";
 
-function UpdateChild({ setIsOpen, childId, open, onUpdate }) {
+function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 	const token = localStorage.getItem("token");
 	const childAPI = "http://localhost:8080/children";
 
@@ -40,7 +40,7 @@ function UpdateChild({ setIsOpen, childId, open, onUpdate }) {
 	const handleSubmit = async (values) => {
 		// console.log(values);
 		try {
-			const response = await fetch(`${childAPI}/${childId}`, {
+			const response = await fetch(`${childAPI}/${child.id}`, {
 				method: "PATCH",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -49,8 +49,12 @@ function UpdateChild({ setIsOpen, childId, open, onUpdate }) {
 				body: JSON.stringify(values),
 			});
 			if (response.ok) {
+				console.log("Update child sucessfull");
 				const data = await response.json();
-				const newChild = data.result;
+				// console.log(data);
+				const newChild = data;
+				// console.log(newChild);
+				handleClose();
 				onUpdate(newChild);
 			} else {
 				console.error("Updating child failed: ", response.status);
@@ -61,7 +65,7 @@ function UpdateChild({ setIsOpen, childId, open, onUpdate }) {
 	};
 	return (
 		<div>
-			{console.log(childId)}
+			{/* {console.log(child)} */}
 			<Modal show={open} onHide={handleClose}>
 				<Form method="PATCH" onSubmit={formik.handleSubmit}>
 					<Modal.Header closeButton>

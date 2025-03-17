@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
 import AddChild from "../components/AddChild";
-import { Button, Card, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, Form, InputGroup, Row, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { useFormik } from "formik";
@@ -15,9 +15,14 @@ function BookingPage() {
 	const decodedToken = token ? jwtDecode(token) : null;
 
 	const navigate = useNavigate();
-	const [vaccinesList, setVaccinesList] = useState([]);
-	const [comboList, setComboList] = useState([]);
-	const [childs, setChilds] = useState([]);
+	const [vaccinesList, setVaccinesList] = useState([]); //List vaccine to show to user
+	const [comboList, setComboList] = useState([]); //List combo to show to user
+	const [childs, setChilds] = useState([]); //List of user's children
+
+	const [selectedVaccine, setSelectedVaccine] = useState([]); //List of user chosen vaccine
+	const [selectedCombo, setSelectedCombo] = useState([]); //List of user chosen combo
+
+	const [bookingError, setBookingError] = useState("");
 
 	const [type, setType] = useState("single");
 
@@ -82,6 +87,7 @@ function BookingPage() {
 			});
 			if (response.ok) {
 				const data = await response.json();
+				// console.log(data.result);
 				// setComboList(data.result);
 				const groupedCombos = groupCombos(data.result);
 				setComboList(groupedCombos);
@@ -114,7 +120,7 @@ function BookingPage() {
 		}
 	};
 
-	//Get the new child
+	//Get the new child to the top of the list
 	const handleChildAdd = (newChild) => {
 		if (newChild) {
 			setChilds([newChild, ...childs]);
@@ -132,8 +138,9 @@ function BookingPage() {
 					comboId: combo.comboId,
 					comboName: combo.comboName,
 					description: combo.description,
-					ageGroup: combo.ageGroup,
+					comboCategory: combo.comboCategory,
 					saleOff: combo.saleOff,
+					total: combo.total,
 					vaccines: [], // Initialize vaccines array
 				};
 			}
@@ -149,16 +156,83 @@ function BookingPage() {
 	};
 
 	const handleSubmit = (values) => {
-		navigate("/Transaction");
+		if (type === "single" && selectedVaccine.length === 0) {
+			setBookingError("Please choose at least 1 vaccine to proceed!");
+			return;
+		}
+
+		if (type === "combo" && selectedCombo.length === 0) {
+			setBookingError("Please choose at least 1 combo to proceed!");
+			return;
+		}
+		const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
+		console.log(selectedVaccine, selectedCombo, selectedChild);
+		navigate("/Transaction", {
+			state: {
+				selectedVaccine: selectedVaccine,
+				selectedCombo: selectedCombo,
+				child: selectedChild,
+				vaccinationDate: values.vaccinationDate,
+				payment: values.payment,
+				type: type,
+			},
+		});
+	};
+
+	// //Set user's chosen vaccine
+	// const handleVaccineSelection = (vaccine) => {
+	// 	const isSelected = selectedVaccine.some((v) => {
+	// 		v.id === vaccine.id;
+	// 	});
+	// 	if (isSelected) {
+	// 		setSelectedVaccine(selectedVaccine.filter((v) => v.id !== vaccine.id));
+	// 	} else {
+	// 		setSelectedVaccine([...selectedVaccine, vaccine]);
+	// 	}
+	// };
+
+	// //Set user's chosen combo
+	// const handleComboSelection = (combo) => {
+	// 	const isSelected = selectedCombo.some((c) => {
+	// 		c.id === combo.id;
+	// 	});
+	// 	if (isSelected) {
+	// 		setSelectedCombo(selectedCombo.filter((c) => c.id !== combo.id));
+	// 	} else {
+	// 		setSelectedCombo([...selectedCombo, combo]);
+	// 	}
+	// };
+
+	const handleVaccineSelection = (vaccine) => {
+		const index = selectedVaccine.findIndex((v) => v.vaccine.id === vaccine.id);
+		if (index !== -1) {
+			// Vaccine already selected, remove it
+			const newSelectedVaccine = [...selectedVaccine];
+			newSelectedVaccine.splice(index, 1);
+			setSelectedVaccine(newSelectedVaccine);
+		} else {
+			// Vaccine not selected, add it
+			setSelectedVaccine([...selectedVaccine, { vaccine, quantity: 1 }]);
+		}
+	};
+
+	const handleComboSelection = (combo) => {
+		const index = selectedCombo.findIndex((c) => c.comboId === combo.comboId);
+		if (index !== -1) {
+			const newSelectedCombo = [...selectedCombo];
+			newSelectedCombo.splice(index, 1);
+			setSelectedCombo(newSelectedCombo);
+		} else {
+			setSelectedCombo([...selectedCombo, combo]);
+		}
 	};
 
 	return (
 		<>
 			<Navigation />
-			<br />
-			<Container>
-				{console.log(childs, comboList)}
-				<h2>Vaccination Booking</h2>
+			<Container className="mt-4">
+				{/* {console.log(childs, comboList)} */}
+				<h2 className="mb-4 text-center">Vaccination Booking</h2>
 				<br />
 				<Form method="POST" onSubmit={formik.handleSubmit}>
 					<InputGroup className="mb-3">
@@ -167,7 +241,9 @@ function BookingPage() {
 								<>
 									<option>---Choose child---</option>
 									{childs.map((child) => (
-										<option value={child.id}>{child.name}</option>
+										<option key={child.id} value={child.id}>
+											{child.name}
+										</option>
 									))}
 								</>
 							) : (
@@ -185,9 +261,9 @@ function BookingPage() {
 						{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} onAdded={handleChildAdd} />}
 					</InputGroup>
 					<Row>
-						<Col>
+						<Col md={6}>
 							<b>Choose vaccine type:</b>
-							<ul>
+							<ul className="list-unstyled">
 								<li>
 									<Form.Check label="Single" name="vaccineType" type="radio" id="single" checked={type === "single"} onChange={() => handleTypeChange("single")} />
 								</li>
@@ -195,41 +271,125 @@ function BookingPage() {
 									<Form.Check label="Combo" name="vaccineType" type="radio" id="combo" checked={type === "combo"} onChange={() => handleTypeChange("combo")} />
 								</li>
 							</ul>
+
+							{/* Show vaccine list if chosen single */}
 							{type === "single" && (
 								<div className="mt-3">
 									<b>Choose vaccines:</b>
-									{vaccinesList.map((vaccine) => (
-										<Card key={vaccine.id} className="mb-2">
-											<Card.Body>
-												<Form.Check
-													label={vaccine.name}
-													// onChange={(e) => handleVaccineSelection(vaccine, e.target.checked)}
-												/>
-												<Card.Text>{vaccine.salePrice}$</Card.Text>
-											</Card.Body>
-										</Card>
-									))}
+									{vaccinesList.length > 0 ? (
+										<Table>
+											<thead>
+												<tr>
+													<th></th>
+													<th>Vaccine name</th>
+													<th>Price($)</th>
+												</tr>
+											</thead>
+											<tbody>
+												{vaccinesList.map((vaccine) => (
+													<tr key={vaccine.id}>
+														<td>
+															<Form.Check checked={selectedVaccine.some((v) => v.vaccine.id === vaccine.id)} onChange={() => handleVaccineSelection(vaccine)} />
+														</td>
+														<td>{vaccine.name}</td>
+														<td>{vaccine.salePrice}</td>
+													</tr>
+												))}
+											</tbody>
+										</Table>
+									) : (
+										<>No vaccine data found. Check your network connection</>
+									)}
 								</div>
 							)}
+
+							{/* Show combo list if chosen combo */}
 							{type === "combo" && (
 								<div className="mt-3">
 									<b>Choose combo:</b>
-									{comboList.map((combo) => (
-										<Card key={combo.id} className="mb-2">
-											<Card.Body>
-												<Form.Check
-													label={combo.comboName}
-													// onChange={(e) => handleVaccineSelection(vaccine, e.target.checked)}
-												/>
-												<Card.Text>{combo.vaccines.join(", ")}</Card.Text>
-												{/* <Card.Text>{combo.total}$</Card.Text> */}
-											</Card.Body>
-										</Card>
-									))}
+									{comboList.length > 0 ? (
+										<Table>
+											<thead>
+												<tr>
+													<th></th>
+													<th>Combo name</th>
+													<th>Included vaccine</th>
+													<th>Price($)</th>
+												</tr>
+											</thead>
+											<tbody>
+												{comboList.map((combo) => (
+													<tr key={combo.id}>
+														<td>
+															<Form.Check checked={selectedCombo.some((c) => c.comboId === combo.comboId)} onChange={() => handleComboSelection(combo)} />
+														</td>
+														<td>{combo.comboName}</td>
+														<td>
+															{combo.vaccines.map((vaccine, index, array) => (
+																<div key={index}>
+																	{vaccine}
+																	{index < array.length - 1 && <br />}
+																</div>
+															))}
+														</td>
+														<td>{combo.total}</td>
+													</tr>
+												))}
+											</tbody>
+										</Table>
+									) : (
+										<>No combo data found. Check your network connection</>
+									)}
 								</div>
 							)}
 						</Col>
-						<Col>
+						<Col md={6}>
+							<b>Your order:</b>
+							{/* Show chosen single vaccine if type is single */}
+							{type === "single" && (
+								<>
+									{selectedVaccine.length > 0 ? (
+										<Table borderless>
+											<thead>
+												<tr>
+													<th>Vaccine name</th>
+													<th>Order quantity</th>
+												</tr>
+											</thead>
+											<tbody>
+												{selectedVaccine.map((v) => (
+													<tr key={v.vaccine.id}>
+														<td>{v.vaccine.name}</td>
+														<td>{v.quantity}</td>
+													</tr>
+												))}
+											</tbody>
+										</Table>
+									) : (
+										<>
+											No vaccine chosen
+											<br />
+											{selectedVaccine.length === 0 && bookingError && <p className="text-danger">{bookingError}</p>}
+										</>
+									)}
+								</>
+							)}
+
+							{/* Show chosen combo vaccine if type is combo */}
+							{type === "combo" && (
+								<>
+									{selectedCombo.length > 0 ? (
+										selectedCombo.map((combo) => <li key={combo.id}>{combo.comboName}</li>)
+									) : (
+										<>
+											No combo chosen
+											<br />
+											{selectedCombo.length === 0 && bookingError && <p className="text-danger">{bookingError}</p>}
+										</>
+									)}
+								</>
+							)}
+
 							<Form.Group className="mb-3" controlId="vaccinationDate">
 								<Form.Label>
 									<b>Choose vaccination date:</b>
@@ -244,7 +404,8 @@ function BookingPage() {
 								/>
 								<Form.Control.Feedback type="invalid">{formik.errors.vaccinationDate}</Form.Control.Feedback>
 							</Form.Group>
-							<Form.Group className="mb-3">
+
+							<Form.Group className="mb-3" controlId="paymentMethod">
 								<Form.Label>
 									<b>Choose payment method: </b>
 								</Form.Label>

@@ -166,7 +166,7 @@ function AddShift({ setIsOpen, open }) {
 					// console.log(day.id);
 					for (const man of chosenStaff) {
 						console.log(day.id, man.accountId);
-						const response = await fetch(`${shiftAPI}/working/${day.id}/${man.accountId}`, {
+						const response = await fetch(`${shiftAPI}/detail/${day.id}/${man.accountId}`, {
 							method: "POST",
 							headers: {
 								Authorization: `Bearer ${token}`,
@@ -176,6 +176,8 @@ function AddShift({ setIsOpen, open }) {
 						if (response.ok) {
 							console.log(`Adding workday detail for day ${day.id} and staff ${man.accountId} success`);
 						} else {
+							const data = await response.json();
+							console.error(data);
 							console.error("Add staffs to schedule failed: ", response.status);
 							success = false;
 							//Stop the process if something broke

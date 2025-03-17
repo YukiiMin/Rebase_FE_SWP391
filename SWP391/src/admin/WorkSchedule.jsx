@@ -5,6 +5,7 @@ import AddShift from "../components/AddShift";
 
 function WorkSchedule() {
 	const scheduleAPI = "http://localhost:8080/working";
+	const accountAPI = "http://localhost:8080/users";
 	const token = localStorage.getItem("token");
 
 	const [isOpen, setIsOpen] = useState(false);
@@ -12,14 +13,15 @@ function WorkSchedule() {
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 	const [daysInMonth, setDaysInMonth] = useState([]);
 
-	const staffData = [
-		{ id: 1, name: "Staff1" },
-		{ id: 2, name: "Staff2" },
-		// Add more staff members as needed
-		// Need to fetch list of staff from API
-	];
+	// const staffData = [
+	// 	{ id: 1, name: "Staff1" },
+	// 	{ id: 2, name: "Staff2" },
+	// 	// Add more staff members as needed
+	// 	// Need to fetch list of staff from API
+	// ];
 
-	const [schedule, setSchedule] = useState([{}]); //Array object which each object is a staff schedule
+	const [schedule, setSchedule] = useState([]); //Array object which each object is a staff schedule
+	const [staffs, setStaffs] = useState([]); //Array of staffs
 
 	const handleMonthChange = (event) => {
 		setSelectedMonth(parseInt(event.target.value));
@@ -54,17 +56,58 @@ function WorkSchedule() {
 		return years;
 	};
 
-	const fetchSchedule = async () => {
+	useEffect(() => {
+		getStaff();
+	}, []);
+
+	useEffect(() => {
+		if (staffs.length > 0) {
+			fetchSchedule();
+		}
+	}, [staffs]);
+
+	const getStaff = async () => {
 		try {
-			const response = await fetch(`${scheduleAPI}/allworkdate/`, {
+			const response = await fetch(`${accountAPI}/getAllUser`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
 			if (response.ok) {
-				const data = response.json();
+				const data = await response.json();
+				setStaffs(data.result);
 			} else {
-				console.log("Fetching schedule failed: ", response.status);
+				console.error("Getting staffs data failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Something went wrong when getting staffs: ", err);
+		}
+	};
+
+	const fetchSchedule = async () => {
+		try {
+			if (!staffs || staffs.length == 0) {
+				//Make sure staffs are loaded
+				return;
+			}
+			// console.log(staffs);
+			const allSchedules = [];
+			for (const staff of staffs) {
+				// console.log(staff);
+				const response = await fetch(`${scheduleAPI}/allworkdate/${staff.accountId}`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
+				if (response.ok) {
+					const data = await response.json();
+					// console.log(data);
+					// setSchedule(data.result);
+					allSchedules.push({ staffId: staff.accountId, schedule: data.result });
+				} else {
+					console.log("Fetching schedule failed: ", response.status);
+				}
+				setSchedule(allSchedules);
 			}
 		} catch (err) {
 			console.log(err);
@@ -74,6 +117,8 @@ function WorkSchedule() {
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
+				{/* {console.log(staffs)} */}
+				{console.log(schedule)}
 				<Sidebar />
 				<Col>
 					<Container className="py-4">
@@ -118,9 +163,9 @@ function WorkSchedule() {
 								</tr>
 							</thead>
 							<tbody>
-								{staffData.map((staff) => (
-									<tr key={staff.id}>
-										<td>{staff.name}</td>
+								{staffs.map((staff) => (
+									<tr key={staff.accountId}>
+										<td>{`${staff.firstName} ${staff.lastName}`}</td>
 										{daysInMonth.map((day) => (
 											<td key={`${staff.id}-${day}`}></td>
 										))}

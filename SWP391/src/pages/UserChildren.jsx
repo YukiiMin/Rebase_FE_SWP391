@@ -14,7 +14,7 @@ function UserChildren() {
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false); //For update child form
 	const [childs, setChilds] = useState([]);
 
-	const [selectedChild, setSelectedChild] = useState("");
+	const [selectedChild, setSelectedChild] = useState([]);
 
 	useEffect(() => {
 		getChild();
@@ -50,8 +50,8 @@ function UserChildren() {
 	};
 
 	//Assign childId to the button
-	const handleUpdateClick = (childId) => {
-		setSelectedChild(childId);
+	const handleUpdateClick = (child) => {
+		setSelectedChild(child);
 		setIsUpdateOpen(true);
 	};
 
@@ -119,25 +119,20 @@ function UserChildren() {
 													</Col>
 													<Col xs={6}>{`${child.height}cm`}</Col>
 												</Row>
-												{/* <b>Id:</b> 12345
-										<br />
-										<b>Gender:</b> Non binary <b>Date of birth:</b> 01-01-2025
-										<br />
-										<b>Weight:</b> 1kg <b>Height:</b> 20cm */}
 											</Card.Text>
 											<div className="d-flex justify-content-end">
 												<Button
 													variant="info"
 													className="me-2"
 													onClick={() => {
-														handleUpdateClick(child.id);
+														handleUpdateClick(child);
 													}}>
 													Edit
 												</Button>
 												<Button variant="danger">Delete</Button>
 											</div>
 										</Card.Body>
-										{isUpdateOpen && <UpdateChild setIsOpen={setIsUpdateOpen} open={isUpdateOpen} childId={selectedChild} onUpdate={handleChildUpdate} />}
+										{isUpdateOpen && selectedChild && <UpdateChild setIsOpen={setIsUpdateOpen} open={isUpdateOpen} child={selectedChild} onUpdate={handleChildUpdate} />}
 									</Card>
 								))
 							) : (

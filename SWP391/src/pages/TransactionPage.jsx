@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
 import { Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
-import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { useLocation, useNavigate } from "react-router-dom";
+import { CardCvcElement, CardElement, CardExpiryElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
 function TransactionPage() {
-	const orderTotal = 2000;
 	const paymentAPI = "http://localhost:8080/payment";
 	const stripe = useStripe();
 	const elements = useElements();
@@ -13,17 +12,29 @@ function TransactionPage() {
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
 	const navigate = useNavigate();
+	const location = useLocation();
+	const { selectedVaccine, selectedCombo, child, vaccinationDate, payment, type } = location.state;
 	const accToken = localStorage.getItem("token");
+
+	const [orderTotal, setOrderTotal] = useState(0);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
 		if (!stripe || !elements) return;
-
 		setLoading(true);
 		setError(null);
 		setSuccess(null);
 
-		const { error: stripeError, token } = await stripe.createToken(elements.getElement(CardElement));
+		//Collect cards detail and generate a token
+		// const { error: stripeError, token } = await stripe.createToken(elements.getElement(CardElement));
+		const cardElement = elements.getElement(CardNumberElement);
+		if (!cardElement) {
+			setError("Card details are incomplete.");
+			setLoading(false);
+			return;
+		}
+
+		const { error: stripeError, token } = await stripe.createToken(cardElement);
 
 		if (stripeError) {
 			setError(stripeError.message);
@@ -31,6 +42,7 @@ function TransactionPage() {
 			return;
 		}
 
+		//After getting token, send to BE API
 		if (token) {
 			console.log(token);
 			try {
@@ -56,36 +68,126 @@ function TransactionPage() {
 			}
 		}
 	};
+
+	const countTotal = () => {
+		let total = 0;
+		if (type === "single") {
+			for (const v of selectedVaccine) {
+				total += v.vaccine.salePrice * v.quantity;
+			}
+		} else if (type === "combo") {
+			for (const combo of selectedCombo) {
+				total += combo.total;
+			}
+		}
+		setOrderTotal(total);
+	};
+
+	useEffect(() => {
+		countTotal();
+	}, [selectedVaccine, selectedCombo, type]);
+
 	return (
 		<div>
+			{/* {console.log(selectedVaccine, selectedCombo, child, vaccinationDate, payment, type)} */}
 			<Navigation />
 			<br />
 			<Container>
 				<h2>Transaction</h2>
 				<hr />
-				<p>Please make sure to check your order detail carefully. We won't hold any responsibility after you clicked Confirm</p>
+				<p>Please make sure to check your booking detail carefully. We won't hold any responsibility after you clicked Confirm</p>
 				<Row>
 					<Col>
-						<strong>Your vaccine order:</strong>
-						<Table bordered>
-							<thead>
-								<tr>
-									<th>#</th>
-									<th>Vaccine name</th>
-									<th>Quantity</th>
-									<th>Price/Dose ($)</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>1</td>
-									<td>Covid 19</td>
-									<td>1</td>
-									<td>2000</td>
-								</tr>
-							</tbody>
-						</Table>
-						<strong>Your combos order:</strong>
+						<Card>
+							<Card.Header>
+								<Card.Title>Your booking detail</Card.Title>
+							</Card.Header>
+							<Card.Body>
+								<Card.Text>
+									<b>Child name: </b>
+									{child.name} <br />
+									<b>Appointment date: </b>
+									{vaccinationDate} <br />
+								</Card.Text>
+							</Card.Body>
+						</Card>
+						<Card>
+							<Card.Header>
+								<Card.Title>Your order</Card.Title>
+							</Card.Header>
+							<Card.Body>
+								{type === "single" && (
+									<Table bordered>
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>Vaccine name</th>
+												<th>Quantity</th>
+												<th>Price/Dose ($)</th>
+											</tr>
+										</thead>
+										<tbody>
+											{selectedVaccine.length > 0 ? (
+												<>
+													{selectedVaccine.map((v) => (
+														<tr key={v.vaccine.id}>
+															<td>{v.vaccine.id}</td>
+															<td>{v.vaccine.name}</td>
+															<td>{v.quantity}</td>
+															<td>{v.vaccine.salePrice}</td>
+														</tr>
+													))}
+													<tr>
+														<td colSpan={3}>Total</td>
+														<td>{orderTotal}</td>
+													</tr>
+												</>
+											) : (
+												<>No vaccine selected</>
+											)}
+										</tbody>
+									</Table>
+								)}
+
+								{type === "combo" && (
+									<Table>
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>Combo name</th>
+												<th>Included Vaccines</th>
+												<th>Quantity</th>
+												<th>Price</th>
+											</tr>
+										</thead>
+										<tbody>
+											{selectedCombo.length > 0 ? (
+												<>
+													{selectedCombo.map((combo) => (
+														<tr key={combo.comboId}>
+															{/* {console.log(combo)} */}
+															<td>{combo.comboId}</td>
+															<td>{combo.comboName}</td>
+															<td></td>
+															<td></td>
+															<td>{combo.total}</td>
+														</tr>
+													))}
+													<tr>
+														<td colSpan={4}>Total</td>
+														<td>{orderTotal}</td>
+													</tr>
+												</>
+											) : (
+												<>No combo selected</>
+											)}
+										</tbody>
+									</Table>
+								)}
+							</Card.Body>
+						</Card>
+
+						{/* <strong>Your combos order:</strong>
 						<Table bordered>
 							<thead>
 								<tr>
@@ -106,7 +208,7 @@ function TransactionPage() {
 											.map((vaccine, index, array) => (
 												<React.Fragment key={index}>
 													{vaccine}
-													{index < array.length - 1 && <br />} {/* Add <br> except for the last vaccine */}
+													{index < array.length - 1 && <br />}
 												</React.Fragment>
 											))}
 									</td>
@@ -116,53 +218,50 @@ function TransactionPage() {
 											.map((dose, index, array) => (
 												<React.Fragment key={index}>
 													{dose}
-													{index < array.length - 1 && <br />} {/* Add <br> except for the last vaccine */}
+													{index < array.length - 1 && <br />} 
 												</React.Fragment>
 											))}
 									</td>
 									<td>1800</td>
 								</tr>
 							</tbody>
-						</Table>
+						</Table> */}
 					</Col>
-					<Col lg={4}>
-						<Card>
+					<Col lg={6}>
+						{/* <Card>
 							<Card.Header>
-								<b>Total</b>
+								<b>Booking detail</b>
 							</Card.Header>
 							<Card.Body>
 								<Card.Text>
-									<b>Price for single vaccines: </b>------------- 1000
+									<b>Child name: </b>
+									{child.name}
 								</Card.Text>
 								<Card.Text>
 									<b>Price for vaccine combos: </b>------------- 1000
 								</Card.Text>
-								<Card.Text>
-									<b>Discount: </b>---------------------0%
-								</Card.Text>
 							</Card.Body>
 							<Card.Footer>2000$</Card.Footer>
-						</Card>
+						</Card> */}
 						<Card>
-							<Card.Header>Your transaction detail</Card.Header>
+							<Card.Header>
+								<Card.Title>Your transaction detail</Card.Title>
+							</Card.Header>
 							<Card.Body>
-								{/* <Form method="POST">
-									<Form.Group className="mb-3" controlId="cardholder">
-										<Form.Label>Cardholder Name</Form.Label>
-										<Form.Control type="text" placeholder="Cardholder name..." />
-									</Form.Group>
-									<Form.Group className="mb-3" controlId="cardnumber">
-										<Form.Label>Card Number</Form.Label>
-										<Form.Control type="number" placeholder="Card number..." />
-									</Form.Group>
-									<Form.Group className="mb-3" controlId="expireDate">
-										<Form.Label>Expire time</Form.Label>
-										<Form.Control type="month" />
-									</Form.Group>
-									<Button onClick={handleSubmit}>Confirm</Button>
-								</Form> */}
 								<Form onSubmit={handleSubmit}>
-									<CardElement />
+									<Form.Group className="mb-3">
+										<Form.Label>Card Number</Form.Label>
+										<CardNumberElement />
+									</Form.Group>
+									<Form.Group className="mb-3">
+										<Form.Label>Card Expiration Date</Form.Label>
+										<CardExpiryElement />
+									</Form.Group>
+									<Form.Group className="mb-3">
+										<Form.Label>CVC</Form.Label>
+										<CardCvcElement />
+									</Form.Group>
+									{/* <CardElement /> */}
 									{error && <div className="text-danger">{error}</div>}
 									{success && <div className="text-success">{success}</div>}
 									<Button type="submit" disabled={!stripe || loading}>
