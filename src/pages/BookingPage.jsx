@@ -155,7 +155,7 @@ function BookingPage() {
 		setType(type);
 	};
 
-	const handleSubmit = (values) => {
+	const handleSubmit = async (values) => {
 		if (type === "single" && selectedVaccine.length === 0) {
 			setBookingError("Please choose at least 1 vaccine to proceed!");
 			return;
@@ -165,43 +165,93 @@ function BookingPage() {
 			setBookingError("Please choose at least 1 combo to proceed!");
 			return;
 		}
-		const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
-		console.log(selectedVaccine, selectedCombo, selectedChild);
-		navigate("/Transaction", {
-			state: {
-				selectedVaccine: selectedVaccine,
-				selectedCombo: selectedCombo,
-				child: selectedChild,
-				vaccinationDate: values.vaccinationDate,
-				payment: values.payment,
-				type: type,
-			},
-		});
+
+		try {
+			// Create booking first
+			const bookingResponse = await fetch(`http://localhost:8080/booking/${values.childId}/create`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					appointmentDate: values.vaccinationDate,
+					status: true,
+				}),
+			});
+
+			if (!bookingResponse.ok) {
+				throw new Error("Failed to create booking");
+			}
+
+			const bookingData = await bookingResponse.json();
+			const bookingId = bookingData.result.bookingId;
+
+			// Create order
+			const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					orderDate: new Date().toISOString(),
+				}),
+			});
+
+			if (!orderResponse.ok) {
+				throw new Error("Failed to create order");
+			}
+
+			const orderData = await orderResponse.json();
+			const orderId = orderData.result.id;
+
+			// Add vaccine details to order
+			if (type === "single") {
+				for (const v of selectedVaccine) {
+					await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							quantity: v.quantity,
+						}),
+					});
+				}
+			} else if (type === "combo") {
+				// Handle combo vaccines here
+				for (const combo of selectedCombo) {
+					// Add combo vaccines to order
+					// This part needs to be implemented based on your combo structure
+					await fetch(``, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${token}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(combo),
+					});
+				}
+			}
+
+			const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
+			navigate("/Transaction", {
+				state: {
+					selectedVaccine: selectedVaccine,
+					selectedCombo: selectedCombo,
+					child: selectedChild,
+					vaccinationDate: values.vaccinationDate,
+					payment: values.payment,
+					type: type,
+					orderId: orderId,
+				},
+			});
+		} catch (error) {
+			setBookingError(error.message);
+		}
 	};
-
-	// //Set user's chosen vaccine
-	// const handleVaccineSelection = (vaccine) => {
-	// 	const isSelected = selectedVaccine.some((v) => {
-	// 		v.id === vaccine.id;
-	// 	});
-	// 	if (isSelected) {
-	// 		setSelectedVaccine(selectedVaccine.filter((v) => v.id !== vaccine.id));
-	// 	} else {
-	// 		setSelectedVaccine([...selectedVaccine, vaccine]);
-	// 	}
-	// };
-
-	// //Set user's chosen combo
-	// const handleComboSelection = (combo) => {
-	// 	const isSelected = selectedCombo.some((c) => {
-	// 		c.id === combo.id;
-	// 	});
-	// 	if (isSelected) {
-	// 		setSelectedCombo(selectedCombo.filter((c) => c.id !== combo.id));
-	// 	} else {
-	// 		setSelectedCombo([...selectedCombo, combo]);
-	// 	}
-	// };
 
 	const handleVaccineSelection = (vaccine) => {
 		const index = selectedVaccine.findIndex((v) => v.vaccine.id === vaccine.id);
@@ -231,7 +281,7 @@ function BookingPage() {
 		<>
 			<Navigation />
 			<Container className="mt-4">
-				{/* {console.log(childs, comboList)} */}
+				{console.log(childs, comboList)}
 				<h2 className="mb-4 text-center">Vaccination Booking</h2>
 				<br />
 				<Form method="POST" onSubmit={formik.handleSubmit}>
@@ -379,8 +429,28 @@ function BookingPage() {
 							{type === "combo" && (
 								<>
 									{selectedCombo.length > 0 ? (
-										selectedCombo.map((combo) => <li key={combo.id}>{combo.comboName}</li>)
+										<Table borderless>
+											<thead>
+												<tr>
+													<th>Combo name</th>
+													<th>Included Vaccine</th>
+												</tr>
+											</thead>
+											<tbody>
+												{selectedCombo.map((c) => (
+													<tr key={c.comboId}>
+														<td>{c.comboName}</td>
+														<td>
+															{c.vaccines.map((v, index) => (
+																<li key={index}>{v}</li>
+															))}
+														</td>
+													</tr>
+												))}
+											</tbody>
+										</Table>
 									) : (
+										// selectedCombo.map((combo) => <li key={combo.id}>{combo.comboName}</li>)
 										<>
 											No combo chosen
 											<br />

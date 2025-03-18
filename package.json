@@ -12,6 +12,7 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^3.4.0",
     "@stripe/stripe-js": "^6.0.0",
+    "axios": "^1.8.3",
     "bootstrap": "^5.3.3",
     "formik": "^2.4.6",
     "jwt-decode": "^4.0.0",

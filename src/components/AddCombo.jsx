@@ -5,6 +5,7 @@ import { Button, Col, Form, InputGroup, Modal, Row, Table } from "react-bootstra
 import { useNavigate } from "react-router-dom";
 
 function AddCombo({ setIsOpen, open }) {
+	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const searchVaccAPI = "http://localhost:8080/vaccine";
 	const comboAPI = "http://localhost:8080/vaccine/combo";

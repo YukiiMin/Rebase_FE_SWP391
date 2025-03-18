@@ -35,7 +35,7 @@ function ComboManage() {
 					vaccines: [], // Initialize vaccines array
 				};
 			}
-			grouped[combo.comboId].vaccines.push({ name: combo.vaccineName, dose: combo.dose });
+			grouped[combo.comboId].vaccines.push({ name: combo.vaccineName, manufacturer: combo.manufacturer, dose: combo.dose });
 		});
 		// Convert grouped object to array
 		return Object.values(grouped);
@@ -109,52 +109,63 @@ function ComboManage() {
 								<p className="text-center mt-3">No data</p>
 							)}
 						</Accordion>
-
-						{/* <Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									<th>#</th>
-									<th>ComboID</th>
-									<th>Combo Name</th>
-									<th>Description</th>
-									<th>Vaccines(Dose)</th>
-									<th>Target Age Group</th>
-									<th>Sale %</th>
-									<th>Total Price ($) </th>
-								</tr>
-							</thead>
-							<tbody>
-								{combos.length > 0 ? (
-									combos.map((combo, index) => (
-										<tr key={combo.comboId}>
-											<td>{index + 1}</td>
-											<td>{combo.comboId}</td>
-											<td>{combo.comboName}</td>
-											<td>{combo.description}</td>
-											{/* <td>{combo.vaccineName}</td> */}
-						{/* <td>{combo.vaccines.join(", ")}</td> */}
-						{/* <td>
-												<ul>
-													{combo.vaccines.map((vaccine, index) => (
-														<li key={index}>
-															{vaccine.name} ({vaccine.dose})
-														</li>
-													))}
-												</ul>
-											</td> */}
-						{/*Vaccine(dose), Vaccine(dose) */}
-						{/* <td>{combo.comboCategory}</td>
-											<td>{combo.saleOff}%</td>
-											<td>{parseFloat(combo.total).toFixed(2)}</td>
-										</tr>
-									))
-								) : (
+						<div>
+							<Table striped hover responsive bordered>
+								<thead>
 									<tr>
-										<td colSpan="7">No combos added yet.</td>
+										<th>#</th>
+										<th>Combo Name</th>
+										<th>Combo Category</th>
+										<th>Description</th>
+										<th>Included Vaccine</th>
+										<th>Vaccine Manufacturer</th>
+										<th>Vaccine Dose</th>
+										<th>Sale Off</th>
+										<th>Total Price</th>
 									</tr>
-								)}
-							</tbody>
-						</Table> */}
+								</thead>
+								<tbody>
+									{combos.length > 0 ? (
+										combos.map((combo) => (
+											<tr key={combo.comboId}>
+												<td>{combo.comboId}</td>
+												<td>{combo.comboName}</td>
+												<td>{combo.comboCategory}</td>
+												<td>{combo.description}</td>
+												<td>
+													{combo.vaccines.map((v, index, array) => (
+														<React.Fragment key={index}>
+															{v.name}
+															{index < array.length - 1 && <br />}
+														</React.Fragment>
+													))}
+												</td>
+												<td>
+													{combo.vaccines.map((v, index, array) => (
+														<React.Fragment key={index}>
+															{v.manufacturer}
+															{index < array.length - 1 && <br />}
+														</React.Fragment>
+													))}
+												</td>
+												<td>
+													{combo.vaccines.map((v, index, array) => (
+														<React.Fragment key={index}>
+															{v.dose}
+															{index < array.length - 1 && <br />}
+														</React.Fragment>
+													))}
+												</td>
+												<td>{combo.saleOff}</td>
+												<td>{parseFloat(combo.total).toFixed(2)}</td>
+											</tr>
+										))
+									) : (
+										<>No data</>
+									)}
+								</tbody>
+							</Table>
+						</div>
 					</Container>
 				</Col>
 			</Row>
