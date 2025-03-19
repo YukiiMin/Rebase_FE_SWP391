@@ -7,18 +7,14 @@ function ComboManage() {
 	const [comboList, setComboList] = useState([]);
 	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
 	const [isOpen, setIsOpen] = useState(false);
+	const [searchName, setSearchName] = useState("");
+	const [searchCategory, setSearchCategory] = useState("");
+	const [sortOption, setSortOption] = useState("");
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 10; // Number of items per page
 
 	useEffect(() => {
 		getCombo();
-		// fetch(comboAPI)
-		// 	.then((response) => response.json())
-		// 	.then((data) => {
-		// 		// setCombos(data.result);
-		// 		console.log(data.result);
-		// 		const groupedCombos = groupCombos(data.result);
-		// 		setCombos(groupedCombos);
-		// 	})
-		// 	.catch((error) => console.error("Error fetching combos:", error));
 	}, []);
 
 	const getCombo = async () => {
@@ -57,13 +53,26 @@ function ComboManage() {
 		return Object.values(grouped);
 	};
 
+	const searchCombo = () => {
+		let filtered = comboList.filter((combo) => {
+			const sName = combo.comboName.toLowerCase().includes(searchName.toLowerCase());
+			const sCategory = combo.comboCategory.toLowerCase().includes(searchCategory.toLowerCase());
+			return sName && sCategory;
+		});
+		if (sortOption) {
+			filtered = [...filtered].sort((a, b) => {
+				if (sortOption === "priceAsc") return a.total - b.total;
+				if (sortOption === "priceDes") return b.total - a.total;
+			});
+		}
+		return filtered;
+	};
+
 	//Pagination
-	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10; // Number of items per page
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentCombos = comboList && comboList.length > 0 ? comboList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
-	const totalPages = Math.ceil(comboList.length / itemsPerPage);
+	const currentCombos = searchCombo().slice(indexOfFirstItems, indexOfLastItems); //Ensure list not empty
+	const totalPages = Math.ceil(searchCombo().length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
 		setCurrentPage(pageNumber);
@@ -107,6 +116,30 @@ function ComboManage() {
 						</Row>
 						{isOpen && <AddCombo setIsOpen={setIsOpen} open={isOpen} />}
 						<hr className="mb-4"></hr>
+						<Container>
+							<Row className="mb-3">
+								<Col md={4}>
+									<h4>Search:</h4>
+								</Col>
+								<Col md={3}>
+									<Form.Control type="text" placeholder="Search Combo Name" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+								</Col>
+								<Col md={3}>
+									<Form.Select value={searchCategory} onChange={(e) => setSearchCategory(e.target.value)}>
+										<option value="">---Category---</option>
+										<option value="kids">Combo for kids</option>
+										<option value="preschool">Combo for preschool children</option>
+									</Form.Select>
+								</Col>
+								<Col md={2}>
+									<Form.Select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
+										<option value="">---Sort---</option>
+										<option value="priceAsc">Price Ascending</option>
+										<option value="priceDes">Price Descending</option>
+									</Form.Select>
+								</Col>
+							</Row>
+						</Container>
 						<Table striped hover responsive bordered>
 							<thead>
 								<tr>
@@ -158,7 +191,11 @@ function ComboManage() {
 										</tr>
 									))
 								) : (
-									<>No data</>
+									<tr>
+										<td colSpan={9} align="center">
+											No Result
+										</td>
+									</tr>
 								)}
 							</tbody>
 						</Table>

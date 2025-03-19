@@ -5,19 +5,58 @@ import AddVaccine from "../components/AddVaccine";
 
 function VaccineManage() {
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
-	const [vaccines, setVaccines] = useState([]);
+	const [vaccineList, setVaccineList] = useState([]);
 	const vaccineAPI = "http://localhost:8080/vaccine/get";
-
 	const [isOpen, setIsOpen] = useState(false); //Form Add Vaccine
-
-	//For pagination
+	const [searchName, setSearchName] = useState("");
+	const [searchManufacturer, setSearchManufacturer] = useState("");
+	const [sortOption, setSortOption] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 5; // Number of items per page
+
+	useEffect(() => {
+		getVaccine();
+	}, []);
+
+	const getVaccine = async () => {
+		try {
+			const response = await fetch(vaccineAPI);
+			if (response.ok) {
+				const data = await response.json();
+				setVaccineList(data.result);
+			} else {
+				console.error("Fetching vaccine failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Error fetching vaccine: ", err);
+		}
+	};
+
+	const searchVaccine = () => {
+		let filtered = vaccineList.filter((vaccine) => {
+			const sName = vaccine.name.toLowerCase().includes(searchName.toLowerCase());
+			const sManufacturer = vaccine.manufacturer.toLowerCase().includes(searchManufacturer.toLowerCase());
+			return sName && sManufacturer;
+		});
+		if (sortOption) {
+			filtered = [...filtered].sort((a, b) => {
+				if (sortOption === "quantityAsc") return a.quantity - b.quantity;
+				if (sortOption === "unitPriceAsc") return a.unitPrice - b.unitPrice;
+				if (sortOption === "salePriceAsc") return a.salePrice - b.salePrice;
+				if (sortOption === "quantityDes") return b.quantity - a.quantity;
+				if (sortOption === "unitPriceDes") return b.unitPrice - a.unitPrice;
+				if (sortOption === "salePriceDes") return b.salePrice - a.salePrice;
+				return 0;
+			});
+		}
+		return filtered;
+	};
+
+	//Pagination
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	// const currentVaccines = vaccines.slice(indexOfFirstItems, indexOfLastItems);
-	const currentVaccines = vaccines && vaccines.length > 0 ? vaccines.slice(indexOfFirstItems, indexOfLastItems) : [];
-	const totalPages = Math.ceil(vaccines.length / itemsPerPage);
+	const currentVaccines = searchVaccine().slice(indexOfFirstItems, indexOfLastItems);
+	const totalPages = Math.ceil(searchVaccine().length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
 		setCurrentPage(pageNumber);
@@ -42,29 +81,11 @@ function VaccineManage() {
 		</Pagination>
 	);
 
-	useEffect(() => {
-		fetchVaccine();
-	}, []);
-
-	const fetchVaccine = async () => {
-		try {
-			const response = await fetch(vaccineAPI);
-			if (response.ok) {
-				const data = await response.json();
-				setVaccines(data.result);
-			} else {
-				console.error("Fetching vaccine failed: ", response.status);
-			}
-		} catch (err) {
-			console.error("Error fetching vaccine: ", err);
-		}
-	};
-
 	const handleVaccineAdded = (newVaccine) => {
 		if (newVaccine) {
-			setVaccines([newVaccine, ...vaccines]);
+			setVaccineList([newVaccine, ...vaccineList]);
 		} else {
-			fetchVaccine();
+			getVaccine();
 		}
 	};
 
@@ -74,7 +95,7 @@ function VaccineManage() {
 				<Sidebar />
 				<Col lg={10}>
 					<Container className="py-4">
-						{/* {console.log(vaccines)} */}
+						{console.log(vaccineList, currentVaccines)}
 						<Row className="mb-4 align-items-center">
 							<Col>
 								<h1 className="text-primary">Vaccine Management</h1>
@@ -87,6 +108,31 @@ function VaccineManage() {
 						</Row>
 						{isOpen && <AddVaccine setIsOpen={setIsOpen} open={isOpen} onAdded={handleVaccineAdded} />}
 						<hr className="mb-4"></hr>
+						<Container>
+							<Row className="mb-3">
+								<Col md={4}>
+									<h4>Search:</h4>
+								</Col>
+								<Col md={3}>
+									<Form.Control type="text" placeholder="Search Vaccine Name" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+								</Col>
+								<Col md={3}>
+									<Form.Control type="text" placeholder="Search Manufacturer" value={searchManufacturer} onChange={(e) => setSearchManufacturer(e.target.value)} />
+								</Col>
+								<Col md={2}>
+									<Form.Select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
+										<option value="">---Sort---</option>
+										<option value="quantityAsc">Sort by Quantity Ascending</option>
+										<option value="quantityDes">Sort by Quantity Descending</option>
+										<option value="unitPriceAsc">Sort by Unit Price Ascending</option>
+										<option value="unitPriceDes">Sort by Unit Price Descending</option>
+										<option value="salePriceAsc">Sort by Sale Price Ascending</option>
+										<option value="salePriceDes">Sort by Sale Price Descending</option>
+									</Form.Select>
+								</Col>
+							</Row>
+						</Container>
+
 						<Table striped bordered hover responsive>
 							<thead>
 								<tr>
@@ -133,7 +179,9 @@ function VaccineManage() {
 								) : (
 									<>
 										<tr>
-											<td colSpan={12}>No vaccine added yet</td>
+											<td colSpan={12} align="center">
+												No Result
+											</td>
 										</tr>
 									</>
 								)}

@@ -79,32 +79,6 @@ function AddCombo({ setIsOpen, open }) {
 		}
 	};
 
-	// const handleAddCombo = async (values) => {
-	// 	try {
-	// 		console.log(values);
-	// 		const response = await fetch(`${comboAPI}/add`, {
-	// 			method: "POST",
-	// 			headers: {
-	// 				Authorization: `Bearer ${token}`,
-	// 				"Content-Type": "application/json",
-	// 			},
-	// 			body: JSON.stringify(values),
-	// 		});
-	// 		if (response.ok) {
-	// 			console.log("Add combo successful, proceed to adding combo detail");
-	// 			//Get new id from the response
-	// 			const responseData = await response.json();
-	// 			const comboId = responseData.result.id;
-	// 			console.log("id:", comboId);
-	// 			handleAddComboDetail(values, comboId);
-	// 		} else {
-	// 			console.error("Adding combo failed: ", response.status);
-	// 		}
-	// 	} catch (err) {
-	// 		console.error("Add combo error:", err);
-	// 	}
-	// };
-
 	//Add vaccine combo detail using the newly create comboId
 
 	const handleAddComboDetail = async (values, comboId) => {
@@ -145,33 +119,6 @@ function AddCombo({ setIsOpen, open }) {
 			console.error("Add detail failed: ", err);
 		}
 	};
-
-	// const handleAddComboDetail = async (values, comboId) => {
-	// 	try {
-	// 		console.log(values, `comboId: ${comboId}`, selectedVaccs);
-	// 		for (const item of selectedVaccs) {
-	// 			console.log(item)
-	// 			const response = await fetch(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`, {
-	// 				method: "POST",
-	// 				headers: {
-	// 					"Content-Type": "application/json",
-	// 				},
-	// 				body: JSON.stringify(values),
-	// 			});
-	// 			if (response.ok) {
-	// 				console.log("Add combo detail successful");
-	// 				alert("Adding combo successful");
-	// 				handleClose();
-	// 				// navigate("/Admin/ManageCombo");
-	// 				// window.location.reload(); // Reload page after redirect
-	// 			} else {
-	// 				console.error("Add combo detail error: ", response.status);
-	// 			}
-	// 		}
-	// 	} catch (err) {
-	// 		console.error("Add combo error:", err);
-	// 	}
-	// };
 
 	//Function search vaccine for the form
 	const handleSearch = async (search) => {
@@ -286,14 +233,6 @@ function AddCombo({ setIsOpen, open }) {
 										<option value="Combo for kids">Combo for kids</option>
 										<option value="Combo for preschool children">Combo for preschool children</option>
 									</Form.Select>
-									{/* <Form.Control
-										type="text"
-										placeholder="Enter combo category"
-										name="comboCategory"
-										value={formik.values.comboCategory}
-										onChange={formik.handleChange}
-										isInvalid={formik.touched.comboCategory && formik.errors.comboCategory}
-									/> */}
 									<Form.Control.Feedback type="invalid">{formik.errors.comboCategory}</Form.Control.Feedback>
 								</Form.Group>
 							</Col>
