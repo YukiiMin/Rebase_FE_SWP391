@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Row, Table } from "react-bootstrap";
+import { Button, Col, Container, Pagination, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import UpdateRole from "../components/UpdateRole";
 import AddAccount from "../components/AddAccount";
 
 function AccountManage() {
 	const token = localStorage.getItem("token");
-	const [accounts, setAccounts] = useState([]);
+	const [accountList, setAccountList] = useState([]);
 	const [isOpen, setIsOpen] = useState(false);
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 
@@ -28,7 +28,7 @@ function AccountManage() {
 		});
 		if (response.ok) {
 			const data = await response.json();
-			setAccounts(data.result);
+			setAccountList(data.result);
 		} else {
 			console.error();
 		}
@@ -41,23 +41,48 @@ function AccountManage() {
 
 	const handleAddAccount = (newAccount) => {
 		if (newAccount) {
-			setAccounts([newAccount, ...accounts]);
+			setAccountList([newAccount, ...accountList]);
 		} else {
 			fetchAccount();
 		}
 	};
 
-	// .then((response) => response.json())
-	// .then((data) => {
-	// 	setAccounts(data.result);
-	// })
-	// .catch((error) => console.error("Error fetching accounts:", error));
+	//Pagination
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 10; // Number of items per page
+	const indexOfLastItems = currentPage * itemsPerPage;
+	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
+	const currentsAccounts = accountList && accountList.length > 0 ? accountList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
+	const totalPages = Math.ceil(accountList.length / itemsPerPage);
+
+	const handlePageChange = (pageNumber) => {
+		setCurrentPage(pageNumber);
+	};
+
+	let items = [];
+	for (let number = 1; number <= totalPages; number++) {
+		items.push(
+			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
+				{number}
+			</Pagination.Item>
+		);
+	}
+
+	const pagination = (
+		<Pagination>
+			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+			{items}
+			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
+		</Pagination>
+	);
+
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
 				<Sidebar />
-				<Col>
-					{console.log(accounts)}
+				<Col lg={10}>
 					<Container className="py-4">
 						{/* <h1 className="mb-4 text-primary">Account Management</h1> */}
 						<Row className="mb-4 align-items-center">
@@ -75,7 +100,6 @@ function AccountManage() {
 						<Table striped bordered hover responsive>
 							<thead>
 								<tr>
-									<th>#</th>
 									<th>AccountID</th>
 									<th>Full Name</th>
 									<th>Username</th>
@@ -89,10 +113,9 @@ function AccountManage() {
 								</tr>
 							</thead>
 							<tbody>
-								{accounts.length > 0 ? (
-									accounts.map((user, index) => (
+								{currentsAccounts.length > 0 ? (
+									currentsAccounts.map((user, index) => (
 										<tr key={user.accountId}>
-											<td>{index + 1}</td>
 											<td>{user.accountId}</td>
 											<td>
 												{user.firstName} {user.lastName}
@@ -124,6 +147,7 @@ function AccountManage() {
 								)}
 							</tbody>
 						</Table>
+						{pagination}
 					</Container>
 				</Col>
 			</Row>

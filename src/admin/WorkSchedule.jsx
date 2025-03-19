@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Row, Table } from "react-bootstrap";
+import { Button, Col, Container, Form, Pagination, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddShift from "../components/AddShift";
 
@@ -21,7 +21,7 @@ function WorkSchedule() {
 	// ];
 
 	const [schedule, setSchedule] = useState([]); //Array object which each object is a staff schedule
-	const [staffs, setStaffs] = useState([]); //Array of staffs
+	const [staffList, setStaffList] = useState([]); //Array of staffs
 
 	const handleMonthChange = (event) => {
 		setSelectedMonth(parseInt(event.target.value));
@@ -61,10 +61,10 @@ function WorkSchedule() {
 	}, []);
 
 	useEffect(() => {
-		if (staffs.length > 0) {
+		if (staffList.length > 0) {
 			fetchSchedule();
 		}
-	}, [staffs]);
+	}, [staffList]);
 
 	const getStaff = async () => {
 		try {
@@ -75,7 +75,7 @@ function WorkSchedule() {
 			});
 			if (response.ok) {
 				const data = await response.json();
-				setStaffs(data.result);
+				setStaffList(data.result);
 			} else {
 				console.error("Getting staffs data failed: ", response.status);
 			}
@@ -86,14 +86,12 @@ function WorkSchedule() {
 
 	const fetchSchedule = async () => {
 		try {
-			if (!staffs || staffs.length == 0) {
+			if (!staffList || staffList.length == 0) {
 				//Make sure staffs are loaded
 				return;
 			}
-			// console.log(staffs);
 			const allSchedules = [];
-			for (const staff of staffs) {
-				// console.log(staff);
+			for (const staff of staffList) {
 				const response = await fetch(`${scheduleAPI}/allworkdate/${staff.accountId}`, {
 					headers: {
 						Authorization: `Bearer ${token}`,
@@ -114,13 +112,44 @@ function WorkSchedule() {
 		}
 	};
 
+	//Pagination
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 10; // Number of items per page
+	const indexOfLastItems = currentPage * itemsPerPage;
+	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
+	const currentStaffs = staffList && staffList.length > 0 ? staffList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
+	const totalPages = Math.ceil(staffList.length / itemsPerPage);
+
+	const handlePageChange = (pageNumber) => {
+		setCurrentPage(pageNumber);
+	};
+
+	let items = [];
+	for (let number = 1; number <= totalPages; number++) {
+		items.push(
+			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
+				{number}
+			</Pagination.Item>
+		);
+	}
+
+	const pagination = (
+		<Pagination>
+			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+			{items}
+			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
+		</Pagination>
+	);
+
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
 				{/* {console.log(staffs)} */}
 				{console.log(schedule)}
 				<Sidebar />
-				<Col>
+				<Col lg={10}>
 					<Container className="py-4">
 						<Row className="mb-4 align-items-center">
 							<Col>
@@ -163,7 +192,7 @@ function WorkSchedule() {
 								</tr>
 							</thead>
 							<tbody>
-								{staffs.map((staff) => (
+								{currentStaffs.map((staff) => (
 									<tr key={staff.accountId}>
 										<td>{`${staff.firstName} ${staff.lastName}`}</td>
 										{daysInMonth.map((day) => (
@@ -173,6 +202,7 @@ function WorkSchedule() {
 								))}
 							</tbody>
 						</Table>
+						{pagination}
 					</Container>
 				</Col>
 			</Row>

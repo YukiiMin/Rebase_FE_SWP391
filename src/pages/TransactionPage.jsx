@@ -144,7 +144,8 @@ function TransactionPage() {
 			if (paymentIntent.status === "succeeded") {
 				// Payment successful, update order status
 				try {
-					console.log("Confirming payment with backend for order:", orderId);
+					// console.log("Confirming payment with backend for order:", orderId);
+					// console.log("Payment amount: ", orderTotal);
 					const response = await fetch(`${paymentAPI}/${orderId}/confirm`, {
 						method: "POST",
 						headers: {
@@ -157,8 +158,9 @@ function TransactionPage() {
 						}),
 					});
 
-					const responseData = await response.text();
-					console.log("Backend confirmation response:", response.status, responseData);
+					const responseData = await response.json();
+					// console.log("Backend confirmation response:", response.status);
+					// console.log(responseData);
 
 					if (!response.ok) {
 						throw new Error(`Failed to confirm payment with backend: ${response.status} ${responseData}`);
@@ -167,7 +169,7 @@ function TransactionPage() {
 					setSuccess("Payment successful!");
 					setTimeout(() => {
 						navigate("/");
-					}, 2000);
+					}, 10000);
 				} catch (backendError) {
 					console.error("Backend confirmation error:", backendError);
 					setError(`Payment was processed but failed to update order. Please contact support with this reference: ${paymentIntent.id}`);

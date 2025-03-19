@@ -43,12 +43,6 @@ function VaccineManage() {
 	);
 
 	useEffect(() => {
-		// fetch(vaccineAPI)
-		// 	.then((response) => response.json())
-		// 	.then((data) => {
-		// 		setVaccines(data.result);
-		// 	})
-		// 	.catch((error) => console.error("Error fetching vaccines:", error));
 		fetchVaccine();
 	}, []);
 
@@ -78,9 +72,9 @@ function VaccineManage() {
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
 				<Sidebar />
-				<Col>
+				<Col lg={10}>
 					<Container className="py-4">
-						{console.log(vaccines)}
+						{/* {console.log(vaccines)} */}
 						<Row className="mb-4 align-items-center">
 							<Col>
 								<h1 className="text-primary">Vaccine Management</h1>
@@ -96,7 +90,6 @@ function VaccineManage() {
 						<Table striped bordered hover responsive>
 							<thead>
 								<tr>
-									<th>#</th>
 									<th>ID</th>
 									<th>Vaccine Name</th>
 									<th>Image</th>
@@ -115,7 +108,6 @@ function VaccineManage() {
 								{currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
 									currentVaccines.map((vaccine, index) => (
 										<tr key={vaccine.id}>
-											<td>{index + 1}</td>
 											<td>{vaccine.id}</td>
 											<td>{vaccine.name}</td>
 											{/* <td>{vaccine.imagineUrl}</td> */}

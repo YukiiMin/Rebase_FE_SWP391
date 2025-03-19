@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 
 function StaffMenu() {
 	return (
-		<Col sm={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
+		<Col lg={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
 			<Navbar>
 				<Nav defaultActiveKey="/Staff/StaffPage" className="flex-column">
 					<Navbar.Brand

@@ -1,24 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { Accordion, Button, Col, Container, Form, Modal, Row, Table } from "react-bootstrap";
+import { Accordion, Button, Col, Container, Form, Modal, Pagination, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddCombo from "../components/AddCombo";
 
 function ComboManage() {
-	const [combos, setCombos] = useState([]);
+	const [comboList, setComboList] = useState([]);
 	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
 	const [isOpen, setIsOpen] = useState(false);
 
 	useEffect(() => {
-		fetch(comboAPI)
-			.then((response) => response.json())
-			.then((data) => {
-				// setCombos(data.result);
-				console.log(data.result);
-				const groupedCombos = groupCombos(data.result);
-				setCombos(groupedCombos);
-			})
-			.catch((error) => console.error("Error fetching combos:", error));
+		getCombo();
+		// fetch(comboAPI)
+		// 	.then((response) => response.json())
+		// 	.then((data) => {
+		// 		// setCombos(data.result);
+		// 		console.log(data.result);
+		// 		const groupedCombos = groupCombos(data.result);
+		// 		setCombos(groupedCombos);
+		// 	})
+		// 	.catch((error) => console.error("Error fetching combos:", error));
 	}, []);
+
+	const getCombo = async () => {
+		try {
+			const response = await fetch(`${comboAPI}`);
+			if (response.ok) {
+				const data = await response.json();
+				const groupedCombos = groupCombos(data.result);
+				setComboList(groupedCombos);
+			} else {
+				console.error("Getting combo list failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Something went wrong when getting combo list: ", err);
+		}
+	};
 
 	//Group vaccine with the same comboId
 	const groupCombos = (combosData) => {
@@ -41,13 +57,44 @@ function ComboManage() {
 		return Object.values(grouped);
 	};
 
+	//Pagination
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 10; // Number of items per page
+	const indexOfLastItems = currentPage * itemsPerPage;
+	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
+	const currentCombos = comboList && comboList.length > 0 ? comboList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
+	const totalPages = Math.ceil(comboList.length / itemsPerPage);
+
+	const handlePageChange = (pageNumber) => {
+		setCurrentPage(pageNumber);
+	};
+
+	let items = [];
+	for (let number = 1; number <= totalPages; number++) {
+		items.push(
+			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
+				{number}
+			</Pagination.Item>
+		);
+	}
+
+	const pagination = (
+		<Pagination>
+			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+			{items}
+			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
+		</Pagination>
+	);
+
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
 				<Sidebar />
-				<Col>
+				<Col lg={10}>
 					<Container className="py-4">
-						{console.log(combos)}
+						{/* {console.log(combos)} */}
 						<Row className="mb-4 align-items-center">
 							<Col>
 								<h1 className="text-primary">Combo Vaccine Management</h1>
@@ -60,7 +107,67 @@ function ComboManage() {
 						</Row>
 						{isOpen && <AddCombo setIsOpen={setIsOpen} open={isOpen} />}
 						<hr className="mb-4"></hr>
-						<Accordion alwaysOpen>
+						<Table striped hover responsive bordered>
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Combo Name</th>
+									<th>Combo Category</th>
+									<th>Description</th>
+									<th>Included Vaccine</th>
+									<th>Vaccine Manufacturer</th>
+									<th>Vaccine Dose</th>
+									<th>Sale Off</th>
+									<th>Total Price</th>
+								</tr>
+							</thead>
+							<tbody>
+								{currentCombos.length > 0 ? (
+									currentCombos.map((combo) => (
+										<tr key={combo.comboId}>
+											<td>{combo.comboId}</td>
+											<td>{combo.comboName}</td>
+											<td>{combo.comboCategory}</td>
+											<td>{combo.description}</td>
+											<td>
+												{combo.vaccines.map((v, index, array) => (
+													<React.Fragment key={index}>
+														{v.name}
+														{index < array.length - 1 && <br />}
+													</React.Fragment>
+												))}
+											</td>
+											<td>
+												{combo.vaccines.map((v, index, array) => (
+													<React.Fragment key={index}>
+														{v.manufacturer}
+														{index < array.length - 1 && <br />}
+													</React.Fragment>
+												))}
+											</td>
+											<td>
+												{combo.vaccines.map((v, index, array) => (
+													<React.Fragment key={index}>
+														{v.dose}
+														{index < array.length - 1 && <br />}
+													</React.Fragment>
+												))}
+											</td>
+											<td>{combo.saleOff}</td>
+											<td>{parseFloat(combo.total).toFixed(2)}</td>
+										</tr>
+									))
+								) : (
+									<>No data</>
+								)}
+							</tbody>
+						</Table>
+						{pagination}
+					</Container>
+				</Col>
+			</Row>
+			{/* 			
+			<Accordion alwaysOpen>
 							{combos.length > 0 ? (
 								combos.map((combo) => (
 									<Accordion.Item eventKey={combo.comboId} key={combo.comboId} className="mb-3">
@@ -108,67 +215,7 @@ function ComboManage() {
 							) : (
 								<p className="text-center mt-3">No data</p>
 							)}
-						</Accordion>
-						<div>
-							<Table striped hover responsive bordered>
-								<thead>
-									<tr>
-										<th>#</th>
-										<th>Combo Name</th>
-										<th>Combo Category</th>
-										<th>Description</th>
-										<th>Included Vaccine</th>
-										<th>Vaccine Manufacturer</th>
-										<th>Vaccine Dose</th>
-										<th>Sale Off</th>
-										<th>Total Price</th>
-									</tr>
-								</thead>
-								<tbody>
-									{combos.length > 0 ? (
-										combos.map((combo) => (
-											<tr key={combo.comboId}>
-												<td>{combo.comboId}</td>
-												<td>{combo.comboName}</td>
-												<td>{combo.comboCategory}</td>
-												<td>{combo.description}</td>
-												<td>
-													{combo.vaccines.map((v, index, array) => (
-														<React.Fragment key={index}>
-															{v.name}
-															{index < array.length - 1 && <br />}
-														</React.Fragment>
-													))}
-												</td>
-												<td>
-													{combo.vaccines.map((v, index, array) => (
-														<React.Fragment key={index}>
-															{v.manufacturer}
-															{index < array.length - 1 && <br />}
-														</React.Fragment>
-													))}
-												</td>
-												<td>
-													{combo.vaccines.map((v, index, array) => (
-														<React.Fragment key={index}>
-															{v.dose}
-															{index < array.length - 1 && <br />}
-														</React.Fragment>
-													))}
-												</td>
-												<td>{combo.saleOff}</td>
-												<td>{parseFloat(combo.total).toFixed(2)}</td>
-											</tr>
-										))
-									) : (
-										<>No data</>
-									)}
-								</tbody>
-							</Table>
-						</div>
-					</Container>
-				</Col>
-			</Row>
+						</Accordion> */}
 		</div>
 	);
 }

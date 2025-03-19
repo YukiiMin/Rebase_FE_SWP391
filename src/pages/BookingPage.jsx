@@ -45,12 +45,11 @@ function BookingPage() {
 		},
 		validationSchema: validation,
 	});
-
+	//User must login to use this feature
 	useEffect(() => {
-		//User must login to use this feature
 		if (!token) {
 			navigate("/Login");
-			alert("You must login to use this feature");
+			console.log("You must login to use this feature");
 			return;
 		}
 		getChild();
@@ -156,6 +155,7 @@ function BookingPage() {
 	};
 
 	const handleSubmit = async (values) => {
+		// console.log(values);
 		if (type === "single" && selectedVaccine.length === 0) {
 			setBookingError("Please choose at least 1 vaccine to proceed!");
 			return;
@@ -166,8 +166,99 @@ function BookingPage() {
 			return;
 		}
 
+		createBooking(values);
+
+		// 	try {
+		// 		// Create booking first
+		// 		const bookingResponse = await fetch(`http://localhost:8080/booking/${values.childId}/create`, {
+		// 			method: "POST",
+		// 			headers: {
+		// 				Authorization: `Bearer ${token}`,
+		// 				"Content-Type": "application/json",
+		// 			},
+		// 			body: JSON.stringify({
+		// 				appointmentDate: values.vaccinationDate,
+		// 				status: true,
+		// 			}),
+		// 		});
+
+		// 		if (!bookingResponse.ok) {
+		// 			throw new Error("Failed to create booking");
+		// 		}
+
+		// 		const bookingData = await bookingResponse.json();
+		// 		const bookingId = bookingData.result.bookingId;
+		// 		console.log(bookingId);
+
+		// 		// Create order
+		// 		const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
+		// 			method: "POST",
+		// 			headers: {
+		// 				Authorization: `Bearer ${token}`,
+		// 				"Content-Type": "application/json",
+		// 			},
+		// 			body: JSON.stringify({
+		// 				orderDate: new Date().toISOString(),
+		// 			}),
+		// 		});
+
+		// 		if (!orderResponse.ok) {
+		// 			throw new Error("Failed to create order");
+		// 		}
+
+		// 		const orderData = await orderResponse.json();
+		// 		const orderId = orderData.result.id;
+
+		// 		// Add vaccine details to order
+		// 		if (type === "single") {
+		// 			for (const v of selectedVaccine) {
+		// 				await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
+		// 					method: "POST",
+		// 					headers: {
+		// 						Authorization: `Bearer ${token}`,
+		// 						"Content-Type": "application/json",
+		// 					},
+		// 					body: JSON.stringify({
+		// 						quantity: v.quantity,
+		// 					}),
+		// 				});
+		// 			}
+		// 		} else if (type === "combo") {
+		// 			// Handle combo vaccines here
+		// 			for (const combo of selectedCombo) {
+		// 				// Add combo vaccines to order
+		// 				// This part needs to be implemented based on your combo structure
+		// 				await fetch(``, {
+		// 					method: "POST",
+		// 					headers: {
+		// 						Authorization: `Bearer ${token}`,
+		// 						"Content-Type": "application/json",
+		// 					},
+		// 					body: JSON.stringify(combo),
+		// 				});
+		// 			}
+		// 		}
+
+		// 		const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
+		// 		navigate("/Transaction", {
+		// 			state: {
+		// 				selectedVaccine: selectedVaccine,
+		// 				selectedCombo: selectedCombo,
+		// 				child: selectedChild,
+		// 				vaccinationDate: values.vaccinationDate,
+		// 				payment: values.payment,
+		// 				type: type,
+		// 				orderId: orderId,
+		// 			},
+		// 		});
+		// 	} catch (error) {
+		// 		setBookingError(error.message);
+		// 	}
+	};
+
+	// // Create booking first
+	const createBooking = async (values) => {
 		try {
-			// Create booking first
 			const bookingResponse = await fetch(`http://localhost:8080/booking/${values.childId}/create`, {
 				method: "POST",
 				headers: {
@@ -183,11 +274,21 @@ function BookingPage() {
 			if (!bookingResponse.ok) {
 				throw new Error("Failed to create booking");
 			}
-
 			const bookingData = await bookingResponse.json();
+			console.log(bookingData);
 			const bookingId = bookingData.result.bookingId;
+			if (bookingId) {
+				createOrder(values, bookingId);
+			}
+			console.log(bookingId);
+		} catch (error) {
+			setBookingError(error.message);
+		}
+	};
 
-			// Create order
+	//Create order with bookingId
+	const createOrder = async (values, bookingId) => {
+		try {
 			const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
 				method: "POST",
 				headers: {
@@ -204,12 +305,30 @@ function BookingPage() {
 			}
 
 			const orderData = await orderResponse.json();
+			console.log(orderData);
 			const orderId = orderData.result.id;
+			if (orderId) {
+				addDetail(values, orderId);
+			}
+			console.log(orderId);
+		} catch (error) {
+			setBookingError(error.message);
+		}
+	};
 
-			// Add vaccine details to order
+	//Add vaccine detail to order
+	//Might move this function to transaction page
+	const addDetail = async (values, orderId) => {
+		try {
+			let success = true;
 			if (type === "single") {
 				for (const v of selectedVaccine) {
-					await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
+					// const detailData = {
+					// 	quantity: v.quantity,
+					// 	totalPrice: v.quantity * v.vaccine.salePrice,
+					// };
+					// console.log(detailData);
+					const detailResponse = await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
 						method: "POST",
 						headers: {
 							Authorization: `Bearer ${token}`,
@@ -217,15 +336,24 @@ function BookingPage() {
 						},
 						body: JSON.stringify({
 							quantity: v.quantity,
+							totalPrice: v.quantity * v.vaccine.salePrice,
 						}),
 					});
+					if (!detailResponse.ok) {
+						throw new Error(`Failed to add vaccine ${v.vaccine.id} to orderDetail`);
+						success = false;
+					}
+					//Stop the process if the response throws error
+					if (!success) {
+						return;
+					}
 				}
 			} else if (type === "combo") {
 				// Handle combo vaccines here
 				for (const combo of selectedCombo) {
 					// Add combo vaccines to order
 					// This part needs to be implemented based on your combo structure
-					await fetch(``, {
+					const detailResponse = await fetch(``, {
 						method: "POST",
 						headers: {
 							Authorization: `Bearer ${token}`,
@@ -233,6 +361,13 @@ function BookingPage() {
 						},
 						body: JSON.stringify(combo),
 					});
+					if (!detailResponse.ok) {
+						throw new Error(`Failed to add combo ${combo.comboId} to order`);
+						success = false;
+					}
+					if (!success) {
+						return;
+					}
 				}
 			}
 
@@ -281,7 +416,7 @@ function BookingPage() {
 		<>
 			<Navigation />
 			<Container className="mt-4">
-				{console.log(childs, comboList)}
+				{console.log(childs, vaccinesList, comboList)}
 				<h2 className="mb-4 text-center">Vaccination Booking</h2>
 				<br />
 				<Form method="POST" onSubmit={formik.handleSubmit}>
@@ -369,7 +504,7 @@ function BookingPage() {
 											</thead>
 											<tbody>
 												{comboList.map((combo) => (
-													<tr key={combo.id}>
+													<tr key={combo.comboId}>
 														<td>
 															<Form.Check checked={selectedCombo.some((c) => c.comboId === combo.comboId)} onChange={() => handleComboSelection(combo)} />
 														</td>
@@ -485,6 +620,7 @@ function BookingPage() {
 								<Form.Check label="Payment via e-commerce applications, mobile payment services, VNPAY-QR e-wallets, Momo,..." name="payment" type="radio" id="app" value="app" disabled />
 								<Form.Control.Feedback type="invalid">{formik.errors.payment}</Form.Control.Feedback>
 							</Form.Group>
+							{bookingError && <p className="text-danger">{bookingError}</p>}
 							<Button type="submit">Proceed</Button>
 						</Col>
 					</Row>
