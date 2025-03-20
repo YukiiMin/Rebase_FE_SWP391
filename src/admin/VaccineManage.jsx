@@ -144,33 +144,51 @@ function VaccineManage() {
 									<th>Quantity</th>
 									<th>Unit Price ($)</th>
 									<th>Sale Price ($)</th>
+									<th>Total Doses</th>
 									<th>Status</th>
-									<th colSpan={2}></th>
+									<th>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
 								{/* {vaccines.length > 0 ? (
 									vaccines.map((vaccine) => ( */}
-								{currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
-									currentVaccines.map((vaccine, index) => (
+								{/* {currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
+									currentVaccines.map((vaccine, index) => ( */}
+									{currentVaccines.length > 0 ? (
+									currentVaccines.map((vaccine) => (
 										<tr key={vaccine.id}>
 											<td>{vaccine.id}</td>
 											<td>{vaccine.name}</td>
-											{/* <td>{vaccine.imagineUrl}</td> */}
 											<td>
-												<Image src={vaccine.imagineUrl} alt={`${vaccine.name} image`} thumbnail />
+												<Image src={vaccine.imagineUrl} alt={`${vaccine.name} image`} thumbnail style={{ maxWidth: '100px' }}/>
 											</td>
-											<td>{vaccine.description}</td>
+											<td>
+												{vaccine.description && vaccine.description.length > 100 
+													? `${vaccine.description.substring(0, 100)}...` 
+													: vaccine.description}
+											</td>
 											<td>{vaccine.manufacturer}</td>
 											<td>{vaccine.quantity}</td>
-											<td>{vaccine.unitPrice}</td>
-											<td>{vaccine.salePrice}</td>
-											<td>{vaccine.status ? vaccine.quantity > 0 ? <Badge bg="success">Available</Badge> : <Badge bg="warning">Unavailable</Badge> : <Badge bg="danger">Disable</Badge>}</td>
-											<td colSpan={2}>
-												<Button variant="info" size="sm" className="mb-2">
-													Update
+											<td>${vaccine.unitPrice}</td>
+											<td>${vaccine.salePrice}</td>
+											<td>
+												<Badge bg="info">{vaccine.totalDose}</Badge>
+											</td>
+											<td>
+												{vaccine.status 
+													? (vaccine.quantity > 0 
+														? <Badge bg="success">Available</Badge> 
+														: <Badge bg="warning">Out of Stock</Badge>)
+													: <Badge bg="danger">Disabled</Badge>}
+											</td>
+											<td>
+												<Button variant="info" size="sm" className="me-2 mb-1">
+													Protocol
 												</Button>
-												<Button variant="danger" size="sm" className="mb-2">
+												<Button variant="primary" size="sm" className="me-2 mb-1">
+													Edit
+												</Button>
+												<Button variant="danger" size="sm" className="mb-1">
 													Delete
 												</Button>
 											</td>

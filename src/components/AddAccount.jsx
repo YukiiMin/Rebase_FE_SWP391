@@ -1,12 +1,15 @@
 import { useFormik } from "formik";
-import React from "react";
+// import React from "react";
+import React, { useState } from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 
 function AddAccount({ setIsOpen, open, onAccountAdded }) {
-	const accountAPI = "http://localhost:8080/users/register";
+	const userAPI = "http://localhost:8080/users/register";
+	const staffAPI = "http://localhost:8080/users/staff";
 	const navigate = useNavigate();
+	const token = localStorage.getItem("token");
 
 	const validation = Yup.object().shape({
 		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
@@ -31,7 +34,15 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			.max(12, "Phone number cannot be longer than 12 digits"),
 		address: Yup.string().required("Address is required").min(5, "Address must be at least 5 characters").max(100, "Address must be at most 100 characters"),
 		// role: Yup.string().required("Choose Account Role"),
+		// Mới thêm vào
+		roleName: Yup.string().when('isStaff', {
+			is: true,
+			then: Yup.string().required("Role is required for staff accounts"),
+		}),
 	});
+
+	// Mới thêm vào 
+	const [isStaff, setIsStaff] = useState(false);
 
 	const formik = useFormik({
 		initialValues: {
@@ -39,12 +50,15 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			lastName: "",
 			gender: "MALE",
 			username: "",
-			password: "123456", //Default password of any accounts added by ADMIN
+			password: "123456", // Default password of any accounts added by ADMIN
 			email: "",
 			phoneNumber: "",
 			address: "",
-			urlImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIFYgpCPMtvHYo7rQ8fFSEgLa1BO78b_9hHA&s",
+			// urlImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIFYgpCPMtvHYo7rQ8fFSEgLa1BO78b_9hHA&s",
 			// role: "",
+			// Mới thêm vào
+			roleName: "",
+			isStaff: false,
 		},
 		onSubmit: (values) => {
 			handleAddAccount(values);
@@ -52,30 +66,54 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 		validationSchema: validation,
 	});
 
-	const handleClose = () => setIsOpen(false); //Close modal
+	// const handleClose = () => setIsOpen(false); //Close modal
+	// Mới thêm vào
+	const handleRoleChange = (e) => {
+		const { value } = e.target;
+		formik.setFieldValue("roleName", value);
+		setIsStaff(value === "DOCTOR" || value === "NURSE");
+	};
+
+	const handleClose = () => setIsOpen(false); // Close modal
 
 	const handleAddAccount = async (values) => {
 		try {
-			const response = await fetch(accountAPI, {
+			// const response = await fetch(accountAPI, {
+			// Mới thêm vào
+			// Determine which API to use based on the selected role
+			const isStaffAccount = values.roleName === "DOCTOR" || values.roleName === "NURSE";
+			const apiEndpoint = isStaffAccount ? staffAPI : userAPI;
+			
+			// Make API request
+			const response = await fetch(apiEndpoint, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
+					// Mới thêm vào
+					"Authorization": `Bearer ${token}`,
 				},
 				body: JSON.stringify(values),
 			});
+			
 			if (response.ok) {
 				const data = await response.json();
 				const newAccount = data.result;
-				console.log(newAccount);
+				// console.log(newAccount);
 				// const newAccount = await response.json();
-				console.log("Hien tai do cai Register tra ve 1 chuoi vo nghia nen ko lay ra duoc thang moi tao. Khi lam cai add account BE can tra ve dung");
+				// console.log("Hien tai do cai Register tra ve 1 chuoi vo nghia nen ko lay ra duoc thang moi tao. Khi lam cai add account BE can tra ve dung");
+				// Mới thêm vàovào
+				console.log("Account created:", newAccount);
 				handleClose();
 				onAccountAdded(newAccount);
 			} else {
 				console.error("Adding account failed: ", response.status);
+				//Mới thêm vào
+				const errorData = await response.json();
+				alert(`Account creation failed: ${errorData.message || "Unknown error"}`);
 			}
 		} catch (err) {
-			console.error("Registration failed:", err);
+			console.error("Account creation failed:", err);
+			alert("Account creation failed: " + err.message);
 		}
 	};
 
@@ -145,6 +183,10 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 								// isInvalid={formik.touched.password && formik.errors.password}
 							/>
 							{/* <Form.Control.Feedback type="invalid">{formik.errors.password}</Form.Control.Feedback> */}
+							{/* Mới thêm vàovào */}
+							<Form.Text className="text-muted">
+								Default password is "123456". User should change it after first login.
+							</Form.Text>
 						</Form.Group>
 						{/* 
 						<Form.Group className="mb-3" controlId="txtConfirm">
@@ -180,24 +222,35 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 								<Form.Control.Feedback type="invalid">{formik.errors.phoneNumber}</Form.Control.Feedback>
 							</Form.Group>
 						</Row>
-						<Row>
+						{/* Mới thêm vào */}
+						<Row className="mb-3">
 							<Form.Group as={Col} controlId="txtAddress">
 								<Form.Label>Address</Form.Label>
 								<Form.Control type="text" placeholder="Enter address" name="address" value={formik.values.address} onChange={formik.handleChange} isInvalid={formik.touched.address && formik.errors.address} />
 								<Form.Control.Feedback type="invalid">{formik.errors.address}</Form.Control.Feedback>
 							</Form.Group>
-							{/* 
+							{/* {/*  */}
 							<Form.Group as={Col} controlId="txtRole">
 								<Form.Label>Role</Form.Label>
-								<Form.Select aria-label="Role" name="role" value={formik.values.role} onChange={formik.handleChange} isInvalid={formik.touched.role && formik.errors.role}>
-									<option value="">---Choose Role---</option>
+								{/* <Form.Select aria-label="Role" name="role" value={formik.values.role} onChange={formik.handleChange} isInvalid={formik.touched.role && formik.errors.role}>
+									<option value="">---Choose Role---</option> */}
+									
+								<Form.Select 
+									aria-label="Role" 
+									name="roleName" 
+									value={formik.values.roleName} 
+									onChange={handleRoleChange} 
+									isInvalid={formik.touched.roleName && formik.errors.roleName}
+								>
+									<option value="">Select Role</option>
 									<option value="USER">User</option>
-									<option value="ADMIN">Admin</option>
-									<option value="STAFF">Staff</option>
+									{/* <option value="ADMIN">Admin</option>
+									<option value="STAFF">Staff</option> */}
+									<option value="DOCTOR">Doctor</option>
+									<option value="NURSE">Nurse</option>									
 								</Form.Select>
-								<Form.Control.Feedback type="invalid">{formik.errors.role}</Form.Control.Feedback>
+								<Form.Control.Feedback type="invalid">{formik.errors.roleName}</Form.Control.Feedback>
 							</Form.Group>
-                             */}
 						</Row>
 					</Modal.Body>
 					<Modal.Footer>

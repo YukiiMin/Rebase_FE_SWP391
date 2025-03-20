@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Pagination, Row, Table } from "react-bootstrap";
+import { Button, Col, Container, Form, Pagination, Row, Table, Badge } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddShift from "../components/AddShift";
 
@@ -20,17 +20,21 @@ function WorkSchedule() {
 	// 	// Need to fetch list of staff from API
 	// ];
 
-	const [schedule, setSchedule] = useState([]); //Array object which each object is a staff schedule
+	const [schedule, setSchedule] = useState({}); // Thay đổi để lưu trữ lịch theo từng nhân viên
 	const [staffList, setStaffList] = useState([]); //Array of staffs
 
 	const handleMonthChange = (event) => {
-		setSelectedMonth(parseInt(event.target.value));
-		updateDaysInMonth(parseInt(event.target.value), selectedYear);
+		const month = parseInt(event.target.value);
+		setSelectedMonth(month);
+		updateDaysInMonth(month, selectedYear);
+		fetchScheduleForAllStaff(month, selectedYear);
 	};
 
 	const handleYearChange = (event) => {
-		setSelectedYear(parseInt(event.target.value));
-		updateDaysInMonth(selectedMonth, parseInt(event.target.value));
+		const year = parseInt(event.target.value);
+		setSelectedYear(year);
+		updateDaysInMonth(selectedMonth, year);
+		fetchScheduleForAllStaff(selectedMonth, year);
 	};
 
 	const updateDaysInMonth = (month, year) => {
@@ -60,11 +64,11 @@ function WorkSchedule() {
 		getStaff();
 	}, []);
 
-	useEffect(() => {
-		if (staffList.length > 0) {
-			fetchSchedule();
-		}
-	}, [staffList]);
+	// useEffect(() => {
+	// 	if (staffList.length > 0) {
+	// 		fetchSchedule();
+	// 	}
+	// }, [staffList]);
 
 	const getStaff = async () => {
 		try {
@@ -84,13 +88,17 @@ function WorkSchedule() {
 		}
 	};
 
-	const fetchSchedule = async () => {
+	// const fetchSchedule = async () => {
+		const fetchScheduleForAllStaff = async (month, year) => {
 		try {
-			if (!staffList || staffList.length == 0) {
-				//Make sure staffs are loaded
-				return;
-			}
-			const allSchedules = [];
+			// if (!staffList || staffList.length == 0) {
+			// 	//Make sure staffs are loaded
+			// 	return;
+			// }
+			if (!staffList || staffList.length === 0) return;
+
+			const scheduleMap = {};
+			// const allSchedules = [];
 			for (const staff of staffList) {
 				const response = await fetch(`${scheduleAPI}/allworkdate/${staff.accountId}`, {
 					headers: {
@@ -99,18 +107,42 @@ function WorkSchedule() {
 				});
 				if (response.ok) {
 					const data = await response.json();
-					// console.log(data);
-					// setSchedule(data.result);
-					allSchedules.push({ staffId: staff.accountId, schedule: data.result });
+					console.log(`Schedules for staff ${staff.accountId}:`, data.result);
+					
+					// Lọc các ngày làm việc theo tháng và năm
+					const filteredSchedule = data.result.filter(work => {
+						// Debug date parsing
+						debugDateParsing(work.date.dayWork);
+						
+						const workDate = new Date(work.date.dayWork);
+						// return workDate.getMonth() === month && workDate.getFullYear() === year;
+						const isMatchingMonthAndYear = workDate.getMonth() === month && workDate.getFullYear() === year;
+						
+						// Log chi tiết để debug
+						console.log(`Work date: ${workDate}, Month: ${workDate.getMonth()}, Year: ${workDate.getFullYear()}`);
+						console.log(`Matching month (${month}) and year (${year}): ${isMatchingMonthAndYear}`);
+						
+						return isMatchingMonthAndYear;
+					});
+					
+					console.log(`Filtered schedules for staff ${staff.accountId}:`, filteredSchedule);
+					
+					scheduleMap[staff.accountId] = filteredSchedule;
 				} else {
 					console.log("Fetching schedule failed: ", response.status);
 				}
-				setSchedule(allSchedules);
 			}
+			setSchedule(scheduleMap);
 		} catch (err) {
 			console.log(err);
 		}
 	};
+
+	useEffect(() => {
+		if (staffList.length > 0) {
+			fetchScheduleForAllStaff(selectedMonth, selectedYear);
+		}
+	}, [staffList]);
 
 	//Pagination
 	const [currentPage, setCurrentPage] = useState(1);
@@ -143,6 +175,39 @@ function WorkSchedule() {
 		</Pagination>
 	);
 
+	const renderShiftForDay = (staff, day) => {
+		const staffSchedule = schedule[staff.accountId] || [];
+		const daySchedule = staffSchedule.find(work => {
+			const workDate = new Date(work.date.dayWork);
+			return workDate.getDate() === day;
+		});
+
+		if (daySchedule) {
+			return (
+				<Badge 
+					bg={daySchedule.status === "Active" ? "success" : "secondary"}
+					className="w-100"
+				>
+					{daySchedule.date.shiftType}
+				</Badge>
+			);
+		}
+		return null;
+	};
+
+	// Hàm debug để in ra múi giờ và định dạng ngày
+	const debugDateParsing = (dateString) => {
+		const date = new Date(dateString);
+		console.log('Date String:', dateString);
+		console.log('Date Object:', date);
+		console.log('Date toString:', date.toString());
+		console.log('Date toISOString:', date.toISOString());
+		console.log('Date getMonth():', date.getMonth());
+		console.log('Date getFullYear():', date.getFullYear());
+		console.log('Date getDate():', date.getDate());
+		console.log('Timezone Offset:', date.getTimezoneOffset());
+	};
+
 	return (
 		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
 			<Row>
@@ -160,7 +225,13 @@ function WorkSchedule() {
 									Add Work
 								</Button>
 							</Col>
-							{isOpen && <AddShift setIsOpen={setIsOpen} open={isOpen} />}
+							{isOpen && <AddShift 
+								setIsOpen={setIsOpen} 
+								open={isOpen} 
+								onScheduleAdded={() => {
+									fetchScheduleForAllStaff(selectedMonth, selectedYear);
+								}} 
+							/>}
 						</Row>
 						<hr className="mb-4"></hr>
 						<Row className="mb-3">
@@ -196,7 +267,9 @@ function WorkSchedule() {
 									<tr key={staff.accountId}>
 										<td>{`${staff.firstName} ${staff.lastName}`}</td>
 										{daysInMonth.map((day) => (
-											<td key={`${staff.id}-${day}`}></td>
+											<td key={`${staff.accountId}-${day}`}>
+												{renderShiftForDay(staff, day)}
+											</td>
 										))}
 									</tr>
 								))}

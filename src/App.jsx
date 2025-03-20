@@ -29,6 +29,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import ProtocolManage from "./admin/ProtocolManage";
 
 function App() {
 	const navigate = useNavigate();
@@ -165,6 +166,7 @@ function App() {
 					<Route path={"/Admin/Dashboard"} element={<ProtectedRoute element={Dashboard} userOnly />} />
 					<Route path={"/Admin/ManageAccount"} element={<ProtectedRoute element={AccountManage} userOnly />} />
 					<Route path={"/Admin/ManageVaccine"} element={<ProtectedRoute element={VaccineManage} userOnly />} />
+					<Route path={"/Admin/ProtocolManage"} element={<ProtectedRoute element={ProtocolManage} userOnly />} />
 					<Route path={"/Admin/ManageCombo"} element={<ProtectedRoute element={ComboManage} userOnly />} />
 					<Route path={"/Admin/WorkSchedule"} element={<ProtectedRoute element={WorkSchedule} userOnly />} />
 					<Route path={"/Staff/StaffPage"} element={<ProtectedRoute element={StaffHome} userOnly />} />

@@ -29,7 +29,7 @@ function AddCategory({ open, setIsOpen, onAddedCategory }) {
 
 	const handleSubmit = async (values) => {
 		try {
-			const response = await fetch(`${vaccineAPI}/addCategory`, {
+			const response = await fetch(`${vaccineAPI}/category/add`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,

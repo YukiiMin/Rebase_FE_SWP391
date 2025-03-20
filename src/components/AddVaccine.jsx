@@ -4,15 +4,21 @@ import React, { useEffect, useState } from "react";
 import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AddCategory from "./AddCategory";
+import AddProtocol from "./AddProtocol";
 
 function AddVaccine({ setIsOpen, open, onAdded }) {
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const vaccineAPI = "http://localhost:8080/vaccine";
+	// const apiBaseUrl = "http://localhost:8080/api/vaccine";
 
 	const [categories, setCategories] = useState([]);
+	const [protocols, setProtocols] = useState([]);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
+	const [selectedProtocol, setSelectedProtocol] = useState("");
+	const [totalDose, setTotalDose] = useState(1);
 
 	const handleClose = () => setIsOpen(false); //Close modal
 
@@ -21,7 +27,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		description: Yup.string().required("Description is required").min(30, "Description must be at least 30 characters"),
 		manufacturer: Yup.string().required("Manufacturer is required"),
 		categoryId: Yup.string().required("Category is required"),
-		dosage: Yup.number().required("Dosage is required").min(0, "Dosage cannot be negative"),
+		dosage: Yup.string().required("Dosage is required"),
 		contraindications: Yup.string().required("Contraindications are required").min(30, "Contraindications must be at least 30 characters"),
 		precautions: Yup.string().required("Precautions are required").min(30, "Precautions must be at least 30 characters"),
 		interactions: Yup.string().required("Interactions are required").min(30, "Interactions must be at least 30 characters"),
@@ -35,6 +41,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		unitPrice: Yup.number().required("Unit price is required").min(0, "Unit price cannot be negative"),
 		salePrice: Yup.number().required("Sale price is required").min(0, "Sale price cannot be negative").moreThan(Yup.ref("unitPrice"), "Sale price must be higher than Unit price"),
 		status: Yup.boolean().required("Status is required"),
+		totalDose: Yup.number().required("Total dose count is required").min(1, "Must have at least 1 dose").max(5, "Cannot exceed 5 doses"),
 	});
 
 	const formik = useFormik({
@@ -57,6 +64,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			unitPrice: "",
 			salePrice: "",
 			status: true,
+			totalDose: 1,
 		},
 		onSubmit: (values) => {
 			handleAddVaccine(values);
@@ -66,20 +74,67 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 
 	useEffect(() => {
 		fetchCategory();
+		fetchProtocols();
 	}, []);
+
+	useEffect(() => {
+		// Update the totalDose state when the form value changes
+		setTotalDose(formik.values.totalDose);
+	}, [formik.values.totalDose]);
 
 	const fetchCategory = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/getCategory`);
+			const response = await fetch(`${vaccineAPI}/categories`);
 			if (response.ok) {
 				const data = await response.json();
-				console.log(data);
+				console.log("Categories:", data);
 				setCategories(data.result);
 			} else {
 				console.error("Fetching category failed: ", response.status);
 			}
 		} catch (err) {
-			console.err("Fetching category failed: ", err);
+			console.error("Fetching category failed: ", err);
+		}
+	};
+
+	const fetchProtocols = async () => {
+		try {
+			const response = await fetch(`${vaccineAPI}/protocols`);
+			if (response.ok) {
+				const data = await response.json();
+				console.log("Protocols:", data);
+				setProtocols(data.result);
+			} else {
+				console.error("Fetching protocols failed: ", response.status);
+			}
+		} catch (err) {
+			console.error("Fetching protocols failed: ", err);
+		}
+	};
+
+	const handleAddVaccineToProtocol = async (vaccineId, protocolId) => {
+		if (!protocolId) return;
+
+		try {
+			const response = await fetch(`${vaccineAPI}/protocol/${protocolId}/addVaccine/${vaccineId}`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				console.log("Vaccine added to protocol successfully:", data);
+				return true;
+			} else {
+				console.error("Failed to add vaccine to protocol:", response.status);
+				return false;
+			}
+		} catch (err) {
+			console.error("Error adding vaccine to protocol:", err);
+			return false;
 		}
 	};
 
@@ -104,9 +159,10 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				unitPrice: values.unitPrice,
 				salePrice: values.salePrice,
 				status: values.status,
+				totalDose: values.totalDose,
 			};
 			console.log(categoryId, vaccineData);
-			const response = await fetch(`${vaccineAPI}/addVaccine/${categoryId}`, {
+			const response = await fetch(`${vaccineAPI}/add/${categoryId}`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -114,21 +170,35 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				},
 				body: JSON.stringify(vaccineData),
 			});
+			
 			if (response.ok) {
 				console.log("Adding vaccine successful");
-				alert("Adding vaccine successful!");
 				const newVaccine = await response.json();
 				console.log(newVaccine.result);
+				
+				// If a protocol was selected, add the vaccine to the protocol
+				if (selectedProtocol) {
+					const vaccineId = newVaccine.result.id;
+					const success = await handleAddVaccineToProtocol(vaccineId, selectedProtocol);
+					
+					if (success) {
+						alert("Vaccine added successfully with protocol assignment");
+					} else {
+						alert("Vaccine added but failed to assign protocol");
+					}
+				} else {
+					alert("Vaccine added successfully!");
+				}
+				
 				handleClose();
 				onAdded(newVaccine.result);
-
-				// navigate("/Admin/ManageVaccine");
-				// window.location.reload(); // Reload page after redirect
 			} else {
 				console.error("Adding vaccine failed: ", response.status);
+				alert("Failed to add vaccine. Please try again.");
 			}
 		} catch (err) {
 			console.error("Add vaccine error:", err);
+			alert("Error adding vaccine: " + err.message);
 		}
 	};
 
@@ -138,6 +208,15 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			setCategories([newCategory, ...categories]);
 		} else {
 			fetchCategory();
+		}
+	};
+
+	const handleProtocolAdded = (newProtocol) => {
+		if (newProtocol) {
+			setProtocols([newProtocol, ...protocols]);
+			setSelectedProtocol(newProtocol.protocolId);
+		} else {
+			fetchProtocols();
 		}
 	};
 
@@ -182,29 +261,87 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 										Add category
 									</Button>
 								</div>
-								{/* <Form.Control
-									type="text"
-									placeholder="Enter Category"
-									name="category"
-									value={formik.values.category}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.category && formik.errors.category}
-								/> */}
-								<Form.Select name="categoryId" value={formik.values.categoryId} onChange={formik.handleChange} isInvalid={formik.touched.categoryId && formik.errors.categoryId}>
+								<Form.Select 
+									name="categoryId" 
+									value={formik.values.categoryId} 
+									onChange={formik.handleChange} 
+									isInvalid={formik.touched.categoryId && formik.errors.categoryId}
+								>
 									<option value="">---Choose Category---</option>
-									{/* {categories.map((category) => (
-										<option value={category.id}>Category</option>
-									))} */}
-									<option value="1">Hepatitus</option>
-									<option value="2">Covid</option>
+									{categories && categories.map((category) => (
+										<option key={category.categoryId} value={category.categoryId}>
+											{category.categoryName}
+										</option>
+									))}
 								</Form.Select>
 								<Form.Control.Feedback type="invalid">{formik.errors.categoryId}</Form.Control.Feedback>
 								{isModalOpen && <AddCategory open={isModalOpen} setIsOpen={setIsModalOpen} onAddedCategory={handleCategoryAdded} />}
 							</Form.Group>
 
-							<Form.Group as={Col} controlId="dosage">
+							<Form.Group as={Col} controlId="totalDose">
+								<Form.Label>Total Dose Count</Form.Label>
+								<Form.Control 
+									type="number" 
+									min="1" 
+									max="5"
+									placeholder="Enter total number of doses" 
+									name="totalDose" 
+									value={formik.values.totalDose} 
+									onChange={formik.handleChange} 
+									isInvalid={formik.touched.totalDose && formik.errors.totalDose} 
+								/>
+								<Form.Text className="text-muted">
+									Number of vaccine doses required (max 5)
+								</Form.Text>
+								<Form.Control.Feedback type="invalid">{formik.errors.totalDose}</Form.Control.Feedback>
+							</Form.Group>
+						</Row>
+
+						<Row className="mb-3">
+							<Form.Group as={Col} controlId="protocol">
+								<div className="d-flex justify-content-between align-items-center">
+									<Form.Label className="mb-0">Protocol</Form.Label>
+									<Button size="sm" variant="outline-primary" onClick={() => setIsProtocolModalOpen(true)}>
+										Add Protocol
+									</Button>
+								</div>
+								<Form.Select
+									value={selectedProtocol}
+									onChange={(e) => setSelectedProtocol(e.target.value)}
+								>
+									<option value="">---Choose Protocol---</option>
+									{protocols && protocols.map((protocol) => (
+										<option 
+											key={protocol.protocolId} 
+											value={protocol.protocolId}
+											disabled={protocol.details?.length < totalDose}
+										>
+											{protocol.name} ({protocol.details?.length || 0} doses)
+											{protocol.details?.length < totalDose ? " - Not enough doses" : ""}
+										</option>
+									))}
+								</Form.Select>
+								<Form.Text className="text-muted">
+									Select a protocol with at least {totalDose} doses
+								</Form.Text>
+								{isProtocolModalOpen && <AddProtocol open={isProtocolModalOpen} setIsOpen={setIsProtocolModalOpen} onAddedProtocol={handleProtocolAdded} />}
+							</Form.Group>
+
+							{/* <Form.Group as={Col} controlId="dosage">
 								<Form.Label>Dosage</Form.Label>
 								<Form.Control type="number" placeholder="Enter Dosage" name="dosage" value={formik.values.dosage} onChange={formik.handleChange} isInvalid={formik.touched.dosage && formik.errors.dosage} />
+								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
+							</Form.Group> */}
+								<Form.Group as={Col} controlId="dosage">
+								<Form.Label>Dosage *</Form.Label>
+								<Form.Control
+									type="text"
+									placeholder="Enter DosageDosage"
+									name="dosage"
+									value={formik.values.dosage}
+									onChange={formik.handleChange}
+									isInvalid={formik.touched.dosage && formik.errors.dosage}
+								/>
 								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
 							</Form.Group>
 						</Row>
@@ -374,23 +511,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 							/>
 							<Form.Control.Feedback type="invalid">{formik.errors.compatibility}</Form.Control.Feedback>
 						</Form.Group>
-
-						{/* <Form.Group as={Col} controlId="status">
-								<Form.Label>Status</Form.Label>
-								<Form.Select name="status" value={formik.values.status} onChange={formik.handleChange} isInvalid={formik.touched.status && formik.errors.status}>
-									<option value="">---Choose Status---</option>
-									<option value="true">Available</option>
-									<option value="false">Not Available</option>
-								</Form.Select>
-								<Form.Control.Feedback type="invalid">{formik.errors.status}</Form.Control.Feedback>
-							</Form.Group> */}
-
-						{/* <Form.Group controlId="formGridImage" className="mb-3">
-							<Form.Label>Vaccine Image</Form.Label>
-							<Form.Control type="file" onChange={handleFileChange} aria-label="Vaccine Image" isInvalid={formik.touched.imageUrl && formik.errors.imageUrl} />
-							<Form.Control.Feedback type="invalid">{formik.errors.imageUrl}</Form.Control.Feedback>
-						</Form.Group> */}
-						{/* Look this up later */}
 					</Modal.Body>
 					<Modal.Footer>
 						<Button variant="secondary" onClick={handleClose}>

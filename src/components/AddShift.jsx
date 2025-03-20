@@ -4,7 +4,7 @@ import { Button, Col, Form, Modal, Row, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 
-function AddShift({ setIsOpen, open }) {
+function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const userAPI = "http://localhost:8080/users";
@@ -145,9 +145,14 @@ function AddShift({ setIsOpen, open }) {
 				alert("Adding shift successful! Now adding staffs to shift");
 				const data = await response.json();
 				const schedule = data.result;
-				// console.log(data);
-				handleAddStaff(schedule);
-				// handleClose()
+				await handleAddStaff(schedule);
+				
+				// Gọi callback để thông báo đã thêm lịch thành công
+				if (onScheduleAdded) {
+					onScheduleAdded();
+				}
+				
+				handleClose();
 			} else {
 				console.log("Adding shift error: ", response.status);
 			}

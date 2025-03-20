@@ -77,6 +77,14 @@ function Sidebar() {
 						})}>
 						Work Schedule
 					</NavLink>
+					<NavLink
+						to="/Admin/ProtocolManage"
+						className="text-decoration-none py-2 d-flex align-items-center ps-4"
+						style={{ color: "inherit" }}
+					>
+						<i className="fas fa-list-ol me-3"></i>
+						<span>Protocol Management</span>
+					</NavLink>
 				</Nav>
 			</Navbar>
 		</Col>
