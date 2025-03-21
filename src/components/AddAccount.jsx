@@ -33,12 +33,11 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			.min(10, "Phone number must be at least 10 digits")
 			.max(12, "Phone number cannot be longer than 12 digits"),
 		address: Yup.string().required("Address is required").min(5, "Address must be at least 5 characters").max(100, "Address must be at most 100 characters"),
-		// role: Yup.string().required("Choose Account Role"),
-		// Mới thêm vào
-		roleName: Yup.string().when('isStaff', {
-			is: true,
-			then: Yup.string().required("Role is required for staff accounts"),
-		}),
+		
+		// Chỉ cho phép 3 role: ADMIN, DOCTOR, NURSE
+		roleName: Yup.string()
+			.oneOf(["ADMIN", "DOCTOR", "NURSE"], "Invalid role")
+			.required("Role is required"),
 	});
 
 	// Mới thêm vào 
@@ -54,11 +53,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			email: "",
 			phoneNumber: "",
 			address: "",
-			// urlImage: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIFYgpCPMtvHYo7rQ8fFSEgLa1BO78b_9hHA&s",
-			// role: "",
-			// Mới thêm vào
-			roleName: "",
-			isStaff: false,
+			roleName: "", // Mặc định để trống
 		},
 		onSubmit: (values) => {
 			handleAddAccount(values);
@@ -78,11 +73,11 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 
 	const handleAddAccount = async (values) => {
 		try {
-			// const response = await fetch(accountAPI, {
-			// Mới thêm vào
-			// Determine which API to use based on the selected role
-			const isStaffAccount = values.roleName === "DOCTOR" || values.roleName === "NURSE";
-			const apiEndpoint = isStaffAccount ? staffAPI : userAPI;
+			// Chọn API endpoint dựa trên role
+			const apiEndpoint = 
+				["DOCTOR", "NURSE"].includes(values.roleName) 
+					? staffAPI 
+					: userAPI;
 			
 			// Make API request
 			const response = await fetch(apiEndpoint, {
@@ -92,7 +87,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 					// Mới thêm vào
 					"Authorization": `Bearer ${token}`,
 				},
-				body: JSON.stringify(values),
+				body: JSON.stringify(values), // Không cần thêm default role nữa
 			});
 			
 			if (response.ok) {
@@ -106,8 +101,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 				handleClose();
 				onAccountAdded(newAccount);
 			} else {
-				console.error("Adding account failed: ", response.status);
-				//Mới thêm vào
+				// Xử lý lỗi chi tiết hơn
 				const errorData = await response.json();
 				alert(`Account creation failed: ${errorData.message || "Unknown error"}`);
 			}
@@ -243,9 +237,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 									isInvalid={formik.touched.roleName && formik.errors.roleName}
 								>
 									<option value="">Select Role</option>
-									<option value="USER">User</option>
-									{/* <option value="ADMIN">Admin</option>
-									<option value="STAFF">Staff</option> */}
+									<option value="ADMIN">Admin</option>
 									<option value="DOCTOR">Doctor</option>
 									<option value="NURSE">Nurse</option>									
 								</Form.Select>

@@ -1,18 +1,19 @@
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
-import { Button, Col, Form, Modal, Row, Table } from "react-bootstrap";
+import { Button, Col, Form, Modal, Row, Table, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+import { TokenUtils } from "../utils/TokenUtils";
 
 function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const navigate = useNavigate();
-	const token = localStorage.getItem("token");
-	const userAPI = "http://localhost:8080/users";
-	const shiftAPI = "http://localhost:8080/working";
+	const token = TokenUtils.getToken();
+	const api = "http://localhost:8080";
 
 	const [staffs, setStaffs] = useState([]);
 	const [chosenStaff, setChosenStaff] = useState([]);
 	const [staffError, setStaffError] = useState();
+	const [apiError, setApiError] = useState("");
 
 	const [repeat, setRepeat] = useState(false);
 
@@ -97,6 +98,8 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 				setStaffError("Choose at least 1 staff!!!");
 				return;
 			}
+			
+			setApiError("");
 			handleAddShift(values);
 		},
 		validationSchema: validation,
@@ -132,8 +135,11 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	//Creating work shift
 	const handleAddShift = async (values) => {
 		try {
-			console.log(values);
-			const response = await fetch(`${shiftAPI}/schedule/create`, {
+			console.log("Creating schedule with values:", values);
+			const startDate = new Date(values.startDate);
+			const endDate = new Date(values.endDate);
+			
+			const response = await fetch(`${api}/working/schedule/create`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -141,10 +147,12 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 				},
 				body: JSON.stringify(values),
 			});
+			
 			if (response.ok) {
-				alert("Adding shift successful! Now adding staffs to shift");
 				const data = await response.json();
 				const schedule = data.result;
+				console.log("Schedule created successfully:", schedule);
+				alert("Adding shift successful! Now adding staffs to shift");
 				await handleAddStaff(schedule);
 				
 				// Gọi callback để thông báo đã thêm lịch thành công
@@ -154,70 +162,94 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 				
 				handleClose();
 			} else {
-				console.log("Adding shift error: ", response.status);
+				const errorData = await response.json().catch(() => ({}));
+				console.error("Adding shift error:", response.status, errorData);
+				setApiError(`Failed to create schedule: ${errorData.message || response.statusText || "Unknown error"}`);
 			}
 		} catch (err) {
-			console.log(err);
+			console.error("Error creating schedule:", err);
+			setApiError(`An error occurred: ${err.message || "Unknown error"}`);
 		}
 	};
 
 	const handleAddStaff = async (schedule) => {
 		try {
 			let success = true;
-			// console.log(schedule.workDates, chosenStaff);
+			setApiError("");
+			
+			if (!schedule || !schedule.workDates) {
+				setApiError("No work dates found in schedule");
+				return false;
+			}
+			
 			const shift = schedule.workDates;
-			if (shift) {
-				for (const day of shift) {
-					// console.log(day.id);
-					for (const man of chosenStaff) {
-						console.log(day.id, man.accountId);
-						const response = await fetch(`${shiftAPI}/detail/${day.id}/${man.accountId}`, {
+			console.log("Adding staff to workdates:", shift);
+			
+			// Sử dụng Promise.all để xử lý tất cả các request cùng lúc
+			const promises = [];
+			
+			for (const day of shift) {
+				for (const man of chosenStaff) {
+					console.log(`Adding staff ${man.accountId} to work day ${day.id}`);
+					
+					try {
+						const response = await fetch(`${api}/working/detail/${day.id}/${man.accountId}`, {
 							method: "POST",
 							headers: {
 								Authorization: `Bearer ${token}`,
 								"Content-type": "application/json",
 							},
 						});
+						
 						if (response.ok) {
-							console.log(`Adding workday detail for day ${day.id} and staff ${man.accountId} success`);
+							console.log(`Successfully added staff ${man.accountId} to day ${day.id}`);
 						} else {
-							const data = await response.json();
-							console.error(data);
-							console.error("Add staffs to schedule failed: ", response.status);
+							const data = await response.json().catch(() => ({}));
+							console.error(`Failed to add staff ${man.accountId} to day ${day.id}:`, data);
 							success = false;
-							//Stop the process if something broke
-							if (!success) {
-								return;
-							}
+							setApiError(`Failed to add staff to workday: ${data.message || response.statusText || "Unknown error"}`);
 						}
+					} catch (error) {
+						console.error("Error adding staff to workday:", error);
+						success = false;
+						setApiError(`Error adding staff to workday: ${error.message || "Unknown error"}`);
 					}
 				}
 			}
+			
 			if (success) {
 				alert("Adding all staffs to schedule success");
 				handleClose();
+				return true;
 			}
+			
+			return false;
 		} catch (err) {
-			console.error("Something went wrong when adding staffs to schedule: ", err);
+			console.error("Something went wrong when adding staffs to schedule:", err);
+			setApiError(`Error adding staff to schedule: ${err.message || "Unknown error"}`);
+			return false;
 		}
 	};
 
 	//Get all account which have role == STAFF
 	const fetchStaff = async () => {
 		try {
-			const response = await fetch(`${userAPI}/getAllUser`, {
+			const response = await fetch(`${api}/users/getAllUser`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
 			if (response.ok) {
 				const data = await response.json();
-				setStaffs(data.result);
+				const staffList = data.result.filter(user => user.roleName === "DOCTOR" || user.roleName === "NURSE");
+				setStaffs(staffList);
 			} else {
 				console.error("Fetching account failed: ", response.status);
+				setApiError("Failed to fetch staff list");
 			}
 		} catch (err) {
 			console.error("Something went wrong while fetching accounts: ", err);
+			setApiError("Error loading staff list");
 		}
 	};
 
@@ -243,6 +275,12 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 						<Modal.Title>Add Schedule</Modal.Title>
 					</Modal.Header>
 					<Modal.Body>
+						{apiError && (
+							<Alert variant="danger" className="mb-3">
+								{apiError}
+							</Alert>
+						)}
+						
 						<Form.Group className="mb-3" controlId="Shift name">
 							<Form.Label>Schedule name</Form.Label>
 							<Form.Control
@@ -268,6 +306,9 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 									<Form.Label>End</Form.Label>
 									<Form.Control type="date" name="endDate" value={formik.values.endDate} onChange={handleEndDateChange} isInvalid={formik.touched.endDate && formik.errors.endDate} />
 									<Form.Control.Feedback type="invalid">{formik.errors.endDate}</Form.Control.Feedback>
+									<Form.Text className="text-muted">
+										End date must be within one year of start date.
+									</Form.Text>
 								</Form.Group>
 							</Col>
 							{/* <Col>
@@ -318,7 +359,6 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 						)}
 						<hr />
 
-						{console.log(staffs)}
 						<Row>
 							<Col>
 								<h3>Choose Staff</h3>
@@ -328,21 +368,27 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 											<th>#</th>
 											<th>Staff ID</th>
 											<th>Staff name</th>
+											<th>Role</th>
 										</tr>
 									</thead>
 									<tbody>
 										{staffs.length > 0 ? (
 											staffs.map((staff) => (
-												<tr>
+												<tr key={staff.accountId}>
 													<td>
 														<Form.Check checked={chosenStaff.some((s) => s.accountId === staff.accountId)} onChange={() => handleStaffSelection(staff)} />
 													</td>
 													<td>{staff.accountId}</td>
 													<td>{`${staff.firstName} ${staff.lastName}`}</td>
+													<td>{staff.roleName}</td>
 												</tr>
 											))
 										) : (
-											<></>
+											<tr>
+												<td colSpan={4} className="text-center">
+													No staff available
+												</td>
+											</tr>
 										)}
 									</tbody>
 								</Table>
@@ -352,7 +398,7 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 								{chosenStaff.length === 0 && staffError && <p className="text-danger">{staffError}</p>}
 								<ul>
 									{chosenStaff.map((staff) => (
-										<li key={staff.accountId}>{`${staff.firstName} ${staff.lastName}`}</li>
+										<li key={staff.accountId}>{`${staff.firstName} ${staff.lastName} (${staff.roleName})`}</li>
 									))}
 								</ul>
 							</Col>

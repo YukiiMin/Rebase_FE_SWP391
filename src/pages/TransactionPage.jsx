@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Navigation from "../components/Navbar";
-import { Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
+import { Alert, Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CardCvcElement, CardElement, CardExpiryElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -13,57 +13,74 @@ function TransactionPage() {
 	const [success, setSuccess] = useState(null);
 	const navigate = useNavigate();
 	const location = useLocation();
-	const { selectedVaccine, selectedCombo, child, vaccinationDate, payment, type, orderId } = location.state;
+	
+	// Check if state exists and provide default values to prevent errors
+	const state = location.state || {};
+	const { 
+		selectedVaccine = [], 
+		selectedCombo = [], 
+		child = {}, 
+		vaccinationDate = "", 
+		payment = "credit", 
+		type = "single", 
+		orderId = null
+	} = state;
+	
 	const accToken = localStorage.getItem("token");
 
 	const [orderTotal, setOrderTotal] = useState(0);
 	const [clientSecret, setClientSecret] = useState("");
 	const [retryCount, setRetryCount] = useState(0);
+	const [missingState, setMissingState] = useState(!location.state);
 
 	useEffect(() => {
+		// If state is missing, show error message and don't try to create payment intent
+		if (!location.state) {
+			setError("Transaction data is missing. Please go back to the booking page and try again.");
+			return;
+		}
+		
 		// Create PaymentIntent as soon as the page loads
 		const createPaymentIntent = async () => {
-			if (!orderId) {
-				setError("No order ID found. Please try booking again.");
-				return;
-			}
+			// Only create payment intent if we have an orderId
+			if (orderId) {
+				try {
+					console.log("Creating payment intent for order:", orderId, "with amount:", orderTotal);
+					const response = await fetch(`${paymentAPI}/${orderId}/create-intent`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ amount: orderTotal }),
+					});
 
-			try {
-				console.log("Creating payment intent for order:", orderId, "with amount:", orderTotal);
-				const response = await fetch(`${paymentAPI}/${orderId}/create-intent`, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ amount: orderTotal }),
-				});
+					const data = await response.json();
+					console.log("Payment intent response:", data);
 
-				const data = await response.json();
-				console.log("Payment intent response:", data);
+					if (!response.ok) {
+						console.error("Payment intent creation failed:", data);
+						throw new Error(data.message || "Failed to create payment intent");
+					}
 
-				if (!response.ok) {
-					console.error("Payment intent creation failed:", data);
-					throw new Error(data.message || "Failed to create payment intent");
+					if (!data.result || !data.result.clientSecret) {
+						console.error("No client secret in response:", data);
+						throw new Error("Invalid response from payment server");
+					}
+
+					setClientSecret(data.result.clientSecret);
+					setRetryCount(0); // Reset retry count on successful creation
+				} catch (err) {
+					console.error("Payment error:", err);
+					setError(err.message || "Payment initialization failed. Note: Payment amount may be too low for processing.");
 				}
-
-				if (!data.result || !data.result.clientSecret) {
-					console.error("No client secret in response:", data);
-					throw new Error("Invalid response from payment server");
-				}
-
-				setClientSecret(data.result.clientSecret);
-				setRetryCount(0); // Reset retry count on successful creation
-			} catch (err) {
-				console.error("Payment error:", err);
-				setError(err.message || "Payment initialization failed. Note: Payment amount may be too low for processing.");
 			}
 		};
 
 		if (orderTotal > 0 && orderId && (!clientSecret || clientSecret === "")) {
 			createPaymentIntent();
 		}
-	}, [orderTotal, orderId, accToken, retryCount, clientSecret]);
+	}, [orderTotal, orderId, accToken, retryCount, clientSecret, location.state]);
 
 	// Function to retry payment by creating a new payment intent
 	const retryPayment = () => {
@@ -98,15 +115,99 @@ function TransactionPage() {
 		}
 
 		try {
-			console.log("Confirming payment with clientSecret:", clientSecret ? "Available" : "Missing");
+			// 1. Tạo booking
+			console.log("Creating booking for child:", child);
+			const bookingResponse = await fetch(`http://localhost:8080/booking/${child.id}/create`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					appointmentDate: vaccinationDate,
+					status: "PENDING"
+				}),
+			});
 
+			if (!bookingResponse.ok) {
+				throw new Error("Failed to create booking");
+			}
+
+			const bookingData = await bookingResponse.json();
+			const bookingId = bookingData.result.bookingId;
+
+			// 2. Tạo order
+			const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					orderDate: new Date().toISOString(),
+				}),
+			});
+
+			if (!orderResponse.ok) {
+				throw new Error("Failed to create order");
+			}
+
+			const orderData = await orderResponse.json();
+			const orderId = orderData.result.id;
+
+			// 3. Thêm chi tiết vaccine/combo vào order
+			if (type === "single") {
+				for (const v of selectedVaccine) {
+					await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							quantity: v.quantity,
+							totalPrice: v.quantity * v.vaccine.salePrice,
+						}),
+					});
+				}
+			} else if (type === "combo") {
+				for (const combo of selectedCombo) {
+					// Add combo to order
+					await fetch(`http://localhost:8080/order/${orderId}/addCombo/${combo.comboId}`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${accToken}`,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							quantity: 1,
+							totalPrice: combo.total * (((100 - combo.saleOff) * 1) / 100)
+						}),
+					});
+				}
+			}
+
+			// 4. Tạo payment intent
+			const paymentIntentResponse = await fetch(`http://localhost:8080/payment/${orderId}/create-intent`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ amount: orderTotal }),
+			});
+
+			const paymentIntentData = await paymentIntentResponse.json();
+			const clientSecret = paymentIntentData.result.clientSecret;
+
+			// 5. Xác nhận thanh toán Stripe
 			const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
 				payment_method: {
 					card: cardElement,
 					billing_details: {
 						name: "Test User",
 						address: {
-							country: "US", // Adding country to ensure proper validation
+							country: "US",
 						},
 					},
 				},
@@ -114,89 +215,62 @@ function TransactionPage() {
 
 			if (paymentError) {
 				console.error("Payment error:", paymentError);
-
-				// Special handling for specific Stripe errors
-				if (paymentError.code === "payment_intent_unexpected_state") {
-					// This error occurs when the PaymentIntent has been used or modified outside of this session
-					setError("There was an issue with your payment session. Please click 'Retry Payment' to generate a new payment session.");
-					console.log("Detailed error info:", paymentError);
-					// Clear client secret to force a new payment intent on retry
-					setClientSecret("");
-					setLoading(false);
-					return;
-				}
-
-				// Handle card validation errors
-				if (paymentError.type === "validation_error") {
-					setError(`Card validation error: ${paymentError.message}`);
-					setLoading(false);
-					return;
-				}
-
-				// Default error handling
 				setError(paymentError.message || "Payment failed. Please try again.");
 				setLoading(false);
 				return;
 			}
 
-			console.log("Payment intent result:", paymentIntent);
-
 			if (paymentIntent.status === "succeeded") {
-				// Payment successful, update order status
-				try {
-					// console.log("Confirming payment with backend for order:", orderId);
-					// console.log("Payment amount: ", orderTotal);
-					const response = await fetch(`${paymentAPI}/${orderId}/confirm`, {
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							paymentIntentId: paymentIntent.id,
-							amount: orderTotal,
-						}),
-					});
+				// 6. Xác nhận thanh toán với backend
+				await fetch(`http://localhost:8080/payment/${orderId}/confirm`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${accToken}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						paymentIntentId: paymentIntent.id,
+						amount: orderTotal,
+					}),
+				});
 
-					const responseData = await response.json();
-					// console.log("Backend confirmation response:", response.status);
-					// console.log(responseData);
+				// 7. Cập nhật trạng thái booking sang PAID
+				await fetch(`http://localhost:8080/booking/${bookingId}/payment`, {
+					method: "PUT",
+					headers: {
+						Authorization: `Bearer ${accToken}`,
+					},
+				});
 
-					if (!response.ok) {
-						throw new Error(`Failed to confirm payment with backend: ${response.status} ${responseData}`);
-					}
-
-					setSuccess("Payment successful!");
-					setTimeout(() => {
-						navigate("/");
-					}, 10000);
-				} catch (backendError) {
-					console.error("Backend confirmation error:", backendError);
-					setError(`Payment was processed but failed to update order. Please contact support with this reference: ${paymentIntent.id}`);
-				}
-			} else if (paymentIntent.status === "requires_action") {
-				// Handle 3D Secure authentication if needed
-				setError("Additional authentication required. Please complete the verification prompted by your bank.");
-			} else {
-				setError(`Payment failed with status: ${paymentIntent.status}. Please try again.`);
+				setSuccess("Payment successful!");
+				setTimeout(() => {
+					navigate("/");
+				}, 2000);
 			}
 		} catch (err) {
 			console.error("Payment submission error:", err);
-			setError("An unexpected error occurred. Please try again or use a different payment method.");
+			setError(err.message || "An unexpected error occurred. Please try again.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	const countTotal = () => {
+		// If we don't have state, don't try to calculate
+		if (!location.state) return;
+		
 		let total = 0;
 		if (type === "single") {
 			for (const v of selectedVaccine) {
-				total += v.vaccine.salePrice * v.quantity;
+				if (v.vaccine && v.vaccine.salePrice) {
+					total += v.vaccine.salePrice * v.quantity;
+				}
 			}
 		} else if (type === "combo") {
 			for (const combo of selectedCombo) {
-				total += combo.total * (((100 - combo.saleOff) * 1) / 100);
+				if (combo.total && combo.saleOff !== undefined) {
+					total += combo.total * (((100 - combo.saleOff) * 1) / 100);
+				}
 			}
 		}
 		setOrderTotal(parseFloat(total).toFixed(2));
@@ -205,12 +279,36 @@ function TransactionPage() {
 	//Calculate order total when going to transaction page
 	useEffect(() => {
 		countTotal();
-	}, [selectedVaccine, selectedCombo, type]);
+	}, [selectedVaccine, selectedCombo, type, location.state]);
 
 	useEffect(() => {
 		console.log("Stripe initialized:", !!stripe);
 		console.log("Elements initialized:", !!elements);
 	}, [stripe, elements]);
+
+	// Return early with an error message if state is missing
+	if (missingState) {
+		return (
+			<div>
+				<Navigation />
+				<Container className="mt-5">
+					<Alert variant="danger">
+						<Alert.Heading>Transaction Data Missing</Alert.Heading>
+						<p>
+							No transaction data was found. This typically happens when you try to access this page directly
+							without going through the booking process.
+						</p>
+						<hr />
+						<div className="d-flex justify-content-end">
+							<Button variant="outline-danger" onClick={() => navigate('/BookingPage')}>
+								Return to Booking
+							</Button>
+						</div>
+					</Alert>
+				</Container>
+			</div>
+		);
+	}
 
 	return (
 		<div>
@@ -241,9 +339,9 @@ function TransactionPage() {
 							<Card.Body>
 								<Card.Text>
 									<b>Child name: </b>
-									{child.name} <br />
+									{child?.name || "N/A"} <br />
 									<b>Appointment date: </b>
-									{vaccinationDate} <br />
+									{vaccinationDate || "N/A"} <br />
 								</Card.Text>
 							</Card.Body>
 						</Card>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navbar, Container, Nav, NavDropdown } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import TokenUtils from "../utils/TokenUtils";
 
 function Navigation() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -10,25 +11,41 @@ function Navigation() {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		const token = localStorage.getItem("token");
-		if (token) {
-			setIsLoggedIn(true);
-			try {
-				const decodedToken = jwtDecode(token);
-				// console.log(decodedToken);
-				setUsername(decodedToken.username);
-				setRole(decodedToken.scope);
-			} catch (err) {
-				console.error("Error decoding token:", err);
+		const checkToken = () => {
+			const token = TokenUtils.getToken();
+			if (token && TokenUtils.isValidToken(token)) {
+				setIsLoggedIn(true);
+				try {
+					const decodedToken = TokenUtils.decodeToken(token);
+					setUsername(decodedToken.username || decodedToken.sub || 'User');
+					setRole(decodedToken.scope);
+					console.log("User role:", decodedToken.scope);
+				} catch (err) {
+					console.error("Error processing token:", err);
+				}
+			} else {
+				setIsLoggedIn(false);
+				setUsername("");
+				setRole("");
 			}
-		} else {
-			setIsLoggedIn(false);
-		}
-	}, [navigate]);
+		};
+
+		checkToken();
+
+		// Lắng nghe sự kiện thay đổi token
+		const handleStorageChange = () => {
+			checkToken();
+		};
+
+		window.addEventListener('storage', handleStorageChange);
+		return () => window.removeEventListener('storage', handleStorageChange);
+	}, []);
 
 	const handleLogout = () => {
-		localStorage.removeItem("token");
+		TokenUtils.removeToken();
 		setIsLoggedIn(false);
+		setUsername("");
+		setRole("");
 		navigate("/Login"); // Navigate to Login page after logout
 	};
 
@@ -42,21 +59,46 @@ function Navigation() {
 					<Nav className="justify-content-end">
 						{isLoggedIn ? (
 							<NavDropdown title={username} id="basic-nav-dropdown">
-								<NavLink to={"/User/Profile"} className={"dropdown-item"}>
-									Profile
-								</NavLink>
-								<NavLink to={"/User/Children"} className={"dropdown-item"}>
-									Children Management
-								</NavLink>
-								<NavLink to={"/User/Scheduling"} className={"dropdown-item"}>
-									Booking Schedule
-								</NavLink>
-								<NavLink to={"/User/History"} className={"dropdown-item"}>
-									Vaccination History
-								</NavLink>
-								<NavLink to={"/User/Record"} className={"dropdown-item"}>
-									Health Record
-								</NavLink>
+								{role === "ADMIN" ? (
+									<>
+										<NavLink to={"/Admin/Dashboard"} className={"dropdown-item"}>
+											Dashboard
+										</NavLink>
+										<NavLink to={"/Admin/ManageAccount"} className={"dropdown-item"}>
+											Account Management
+										</NavLink>
+										<NavLink to={"/Admin/VaccineManage"} className={"dropdown-item"}>
+											Vaccine Management
+										</NavLink>
+										<NavLink to={"/Admin/ProtocolManage"} className={"dropdown-item"}>
+											Protocol Management
+										</NavLink>
+										<NavLink to={"/Admin/ManageCombo"} className={"dropdown-item"}>
+											Combo Management
+										</NavLink>
+										<NavLink to={"/Admin/WorkSchedule"} className={"dropdown-item"}>
+											Work Schedule
+										</NavLink>
+									</>
+								) : (
+									<>
+										<NavLink to={"/User/Profile"} className={"dropdown-item"}>
+											Profile
+										</NavLink>
+										<NavLink to={"/User/Children"} className={"dropdown-item"}>
+											Children Management
+										</NavLink>
+										<NavLink to={"/User/Scheduling"} className={"dropdown-item"}>
+											Booking Schedule
+										</NavLink>
+										<NavLink to={"/User/History"} className={"dropdown-item"}>
+											Vaccination History
+										</NavLink>
+										<NavLink to={"/User/Record"} className={"dropdown-item"}>
+											Health Record
+										</NavLink>
+									</>
+								)}
 								<NavDropdown.Divider />
 								<NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
 							</NavDropdown>
@@ -92,32 +134,21 @@ function Navigation() {
 							Booking
 						</NavLink>
 					</Nav>
-					{/* 
-					{isLoggedIn && (
-						<Nav className="justify-content-end">
-							<NavLink to={"/Dashboard"} className={"nav-link"}>
-								Admin Page
-							</NavLink>
-							<NavLink to={"/StaffPage"} className={"nav-link"}>
-								Staff Page
-							</NavLink>
-						</Nav>
-					)}
-					 */}
-					{role == "ADMIN" && (
+					
+					{role === "ADMIN" && (
 						<Nav className="justify-content-end">
 							<NavLink to={"/Admin/Dashboard"} className={"nav-link"}>
 								Admin Page
 							</NavLink>
+						</Nav>
+					)}
+					
+					{(role === "DOCTOR" || role === "NURSE" || role === "ADMIN") && (
+						<Nav className="justify-content-end">
 							<NavLink to={"/Staff/StaffPage"} className={"nav-link"}>
 								Staff Page
 							</NavLink>
 						</Nav>
-					)}
-					{role == "STAFF" && (
-						<NavLink to={"/Staff/StaffPage"} className={"nav-link"}>
-							Staff Page
-						</NavLink>
 					)}
 				</Container>
 			</Navbar>

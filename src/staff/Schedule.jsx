@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Table, Form } from "react-bootstrap";
 import StaffMenu from "../components/StaffMenu";
+import Navigation from "../components/Navbar";
 
 function Schedule() {
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -92,45 +93,48 @@ function Schedule() {
 	};
 
 	return (
-		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-			<Row>
-				<StaffMenu />
-				<Col>
-					<Container className="py-4">
-						<h1 className="mb-4 text-primary">Work Schedule</h1>
-						<Row className="mb-3">
-							<Col xs={12} md={6} lg={4}>
-								<Form.Label>Select Month:</Form.Label>
-								<Form.Select value={selectedMonth} onChange={handleMonthChange}>
-									{Array.from({ length: 12 }, (_, i) => (
-										<option key={i} value={i}>
-											{new Date(0, i).toLocaleString("default", { month: "long" })}
-										</option>
-									))}
-								</Form.Select>
-							</Col>
-							<Col xs={12} md={6} lg={4}>
-								<Form.Label>Select Year:</Form.Label>
-								<Form.Select value={selectedYear} onChange={handleYearChange}>
-									{generateYearOptions()}
-								</Form.Select>
-							</Col>
-						</Row>
-						<hr className="mb-4"></hr>
-						<Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-										<th key={day}>{day}</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>{renderCalendar()}</tbody>
-						</Table>
-					</Container>
-				</Col>
-			</Row>
-		</div>
+		<>
+			<Navigation />
+			<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+				<Row>
+					<StaffMenu />
+					<Col>
+						<Container className="py-4">
+							<h1 className="mb-4 text-primary">Work Schedule</h1>
+							<Row className="mb-3">
+								<Col xs={12} md={6} lg={4}>
+									<Form.Label>Select Month:</Form.Label>
+									<Form.Select value={selectedMonth} onChange={handleMonthChange}>
+										{Array.from({ length: 12 }, (_, i) => (
+											<option key={i} value={i}>
+												{new Date(0, i).toLocaleString("default", { month: "long" })}
+											</option>
+										))}
+									</Form.Select>
+								</Col>
+								<Col xs={12} md={6} lg={4}>
+									<Form.Label>Select Year:</Form.Label>
+									<Form.Select value={selectedYear} onChange={handleYearChange}>
+										{generateYearOptions()}
+									</Form.Select>
+								</Col>
+							</Row>
+							<hr className="mb-4"></hr>
+							<Table striped bordered hover responsive>
+								<thead>
+									<tr>
+										{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+											<th key={day}>{day}</th>
+										))}
+									</tr>
+								</thead>
+								<tbody>{renderCalendar()}</tbody>
+							</Table>
+						</Container>
+					</Col>
+				</Row>
+			</div>
+		</>
 	);
 }
 

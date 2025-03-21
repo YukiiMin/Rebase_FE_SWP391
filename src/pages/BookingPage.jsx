@@ -9,7 +9,7 @@ import * as Yup from "yup";
 
 function BookingPage() {
 	const vaccineAPI = "http://localhost:8080/vaccine";
-	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
+	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const userAPI = "http://localhost:8080/users";
 	const token = localStorage.getItem("token");
 	const decodedToken = token ? jwtDecode(token) : null;
@@ -109,13 +109,25 @@ function BookingPage() {
 			});
 			if (response.ok) {
 				const data = await response.json();
-				console.log(data);
-				setChilds(data.children);
+				console.log("Children data:", data);
+				
+				// The endpoint returns an AccDTO with result.children array
+				if (data && data.result && data.result.children) {
+					setChilds(data.result.children);
+					if (data.result.children.length === 0) {
+						setBookingError("No children found. Please add a child.");
+					}
+				} else {
+					console.error("Invalid children data structure:", data);
+					setBookingError("Could not load children data. Please try again.");
+				}
 			} else {
 				console.error("Get children failed: ", response.status);
+				setBookingError("Could not load children data. Please try again.");
 			}
 		} catch (err) {
 			console.log(err);
+			setBookingError("Could not load children data. Please try again.");
 		}
 	};
 
@@ -267,7 +279,7 @@ function BookingPage() {
 				},
 				body: JSON.stringify({
 					appointmentDate: values.vaccinationDate,
-					status: true,
+					status: "PENDING",
 				}),
 			});
 
@@ -351,15 +363,17 @@ function BookingPage() {
 			} else if (type === "combo") {
 				// Handle combo vaccines here
 				for (const combo of selectedCombo) {
-					// Add combo vaccines to order
-					// This part needs to be implemented based on your combo structure
-					const detailResponse = await fetch(``, {
+					// Add combo to order
+					const detailResponse = await fetch(`http://localhost:8080/order/${orderId}/addCombo/${combo.comboId}`, {
 						method: "POST",
 						headers: {
 							Authorization: `Bearer ${token}`,
 							"Content-Type": "application/json",
 						},
-						body: JSON.stringify(combo),
+						body: JSON.stringify({
+							quantity: 1,
+							totalPrice: combo.total * (((100 - combo.saleOff) * 1) / 100)
+						}),
 					});
 					if (!detailResponse.ok) {
 						throw new Error(`Failed to add combo ${combo.comboId} to order`);
@@ -371,7 +385,14 @@ function BookingPage() {
 				}
 			}
 
+			// Find the selected child by its ID, and make sure we're using the right property
 			const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
+			console.log("Selected child:", selectedChild, "Child ID:", values.childId);
+			
+			if (!selectedChild) {
+				throw new Error("Selected child not found. Please try again.");
+			}
+			
 			navigate("/Transaction", {
 				state: {
 					selectedVaccine: selectedVaccine,
@@ -421,10 +442,16 @@ function BookingPage() {
 				<br />
 				<Form method="POST" onSubmit={formik.handleSubmit}>
 					<InputGroup className="mb-3">
-						<Form.Select aria-label="childId" name="childId" value={formik.values.childId} onChange={formik.handleChange} isInvalid={formik.touched.childId && formik.errors.childId}>
+						<Form.Select 
+							aria-label="childId" 
+							name="childId" 
+							value={formik.values.childId} 
+							onChange={formik.handleChange} 
+							isInvalid={formik.touched.childId && formik.errors.childId}
+						>
 							{childs.length > 0 ? (
 								<>
-									<option>---Choose child---</option>
+									<option value="">---Choose child---</option>
 									{childs.map((child) => (
 										<option key={child.id} value={child.id}>
 											{child.name}
@@ -432,7 +459,7 @@ function BookingPage() {
 									))}
 								</>
 							) : (
-								<option>No data</option>
+								<option value="">No data</option>
 							)}
 						</Form.Select>
 						<Button

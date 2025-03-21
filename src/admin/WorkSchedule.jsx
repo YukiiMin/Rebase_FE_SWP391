@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Pagination, Row, Table, Badge } from "react-bootstrap";
+import { Button, Col, Container, Form, Pagination, Row, Table, Badge, Alert } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddShift from "../components/AddShift";
+import Navigation from "../components/Navbar";
+import { TokenUtils } from "../utils/TokenUtils";
 
 function WorkSchedule() {
-	const scheduleAPI = "http://localhost:8080/working";
-	const accountAPI = "http://localhost:8080/users";
-	const token = localStorage.getItem("token");
+	const api = "http://localhost:8080";
+	const token = TokenUtils.getToken();
 
 	const [isOpen, setIsOpen] = useState(false);
-	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // Default to current month
+	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-based month index
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 	const [daysInMonth, setDaysInMonth] = useState([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
 	// const staffData = [
 	// 	{ id: 1, name: "Staff1" },
@@ -20,21 +23,20 @@ function WorkSchedule() {
 	// 	// Need to fetch list of staff from API
 	// ];
 
-	const [schedule, setSchedule] = useState({}); // Thay đổi để lưu trữ lịch theo từng nhân viên
-	const [staffList, setStaffList] = useState([]); //Array of staffs
+	const [schedules, setSchedules] = useState([]);
+	const [staffList, setStaffList] = useState([]);
+	const [staffSchedules, setStaffSchedules] = useState({});
 
 	const handleMonthChange = (event) => {
 		const month = parseInt(event.target.value);
 		setSelectedMonth(month);
 		updateDaysInMonth(month, selectedYear);
-		fetchScheduleForAllStaff(month, selectedYear);
 	};
 
 	const handleYearChange = (event) => {
 		const year = parseInt(event.target.value);
 		setSelectedYear(year);
 		updateDaysInMonth(selectedMonth, year);
-		fetchScheduleForAllStaff(selectedMonth, year);
 	};
 
 	const updateDaysInMonth = (month, year) => {
@@ -43,9 +45,22 @@ function WorkSchedule() {
 		setDaysInMonth(days);
 	};
 
+	// Khi tháng hoặc năm thay đổi, cập nhật số ngày trong tháng
 	useEffect(() => {
 		updateDaysInMonth(selectedMonth, selectedYear);
 	}, [selectedMonth, selectedYear]);
+
+	// Khi tháng hoặc năm thay đổi, tải lại lịch làm việc
+	useEffect(() => {
+		if (staffList.length > 0) {
+			fetchAllSchedules();
+		}
+	}, [selectedMonth, selectedYear, staffList]);
+
+	// Tải danh sách nhân viên khi component mount
+	useEffect(() => {
+		fetchStaff();
+	}, []);
 
 	const generateYearOptions = () => {
 		const currentYear = new Date().getFullYear();
@@ -60,96 +75,108 @@ function WorkSchedule() {
 		return years;
 	};
 
-	useEffect(() => {
-		getStaff();
-	}, []);
-
-	// useEffect(() => {
-	// 	if (staffList.length > 0) {
-	// 		fetchSchedule();
-	// 	}
-	// }, [staffList]);
-
-	const getStaff = async () => {
+	// Fetch danh sách nhân viên
+	const fetchStaff = async () => {
 		try {
-			const response = await fetch(`${accountAPI}/getAllUser`, {
+			setLoading(true);
+			setError("");
+			const response = await fetch(`${api}/users/getAllUser`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
 			if (response.ok) {
 				const data = await response.json();
-				setStaffList(data.result);
+				const staffs = data.result.filter(user => user.roleName === "DOCTOR" || user.roleName === "NURSE");
+				setStaffList(staffs);
+				console.log("Staff loaded:", staffs.length);
 			} else {
 				console.error("Getting staffs data failed: ", response.status);
+				setError("Failed to fetch staff list");
 			}
 		} catch (err) {
 			console.error("Something went wrong when getting staffs: ", err);
+			setError("Error loading staff data");
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	// const fetchSchedule = async () => {
-		const fetchScheduleForAllStaff = async (month, year) => {
+	// Fetch tất cả lịch làm việc và lịch của từng nhân viên
+	const fetchAllSchedules = async () => {
 		try {
-			// if (!staffList || staffList.length == 0) {
-			// 	//Make sure staffs are loaded
-			// 	return;
-			// }
-			if (!staffList || staffList.length === 0) return;
-
-			const scheduleMap = {};
-			// const allSchedules = [];
+			setLoading(true);
+			setError("");
+			console.log(`Fetching schedules for month ${selectedMonth + 1} and year ${selectedYear}`);
+			
+			// Tải danh sách lịch làm việc cho từng nhân viên
+			const staffSchedulesMap = {};
+			
 			for (const staff of staffList) {
-				const response = await fetch(`${scheduleAPI}/allworkdate/${staff.accountId}`, {
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				});
-				if (response.ok) {
-					const data = await response.json();
-					console.log(`Schedules for staff ${staff.accountId}:`, data.result);
-					
-					// Lọc các ngày làm việc theo tháng và năm
-					const filteredSchedule = data.result.filter(work => {
-						// Debug date parsing
-						debugDateParsing(work.date.dayWork);
-						
-						const workDate = new Date(work.date.dayWork);
-						// return workDate.getMonth() === month && workDate.getFullYear() === year;
-						const isMatchingMonthAndYear = workDate.getMonth() === month && workDate.getFullYear() === year;
-						
-						// Log chi tiết để debug
-						console.log(`Work date: ${workDate}, Month: ${workDate.getMonth()}, Year: ${workDate.getFullYear()}`);
-						console.log(`Matching month (${month}) and year (${year}): ${isMatchingMonthAndYear}`);
-						
-						return isMatchingMonthAndYear;
+				try {
+					const staffResponse = await fetch(`${api}/working/allworkdate/${staff.accountId}`, {
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
 					});
 					
-					console.log(`Filtered schedules for staff ${staff.accountId}:`, filteredSchedule);
+					if (!staffResponse.ok) {
+						console.warn(`Failed to fetch schedule for staff ${staff.accountId}: ${staffResponse.status}`);
+						continue;
+					}
 					
-					scheduleMap[staff.accountId] = filteredSchedule;
-				} else {
-					console.log("Fetching schedule failed: ", response.status);
+					const staffData = await staffResponse.json();
+					
+					// Kiểm tra dữ liệu hợp lệ
+					if (!staffData || !staffData.result || !Array.isArray(staffData.result)) {
+						console.warn(`Invalid data format for staff ${staff.accountId}`);
+						continue;
+					}
+					
+					// Lọc lịch làm việc theo tháng và năm được chọn
+					const filtered = staffData.result.filter(workDetail => {
+						if (!workDetail.date || !workDetail.date.dayWork) {
+							return false;
+						}
+						
+						// Chuyển đổi chuỗi ngày thành đối tượng Date
+						const workDate = new Date(workDetail.date.dayWork);
+						const workMonth = workDate.getMonth(); // JavaScript month is 0-based
+						const workYear = workDate.getFullYear();
+						
+						console.log(`Work date: ${workDate}, Month: ${workMonth}, Year: ${workYear}, Selected: ${selectedMonth}/${selectedYear}`);
+						
+						// So sánh tháng và năm của lịch làm việc với tháng và năm được chọn
+						return workMonth === selectedMonth && workYear === selectedYear;
+					});
+					
+					if (filtered.length > 0) {
+						console.log(`Found ${filtered.length} work dates for staff ${staff.accountId} in ${selectedMonth + 1}/${selectedYear}`);
+						staffSchedulesMap[staff.accountId] = filtered;
+					}
+				} catch (error) {
+					console.error(`Error processing schedule for staff ${staff.accountId}:`, error);
 				}
 			}
-			setSchedule(scheduleMap);
+			
+			// Cập nhật state với dữ liệu lịch làm việc của nhân viên
+			setStaffSchedules(staffSchedulesMap);
+			console.log("Updated staff schedules:", staffSchedulesMap);
+			
 		} catch (err) {
-			console.log(err);
+			console.error("Error fetching schedules:", err);
+			setError(`Failed to load schedules: ${err.message}`);
+		} finally {
+			setLoading(false);
 		}
 	};
-
-	useEffect(() => {
-		if (staffList.length > 0) {
-			fetchScheduleForAllStaff(selectedMonth, selectedYear);
-		}
-	}, [staffList]);
 
 	//Pagination
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10; // Number of items per page
+	const itemsPerPage = 10;
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentStaffs = staffList && staffList.length > 0 ? staffList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
+	const currentStaffs = staffList && staffList.length > 0 ? staffList.slice(indexOfFirstItems, indexOfLastItems) : [];
 	const totalPages = Math.ceil(staffList.length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
@@ -176,12 +203,21 @@ function WorkSchedule() {
 	);
 
 	const renderShiftForDay = (staff, day) => {
-		const staffSchedule = schedule[staff.accountId] || [];
+		// Kiểm tra xem nhân viên có lịch làm việc không
+		if (!staffSchedules[staff.accountId]) return null;
+		
+		const staffSchedule = staffSchedules[staff.accountId];
+		
+		// Tìm lịch làm việc cho ngày cụ thể
 		const daySchedule = staffSchedule.find(work => {
+			if (!work.date || !work.date.dayWork) return false;
+			
+			// Chuyển đổi chuỗi ngày thành đối tượng Date và kiểm tra ngày
 			const workDate = new Date(work.date.dayWork);
 			return workDate.getDate() === day;
 		});
 
+		// Nếu có lịch làm việc cho ngày đó, hiển thị badge với loại ca
 		if (daySchedule) {
 			return (
 				<Badge 
@@ -195,91 +231,108 @@ function WorkSchedule() {
 		return null;
 	};
 
-	// Hàm debug để in ra múi giờ và định dạng ngày
-	const debugDateParsing = (dateString) => {
-		const date = new Date(dateString);
-		console.log('Date String:', dateString);
-		console.log('Date Object:', date);
-		console.log('Date toString:', date.toString());
-		console.log('Date toISOString:', date.toISOString());
-		console.log('Date getMonth():', date.getMonth());
-		console.log('Date getFullYear():', date.getFullYear());
-		console.log('Date getDate():', date.getDate());
-		console.log('Timezone Offset:', date.getTimezoneOffset());
-	};
-
 	return (
-		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-			<Row>
-				{/* {console.log(staffs)} */}
-				{console.log(schedule)}
-				<Sidebar />
-				<Col lg={10}>
-					<Container className="py-4">
-						<Row className="mb-4 align-items-center">
-							<Col>
-								<h1 className="text-primary">Shift Management</h1>
-							</Col>
-							<Col className="text-end">
-								<Button variant="primary" onClick={() => setIsOpen(true)}>
-									Add Work
-								</Button>
-							</Col>
-							{isOpen && <AddShift 
-								setIsOpen={setIsOpen} 
-								open={isOpen} 
-								onScheduleAdded={() => {
-									fetchScheduleForAllStaff(selectedMonth, selectedYear);
-								}} 
-							/>}
-						</Row>
-						<hr className="mb-4"></hr>
-						<Row className="mb-3">
-							<Col xs={12} md={6} lg={4}>
-								<Form.Label>Select Month:</Form.Label>
-								<Form.Select value={selectedMonth} onChange={handleMonthChange}>
-									{Array.from({ length: 12 }, (_, i) => (
-										<option key={i} value={i}>
-											{new Date(0, i).toLocaleString("default", { month: "long" })}
-										</option>
-									))}
-								</Form.Select>
-							</Col>
-							<Col xs={12} md={6} lg={4}>
-								<Form.Label>Select Year:</Form.Label>
-								<Form.Select value={selectedYear} onChange={handleYearChange}>
-									{generateYearOptions()}
-								</Form.Select>
-							</Col>
-						</Row>
-
-						<Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									<th>Staff</th>
-									{daysInMonth.map((day) => (
-										<th key={day}>{day}</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{currentStaffs.map((staff) => (
-									<tr key={staff.accountId}>
-										<td>{`${staff.firstName} ${staff.lastName}`}</td>
-										{daysInMonth.map((day) => (
-											<td key={`${staff.accountId}-${day}`}>
-												{renderShiftForDay(staff, day)}
-											</td>
+		<>
+			<Navigation />
+			<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+				<Row>
+					<Sidebar />
+					<Col lg={10}>
+						<Container className="py-4">
+							<Row className="mb-4 align-items-center">
+								<Col>
+									<h1 className="text-primary">Shift Management</h1>
+								</Col>
+								<Col className="text-end">
+									<Button variant="primary" onClick={() => setIsOpen(true)}>
+										Add Work
+									</Button>
+								</Col>
+								{isOpen && <AddShift 
+									setIsOpen={setIsOpen} 
+									open={isOpen} 
+									onScheduleAdded={() => {
+										fetchAllSchedules();
+									}} 
+								/>}
+							</Row>
+							<hr className="mb-4"></hr>
+							
+							{error && <Alert variant="danger">{error}</Alert>}
+							
+							<Row className="mb-3">
+								<Col xs={12} md={6} lg={4}>
+									<Form.Label>Select Month:</Form.Label>
+									<Form.Select value={selectedMonth} onChange={handleMonthChange}>
+										{Array.from({ length: 12 }, (_, i) => (
+											<option key={i} value={i}>
+												{new Date(0, i).toLocaleString("default", { month: "long" })}
+											</option>
 										))}
-									</tr>
-								))}
-							</tbody>
-						</Table>
-						{pagination}
-					</Container>
-				</Col>
-			</Row>
-		</div>
+									</Form.Select>
+								</Col>
+								<Col xs={12} md={6} lg={4}>
+									<Form.Label>Select Year:</Form.Label>
+									<Form.Select value={selectedYear} onChange={handleYearChange}>
+										{generateYearOptions()}
+									</Form.Select>
+								</Col>
+								<Col xs={12} md={6} lg={4} className="d-flex align-items-end">
+									<Button 
+										variant="outline-primary" 
+										onClick={fetchAllSchedules}
+										disabled={loading}
+									>
+										{loading ? "Loading..." : "Refresh Schedule"}
+									</Button>
+								</Col>
+							</Row>
+
+							{loading ? (
+								<div className="text-center p-4">
+									<div className="spinner-border text-primary" role="status">
+										<span className="visually-hidden">Loading...</span>
+									</div>
+									<p className="mt-2">Loading schedules...</p>
+								</div>
+							) : (
+								<>
+									{Object.keys(staffSchedules).length === 0 ? (
+										<Alert variant="info">
+											No schedules found for {new Date(0, selectedMonth).toLocaleString("default", { month: "long" })} {selectedYear}
+										</Alert>
+									) : (
+										<Table striped bordered hover responsive>
+											<thead>
+												<tr>
+													<th>Staff</th>
+													{daysInMonth.map((day) => (
+														<th key={day}>{day}</th>
+													))}
+												</tr>
+											</thead>
+											<tbody>
+												{currentStaffs.map((staff) => (
+													<tr key={staff.accountId}>
+														<td>{`${staff.firstName} ${staff.lastName}`}</td>
+														{daysInMonth.map((day) => (
+															<td key={`${staff.accountId}-${day}`}>
+																{renderShiftForDay(staff, day)}
+															</td>
+														))}
+													</tr>
+												))}
+											</tbody>
+										</Table>
+									)}
+									{pagination}
+								</>
+							)}
+						</Container>
+					</Col>
+				</Row>
+			</div>
+		</>
 	);
 }
 export default WorkSchedule;

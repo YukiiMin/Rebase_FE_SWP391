@@ -2,6 +2,7 @@ import { useFormik } from "formik";
 import React from "react";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
+import TokenUtils from "../utils/TokenUtils";
 
 function LoginPage() {
 	const navigate = useNavigate();
@@ -19,45 +20,33 @@ function LoginPage() {
 	});
 
 	const handleLogin = async (values) => {
-		// try {
-		// 	const response = await fetch(accountAPI);
-		// 	if (!response.ok) {
-		// 		throw new Error(`HTTP error! status: ${response.status}`);
-		// 	}
-		// 	const accounts = await response.json();
-		// 	console.log(accounts);
-		// 	const user = accounts.find((account) => account.username === values.username && account.password === values.password);
+		try {
+			const response = await fetch(accountAPI, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(values),
+			});
 
-		// 	if (user) {
-		// 		console.log("Login successful:", user);
-		// 		localStorage.setItem("user", JSON.stringify(user));
-		// 		navigate("/");
-		// 	} else {
-		// 		console.log("Login failed: Invalid username or password");
-		// 		alert("Invalid username or password");
-		// 	}
-		// } catch (error) {
-		// 	console.error("Login error:", error);
-		// 	alert("An error occurred during login. Please try again.");
-		// }
-		const response = await fetch(accountAPI, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(values),
-		});
-
-		if (response.ok) {
-			const data = await response.json();
-			const token = data.result.token;
-			localStorage.setItem("token", token);
-			console.log("Login successful");
-			alert("Login successful!");
-			navigate("/");
-		} else {
-			console.error("Login failed:", response.status);
-			alert("Login failed. Please try again.");
+			if (response.ok) {
+				const data = await response.json();
+				const token = data.result.token;
+				
+				// Sử dụng TokenUtils để lưu token
+				TokenUtils.setToken(token);
+				
+				console.log("Login successful");
+				alert("Login successful!");
+				navigate("/");
+			} else {
+				const errorData = await response.json().catch(() => null);
+				console.error("Login failed:", response.status, errorData);
+				alert("Login failed. Please check your username and password.");
+			}
+		} catch (error) {
+			console.error("Login error:", error);
+			alert("An error occurred during login. Please try again.");
 		}
 	};
 

@@ -53,6 +53,18 @@ function StaffMenu() {
 						})}>
 						Work Schedule
 					</NavLink>
+					<NavLink
+						to={"/Staff/Vaccination"}
+						className={"nav-link"}
+						style={({ isActive }) => ({
+							backgroundColor: isActive ? "#e9ecef" : "transparent",
+							borderRadius: "5px",
+							padding: "10px 15px",
+							marginBottom: "5px",
+							color: "#343a40",
+						})}>
+						Vaccination Management
+					</NavLink>
 					{/* <NavLink
 						to={"/ManageCombo"}
 						className={"nav-link"}

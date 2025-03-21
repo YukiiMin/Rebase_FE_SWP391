@@ -6,8 +6,15 @@ function UpdateRole({ setIsOpen, open, userId }) {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const userAPI = "http://localhost:8080/users";
-	const [role, setRole] = useState();
+	const [role, setRole] = useState("");
 	const [status, setStatus] = useState(true);
+
+	// Danh sách role hợp lệ
+	const validRoles = [
+		{ value: "ADMIN", label: "Admin" },
+		{ value: "DOCTOR", label: "Doctor" },
+		{ value: "NURSE", label: "Nurse" }
+	];
 
 	useEffect(() => {
 		if (userId) {
@@ -15,7 +22,7 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		}
 	}, [userId]);
 
-	// useEffect(() => {
+	//useEffect(() => {
 	// 	if (user) {
 	// 		setRole(user.roleName);
 	// 		setStatus(user.status);
@@ -33,7 +40,9 @@ function UpdateRole({ setIsOpen, open, userId }) {
 			});
 			if (response.ok) {
 				const data = await response.json();
-				setRole(data.result.roleName);
+				// Chỉ set role nếu nó nằm trong danh sách validRoles
+				const validRole = validRoles.find(r => r.value === data.result.roleName);
+				setRole(validRole ? validRole.value : "DOCTOR"); // Mặc định là DOCTOR nếu không hợp lệ
 				setStatus(data.result.status);
 			} else {
 				console.error(response.status);
@@ -53,18 +62,18 @@ function UpdateRole({ setIsOpen, open, userId }) {
 					"Content-type": "application/json",
 				},
 				body: JSON.stringify({
-					role: role,
+					roleName: role,
 					status: status,
 				}),
 			});
 			if (response.ok) {
 				alert("Update role successful!");
 				handleClose();
-				navigate('/admin/account-manage');
-				window.location.reload(); // Reload page after redirect
+				navigate('/Admin/ManageAccount');
 			} else {
 				console.error("Failed to update user:", response.status);
-				alert("Update role failed. Please try again.");
+				const errorData = await response.json();
+				alert(`Update failed: ${errorData.message || "Unknown error"}`);
 			}
 		} catch (err) {
 			console.error("Error updating user role: ", err);
@@ -88,23 +97,40 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		<div>
 			<Modal show={open} onHide={handleClose}>
 				{console.log(role, status)}
-				<Form method="POST" onSubmit={handleClose}>
+				<Form method="PATCH" onSubmit={(e) => {
+					e.preventDefault();
+					handleSubmit();
+				}}>
 					<Modal.Header closeButton>
 						<Modal.Title>Update Role</Modal.Title>
 					</Modal.Header>
 					<Modal.Body>
-						<Form.Select value={role} onChange={handleRoleChange}>
-							<option value="USER">User</option>
-							<option value="STAFF">Staff</option>
-							<option value="ADMIN">Admin</option>
-						</Form.Select>
-						<Form.Check type="switch" id="status" label="Status" checked={status} onChange={handleStatusChange} />
+						<Form.Group className="mb-3">
+							<Form.Label>Role</Form.Label>
+							<Form.Select value={role} onChange={handleRoleChange}>
+								{validRoles.map((roleOption) => (
+									<option key={roleOption.value} value={roleOption.value}>
+										{roleOption.label}
+									</option>
+								))}
+							</Form.Select>
+						</Form.Group>
+						
+						<Form.Group className="mb-3">
+							<Form.Check 
+								type="switch" 
+								id="status" 
+								label={status ? "Active" : "Inactive"} 
+								checked={status} 
+								onChange={handleStatusChange} 
+							/>
+						</Form.Group>
 					</Modal.Body>
 					<Modal.Footer>
 						<Button variant="secondary" onClick={handleClose}>
 							Close
 						</Button>
-						<Button variant="primary" onClick={handleSubmit}>
+						<Button variant="primary" type="submit">
 							Update
 						</Button>
 					</Modal.Footer>

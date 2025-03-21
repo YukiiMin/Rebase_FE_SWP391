@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Badge, Button, Col, Container, Form, Image, Modal, Pagination, Row, Table } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddVaccine from "../components/AddVaccine";
+import Navigation from "../components/Navbar";
 
 function VaccineManage() {
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
@@ -15,29 +16,38 @@ function VaccineManage() {
 	const itemsPerPage = 5; // Number of items per page
 
 	useEffect(() => {
-		getVaccine();
+		fetchVaccine();
 	}, []);
 
-	const getVaccine = async () => {
+	const fetchVaccine = async () => {
 		try {
-			const response = await fetch(vaccineAPI);
+			const response = await fetch(apiUrl, {
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			});
 			if (response.ok) {
 				const data = await response.json();
-				setVaccineList(data.result);
+				console.log("Vaccines:", data);
+				setVaccines(data.result || []);
 			} else {
 				console.error("Fetching vaccine failed: ", response.status);
+				alert("Failed to fetch vaccines. Please try again.");
 			}
 		} catch (err) {
 			console.error("Error fetching vaccine: ", err);
+			alert("An error occurred while fetching vaccines.");
 		}
 	};
 
 	const searchVaccine = () => {
-		let filtered = vaccineList.filter((vaccine) => {
+		let filtered = vaccines.filter((vaccine) => {
 			const sName = vaccine.name.toLowerCase().includes(searchName.toLowerCase());
 			const sManufacturer = vaccine.manufacturer.toLowerCase().includes(searchManufacturer.toLowerCase());
 			return sName && sManufacturer;
 		});
+		
 		if (sortOption) {
 			filtered = [...filtered].sort((a, b) => {
 				if (sortOption === "quantityAsc") return a.quantity - b.quantity;
@@ -83,77 +93,74 @@ function VaccineManage() {
 
 	const handleVaccineAdded = (newVaccine) => {
 		if (newVaccine) {
-			setVaccineList([newVaccine, ...vaccineList]);
+			setVaccines([newVaccine, ...vaccines]);
 		} else {
-			getVaccine();
+			fetchVaccine();
 		}
 	};
 
 	return (
-		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-			<Row>
-				<Sidebar />
-				<Col lg={10}>
-					<Container className="py-4">
-						{console.log(vaccineList, currentVaccines)}
-						<Row className="mb-4 align-items-center">
-							<Col>
-								<h1 className="text-primary">Vaccine Management</h1>
-							</Col>
-							<Col className="text-end">
-								<Button variant="primary" onClick={() => setIsOpen(true)}>
-									Add New Vaccine
-								</Button>
-							</Col>
-						</Row>
-						{isOpen && <AddVaccine setIsOpen={setIsOpen} open={isOpen} onAdded={handleVaccineAdded} />}
-						<hr className="mb-4"></hr>
-						<Container>
-							<Row className="mb-3">
-								<Col md={4}>
-									<h4>Search:</h4>
+		<>
+			<Navigation />
+			<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+				<Row>
+					<Sidebar />
+					<Col lg={10}>
+						<Container className="py-4">
+							<Row className="mb-4 align-items-center">
+								<Col>
+									<h1 className="text-primary">Vaccine Management</h1>
 								</Col>
-								<Col md={3}>
-									<Form.Control type="text" placeholder="Search Vaccine Name" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
-								</Col>
-								<Col md={3}>
-									<Form.Control type="text" placeholder="Search Manufacturer" value={searchManufacturer} onChange={(e) => setSearchManufacturer(e.target.value)} />
-								</Col>
-								<Col md={2}>
-									<Form.Select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
-										<option value="">---Sort---</option>
-										<option value="quantityAsc">Sort by Quantity Ascending</option>
-										<option value="quantityDes">Sort by Quantity Descending</option>
-										<option value="unitPriceAsc">Sort by Unit Price Ascending</option>
-										<option value="unitPriceDes">Sort by Unit Price Descending</option>
-										<option value="salePriceAsc">Sort by Sale Price Ascending</option>
-										<option value="salePriceDes">Sort by Sale Price Descending</option>
-									</Form.Select>
+								<Col className="text-end">
+									<Button variant="primary" onClick={() => setIsOpen(true)}>
+										Add New Vaccine
+									</Button>
 								</Col>
 							</Row>
-						</Container>
+							{isOpen && <AddVaccine setIsOpen={setIsOpen} open={isOpen} onAdded={handleVaccineAdded} />}
+							<hr className="mb-4"></hr>
+							<Container>
+								<Row className="mb-3">
+									<Col md={4}>
+										<h4>Search:</h4>
+									</Col>
+									<Col md={3}>
+										<Form.Control type="text" placeholder="Search Vaccine Name" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+									</Col>
+									<Col md={3}>
+										<Form.Control type="text" placeholder="Search Manufacturer" value={searchManufacturer} onChange={(e) => setSearchManufacturer(e.target.value)} />
+									</Col>
+									<Col md={2}>
+										<Form.Select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
+											<option value="">---Sort---</option>
+											<option value="quantityAsc">Sort by Quantity Ascending</option>
+											<option value="quantityDes">Sort by Quantity Descending</option>
+											<option value="unitPriceAsc">Sort by Unit Price Ascending</option>
+											<option value="unitPriceDes">Sort by Unit Price Descending</option>
+											<option value="salePriceAsc">Sort by Sale Price Ascending</option>
+											<option value="salePriceDes">Sort by Sale Price Descending</option>
+										</Form.Select>
+									</Col>
+								</Row>
+							</Container>
 
-						<Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									<th>ID</th>
-									<th>Vaccine Name</th>
-									<th>Image</th>
-									<th>Description</th>
-									<th>Manufacturer</th>
-									<th>Quantity</th>
-									<th>Unit Price ($)</th>
-									<th>Sale Price ($)</th>
-									<th>Total Doses</th>
-									<th>Status</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{/* {vaccines.length > 0 ? (
-									vaccines.map((vaccine) => ( */}
-								{/* {currentVaccines.length > 0 ? ( //Use currentVaccines for pagination
-									currentVaccines.map((vaccine, index) => ( */}
+							<Table striped bordered hover responsive>
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Vaccine Name</th>
+										<th>Image</th>
+										<th>Description</th>
+										<th>Manufacturer</th>
+										<th>Quantity</th>
+										<th>Unit Price ($)</th>
+										<th>Sale Price ($)</th>
+										<th>Total Doses</th>
+										<th>Status</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
 									{currentVaccines.length > 0 ? (
 									currentVaccines.map((vaccine) => (
 										<tr key={vaccine.id}>

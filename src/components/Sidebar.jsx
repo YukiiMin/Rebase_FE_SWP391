@@ -42,7 +42,7 @@ function Sidebar() {
 						Account
 					</NavLink>
 					<NavLink
-						to={"/Admin/ManageVaccine"}
+						to={"/Admin/VaccineManage"}
 						className={"nav-link"}
 						style={({ isActive }) => ({
 							backgroundColor: isActive ? "#e9ecef" : "transparent",
