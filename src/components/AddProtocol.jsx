@@ -1,7 +1,20 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button, Form, Modal, Row, Col } from "react-bootstrap";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Separator } from "./ui/separator";
+import { Loader2, Plus, Trash } from "lucide-react";
 
 function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
   const token = localStorage.getItem("token");
@@ -9,6 +22,8 @@ function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
   const [protocolDetails, setProtocolDetails] = useState([
     { doseNumber: 1, intervalDays: 0 }
   ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const validation = Yup.object({
     name: Yup.string().required("Protocol name is required"),
@@ -60,6 +75,8 @@ function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
   };
 
   const handleSubmit = async (values) => {
+    setIsLoading(true);
+    setError("");
     try {
       const protocolData = {
         name: values.name,
@@ -82,74 +99,94 @@ function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
         handleClose();
         onAddedProtocol(data.result);
       } else {
-        console.error("Failed to add protocol:", response.status);
-        // Toast notification for error would go here
+        setError(`Failed to add protocol: ${response.status}`);
       }
     } catch (err) {
-      console.error("Error adding protocol:", err);
-      // Toast notification for error would go here
+      setError(`Error adding protocol: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Modal show={open} onHide={handleClose} size="lg" backdrop="static">
-      <Form onSubmit={formik.handleSubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Protocol</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3" controlId="protocolName">
-            <Form.Label>Protocol Name</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Enter protocol name (e.g., 'Standard 3-dose')"
+    <Dialog open={open} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">Add New Protocol</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={formik.handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="name">Protocol Name</Label>
+            <Input
+              id="name"
               name="name"
+              placeholder="Enter protocol name (e.g., 'Standard 3-dose')"
               value={formik.values.name}
               onChange={formik.handleChange}
-              isInvalid={formik.touched.name && formik.errors.name}
+              className={formik.touched.name && formik.errors.name ? "border-red-500" : ""}
             />
-            <Form.Control.Feedback type="invalid">{formik.errors.name}</Form.Control.Feedback>
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="protocolDescription">
-            <Form.Label>Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              placeholder="Enter protocol description"
+            {formik.touched.name && formik.errors.name && (
+              <p className="text-sm text-red-500">{formik.errors.name}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
               name="description"
+              placeholder="Enter protocol description"
+              rows={2}
               value={formik.values.description}
               onChange={formik.handleChange}
-              isInvalid={formik.touched.description && formik.errors.description}
+              className={formik.touched.description && formik.errors.description ? "border-red-500" : ""}
             />
-            <Form.Control.Feedback type="invalid">{formik.errors.description}</Form.Control.Feedback>
-          </Form.Group>
-
-          <hr className="my-4" />
+            {formik.touched.description && formik.errors.description && (
+              <p className="text-sm text-red-500">{formik.errors.description}</p>
+            )}
+          </div>
           
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5>Dose Details</h5>
-            <Button variant="outline-primary" size="sm" onClick={handleAddDose}>
-              Add Another Dose
+          <Separator className="my-4" />
+          
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Dose Details</h3>
+            <Button 
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddDose}
+              className="flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Add Dose
             </Button>
           </div>
-
-          {protocolDetails.map((detail, index) => (
-            <Row key={index} className="mb-3 align-items-center">
-              <Col xs={3}>
-                <Form.Group controlId={`doseNumber-${index}`}>
-                  <Form.Label>Dose Number</Form.Label>
-                  <Form.Control
+          
+          <div className="space-y-4">
+            {protocolDetails.map((detail, index) => (
+              <div key={index} className="grid grid-cols-[1fr_2fr_auto] gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor={`doseNumber-${index}`}>Dose Number</Label>
+                  <Input
+                    id={`doseNumber-${index}`}
                     type="number"
                     value={detail.doseNumber}
                     readOnly
+                    className="bg-gray-50"
                   />
-                </Form.Group>
-              </Col>
-              <Col xs={7}>
-                <Form.Group controlId={`intervalDays-${index}`}>
-                  <Form.Label>Interval Days (from previous dose)</Form.Label>
-                  <Form.Control
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`intervalDays-${index}`}>Interval Days</Label>
+                  <Input
+                    id={`intervalDays-${index}`}
                     type="number"
                     min="0"
                     placeholder="Enter interval in days"
@@ -157,35 +194,41 @@ function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
                     onChange={(e) => handleDoseChange(index, 'intervalDays', parseInt(e.target.value) || 0)}
                   />
                   {index === 0 && (
-                    <Form.Text className="text-muted">
+                    <p className="text-xs text-gray-500">
                       First dose interval is typically 0 (from start date)
-                    </Form.Text>
+                    </p>
                   )}
-                </Form.Group>
-              </Col>
-              <Col xs={2} className="d-flex align-items-end justify-content-end">
+                </div>
+                
                 <Button
-                  variant="outline-danger"
-                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleRemoveDose(index)}
                   disabled={protocolDetails.length <= 1}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
-                  Remove
+                  <Trash className="h-4 w-4" />
                 </Button>
-              </Col>
-            </Row>
-          ))}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit">
-            Save Protocol
-          </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
+              </div>
+            ))}
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button variant="outline" type="button" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Protocol
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

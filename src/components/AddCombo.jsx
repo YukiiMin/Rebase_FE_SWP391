@@ -1,8 +1,35 @@
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import * as Yup from "yup";
-import { Button, Col, Form, InputGroup, Modal, Row, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableRow,
+} from "./ui/table";
+import { Checkbox } from "./ui/checkbox";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./ui/select";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Loader2 } from "lucide-react";
 
 function AddCombo({ setIsOpen, open }) {
 	const navigate = useNavigate();
@@ -12,10 +39,11 @@ function AddCombo({ setIsOpen, open }) {
 
 	const [search, setSearch] = useState("");
 	const [searchResult, setSearchResult] = useState([]);
-
 	const [selectedVaccs, setSelectedVaccs] = useState([]);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	const handleClose = () => setIsOpen(false); //Close modal
+	const handleClose = () => setIsOpen(false);
 
 	const validation = Yup.object({
 		comboName: Yup.string().required("Combo Name is required"),
@@ -40,7 +68,6 @@ function AddCombo({ setIsOpen, open }) {
 	const handleSelectVaccine = (vaccine) => {
 		const isSelected = selectedVaccs.some((vac) => vac.vaccine.id === vaccine.id);
 		if (isSelected) {
-			//Unchose the vaccine
 			setSelectedVaccs(selectedVaccs.filter((vac) => vac.vaccine.id !== vaccine.id));
 		} else {
 			setSelectedVaccs([...selectedVaccs, { vaccine, dose: 0 }]);
@@ -48,11 +75,12 @@ function AddCombo({ setIsOpen, open }) {
 	};
 
 	const handleDoseChange = (vaccineId, dose) => {
-		setSelectedVaccs(selectedVaccs.map((v) => (v.vaccine.id === vaccineId ? { ...v, dose: parseInt(dose, 10) } : v)));
+		setSelectedVaccs(selectedVaccs.map((v) => (v.vaccine.id === vaccineId ? { ...v, dose: parseInt(dose, 10) || 0 } : v)));
 	};
 
-	//Add the vaccine combo first
 	const handleAddCombo = async (values) => {
+		setIsLoading(true);
+		setError("");
 		try {
 			const comboData = {
 				comboName: values.comboName,
@@ -69,31 +97,27 @@ function AddCombo({ setIsOpen, open }) {
 			if (response.ok) {
 				const data = await response.json();
 				const comboId = data.result.id;
-				console.log("ComboId: ", comboId, ". Next is adding combo detail"); //Get the comboId for the addComboDetail func
+				console.log("ComboId: ", comboId, ". Next is adding combo detail");
 				handleAddComboDetail(values, comboId);
 			} else {
-				console.error("Adding combo failed: ", response.status);
+				setError("Adding combo failed. Please try again.");
+				setIsLoading(false);
 			}
 		} catch (err) {
-			console.log("Add combo failed: ", err);
+			setError("An error occurred while adding the combo: " + err.message);
+			setIsLoading(false);
 		}
 	};
 
-	//Add vaccine combo detail using the newly create comboId
-
 	const handleAddComboDetail = async (values, comboId) => {
-		console.log(selectedVaccs);
 		try {
 			let success = true;
 			for (const item of selectedVaccs) {
-				console.log(item.vaccine.id);
 				const detailData = {
 					dose: item.dose,
 					comboCategory: values.comboCategory,
 					saleOff: values.saleOff,
 				};
-				console.log(detailData);
-				console.log(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`);
 				const response = await fetch(`${comboAPI}/detail/${comboId}/${item.vaccine.id}`, {
 					method: "POST",
 					headers: {
@@ -102,153 +126,227 @@ function AddCombo({ setIsOpen, open }) {
 					},
 					body: JSON.stringify(detailData),
 				});
-				if (response.ok) {
-					console.log(`Adding detail for vaccineId ${item.vaccine.id} success`);
-				} else {
-					console.error(`Adding detail for vaccine ${item.vaccine.id} failed: `, response.status);
+				if (!response.ok) {
+					setError(`Failed to add vaccine ${item.vaccine.name} to combo.`);
 					success = false;
 				}
 			}
 			if (success) {
-				alert("Adding combo successful!!!");
 				handleClose();
 				navigate("/Admin/ManageCombo");
-				window.location.reload(); // Reload page after redirect
+				window.location.reload();
 			}
 		} catch (err) {
-			console.error("Add detail failed: ", err);
+			setError("An error occurred while adding combo details: " + err.message);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	//Function search vaccine for the form
 	const handleSearch = async (search) => {
-		console.log(search);
+		if (!search.trim()) return;
+		
+		setIsLoading(true);
+		setError("");
 		try {
-			// const response = await fetch(searchVaccAPI + "/" + search);
 			const response = await fetch(`${searchVaccAPI}/${search}`);
 			if (response.ok) {
 				const data = await response.json();
 				setSearchResult(data.result);
 			} else {
-				console.error("Search error:", response.status);
-				alert("Something went wrong with the searching");
+				setError("Failed to search for vaccines. Please try again.");
 			}
 		} catch (err) {
-			console.error("Search errror:", err);
+			setError("Search error: " + err.message);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add New Combo Vaccine</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Form.Group className="mb-3" controlId="formGridComboName">
-							<Form.Label>Combo Name *</Form.Label>
-							<Form.Control
-								type="text"
-								placeholder="Enter Combo Name"
-								name="comboName"
-								value={formik.values.comboName}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.comboName && formik.errors.comboName}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.comboName}</Form.Control.Feedback>
-						</Form.Group>
-						<Form.Group className="mb-3" controlId="formGridComboDescription">
-							<Form.Label>Description</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Combo Description"
-								name="description"
-								value={formik.values.description}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.description && formik.errors.description}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.description}</Form.Control.Feedback>
-						</Form.Group>
-						<Row>
-							<Col>
-								<InputGroup className="mb-3">
-									<Form.Control placeholder="Vaccine name..." aria-label="Vaccine name" name="search" value={search} onChange={(e) => setSearch(e.target.value)} />
-									<Button variant="outline-secondary" id="button-addon2" onClick={(e) => handleSearch(search)}>
-										Search
-									</Button>
-								</InputGroup>
-								<Table striped bordered hover responsive>
-									<thead>
-										<tr>
-											<th></th>
-											<th>#</th>
-											<th>Vaccine name</th>
-											<th>Unit Price</th>
-											<th>Dose</th>
-										</tr>
-									</thead>
-									<tbody>
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[900px]">
+				<DialogHeader>
+					<DialogTitle className="text-xl font-semibold">Add New Combo Vaccine</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-4">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div className="space-y-2">
+						<Label htmlFor="comboName">Combo Name *</Label>
+						<Input
+							id="comboName"
+							name="comboName"
+							placeholder="Enter Combo Name"
+							value={formik.values.comboName}
+							onChange={formik.handleChange}
+							className={formik.touched.comboName && formik.errors.comboName ? "border-red-500" : ""}
+						/>
+						{formik.touched.comboName && formik.errors.comboName && (
+							<p className="text-sm text-red-500">{formik.errors.comboName}</p>
+						)}
+					</div>
+					
+					<div className="space-y-2">
+						<Label htmlFor="description">Description *</Label>
+						<Textarea
+							id="description"
+							name="description"
+							placeholder="Enter Combo Description"
+							rows={3}
+							value={formik.values.description}
+							onChange={formik.handleChange}
+							className={formik.touched.description && formik.errors.description ? "border-red-500" : ""}
+						/>
+						{formik.touched.description && formik.errors.description && (
+							<p className="text-sm text-red-500">{formik.errors.description}</p>
+						)}
+					</div>
+					
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="space-y-4">
+							<div className="flex items-center gap-2">
+								<Input
+									placeholder="Vaccine name..."
+									value={search}
+									onChange={(e) => setSearch(e.target.value)}
+									className="flex-1"
+								/>
+								<Button 
+									type="button" 
+									variant="outline" 
+									onClick={() => handleSearch(search)}
+									disabled={isLoading}
+								>
+									{isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+									Search
+								</Button>
+							</div>
+							
+							<div className="border rounded-md overflow-hidden">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-[50px]"></TableHead>
+											<TableHead className="w-[50px]">#</TableHead>
+											<TableHead>Vaccine name</TableHead>
+											<TableHead>Unit Price</TableHead>
+											<TableHead>Dose</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
 										{searchResult.length > 0 ? (
 											searchResult.map((vaccine) => (
-												<tr key={vaccine.id}>
-													<td>
-														<Form.Check inline name="vaccineid" type={"checkbox"} checked={selectedVaccs.some((vac) => vac.vaccine.id === vaccine.id)} onChange={() => handleSelectVaccine(vaccine)} />
-													</td>
-													<td>{vaccine.id}</td>
-													<td>{vaccine.name}</td>
-													<td>{vaccine.price}</td>
-													<td>
-														<Form.Group className="mb-3" controlId={`dose-${vaccine.id}`}>
-															<Form.Control
-																type="number"
-																placeholder="Enter dose"
-																value={selectedVaccs.find((v) => v.vaccine.id === vaccine.id)?.dose || 0}
-																onChange={(e) => handleDoseChange(vaccine.id, e.target.value)}
-															/>
-															{/* <Form.Control.Feedback type="invalid">{errors.comboName}</Form.Control.Feedback> */}
-														</Form.Group>
-													</td>
-												</tr>
+												<TableRow key={vaccine.id}>
+													<TableCell>
+														<Checkbox
+															checked={selectedVaccs.some((vac) => vac.vaccine.id === vaccine.id)}
+															onCheckedChange={() => handleSelectVaccine(vaccine)}
+														/>
+													</TableCell>
+													<TableCell>{vaccine.id}</TableCell>
+													<TableCell>{vaccine.name}</TableCell>
+													<TableCell>{vaccine.price}</TableCell>
+													<TableCell>
+														<Input
+															type="number"
+															placeholder="Enter dose"
+															value={selectedVaccs.find((v) => v.vaccine.id === vaccine.id)?.dose || 0}
+															onChange={(e) => handleDoseChange(vaccine.id, e.target.value)}
+															disabled={!selectedVaccs.some((vac) => vac.vaccine.id === vaccine.id)}
+															className="w-20"
+														/>
+													</TableCell>
+												</TableRow>
 											))
 										) : (
-											<tr>
-												<td colSpan={5}>No result</td>
-											</tr>
+											<TableRow>
+												<TableCell colSpan={5} className="text-center">
+													{isLoading ? "Searching..." : "No results found"}
+												</TableCell>
+											</TableRow>
 										)}
-									</tbody>
+									</TableBody>
 								</Table>
-							</Col>
-							<Col>
-								<Form.Group className="mb-3" controlId="sale">
-									<Form.Label>Sale off (%)</Form.Label>
-									<Form.Control type="number" placeholder="Enter sale" name="saleOff" value={formik.values.saleOff} onChange={formik.handleChange} isInvalid={formik.touched.saleOff && formik.errors.saleOff} />
-									<Form.Control.Feedback type="invalid">{formik.errors.saleOff}</Form.Control.Feedback>
-								</Form.Group>
-								<Form.Group className="mb-3" controlId="ageGroup">
-									<Form.Label>Combo Category</Form.Label>
-									<Form.Select name="comboCategory" value={formik.values.comboCategory} onChange={formik.handleChange} isInvalid={formik.touched.comboCategory && formik.errors.comboCategory}>
-										<option value="">---Choose Category---</option>
-										<option value="Combo for kids">Combo for kids</option>
-										<option value="Combo for preschool children">Combo for preschool children</option>
-									</Form.Select>
-									<Form.Control.Feedback type="invalid">{formik.errors.comboCategory}</Form.Control.Feedback>
-								</Form.Group>
-							</Col>
-						</Row>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+							</div>
+						</div>
+						
+						<div className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="saleOff">Sale off (%)</Label>
+								<Input
+									id="saleOff"
+									name="saleOff"
+									type="number"
+									placeholder="Enter sale percentage"
+									value={formik.values.saleOff}
+									onChange={formik.handleChange}
+									className={formik.touched.saleOff && formik.errors.saleOff ? "border-red-500" : ""}
+								/>
+								{formik.touched.saleOff && formik.errors.saleOff && (
+									<p className="text-sm text-red-500">{formik.errors.saleOff}</p>
+								)}
+							</div>
+							
+							<div className="space-y-2">
+								<Label htmlFor="comboCategory">Combo Category *</Label>
+								<Select
+									name="comboCategory"
+									value={formik.values.comboCategory}
+									onValueChange={(value) => formik.setFieldValue("comboCategory", value)}
+								>
+									<SelectTrigger className={formik.touched.comboCategory && formik.errors.comboCategory ? "border-red-500" : ""}>
+										<SelectValue placeholder="---Choose Category---" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Combo for kids">Combo for kids</SelectItem>
+										<SelectItem value="Combo for preschool children">Combo for preschool children</SelectItem>
+									</SelectContent>
+								</Select>
+								{formik.touched.comboCategory && formik.errors.comboCategory && (
+									<p className="text-sm text-red-500">{formik.errors.comboCategory}</p>
+								)}
+							</div>
+							
+							<div className="mt-6">
+								<h3 className="text-lg font-medium">Selected Vaccines: {selectedVaccs.length}</h3>
+								<div className="mt-2 p-2 border rounded-md bg-gray-50 min-h-[100px]">
+									{selectedVaccs.length > 0 ? (
+										<ul className="list-disc pl-5 space-y-1">
+											{selectedVaccs.map((item) => (
+												<li key={item.vaccine.id}>
+													{item.vaccine.name} - {item.dose} dose(s)
+												</li>
+											))}
+										</ul>
+									) : (
+										<p className="text-sm text-gray-500 italic">No vaccines selected</p>
+									)}
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<DialogFooter>
+						<Button variant="outline" type="button" onClick={handleClose}>
+							Cancel
 						</Button>
-						<Button variant="primary" type="submit">
+						<Button 
+							type="submit" 
+							disabled={isLoading || selectedVaccs.length === 0}
+						>
+							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Save Changes
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

@@ -13,7 +13,11 @@ import {
   Shield,
   LogOut,
   Phone,
-  Search
+  Search,
+  LayoutDashboard,
+  Users,
+  Stethoscope,
+  ClipboardList
 } from "lucide-react";
 import TokenUtils from "../utils/TokenUtils";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -21,18 +25,39 @@ import { useTranslation } from "react-i18next";
 
 function MainNav() {
   const [token, setToken] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    setToken(storedToken);
+    const checkToken = () => {
+      const storedToken = localStorage.getItem("token");
+      if (storedToken) {
+        setToken(storedToken);
+        try {
+          const userInfo = TokenUtils.getUserInfo();
+          if (userInfo) {
+            setUserRole(userInfo.role);
+          }
+        } catch (error) {
+          console.error("Error getting user info:", error);
+        }
+      } else {
+        setToken(null);
+        setUserRole(null);
+      }
+    };
+
+    checkToken();
+    window.addEventListener('storage', checkToken);
+    return () => window.removeEventListener('storage', checkToken);
   }, []);
 
   const handleLogout = () => {
     TokenUtils.removeToken();
-    navigate("/");
-    window.location.reload();
+    setToken(null);
+    setUserRole(null);
+    navigate("/Login");
   };
 
   return (
@@ -120,6 +145,7 @@ function MainNav() {
                   >
                     <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                       <div className="py-1">
+                        {/* Common menu items for all roles */}
                         <Menu.Item>
                           {({ active }) => (
                             <Link
@@ -133,45 +159,138 @@ function MainNav() {
                             </Link>
                           )}
                         </Menu.Item>
-                        <Menu.Item>
-                          {({ active }) => (
-                            <Link
-                              to="/User/Children"
-                              className={cn(
-                                active ? "bg-gray-100" : "",
-                                "block px-4 py-2 text-sm text-gray-700"
+
+                        {/* Admin specific menu items */}
+                        {userRole === "ADMIN" && (
+                          <>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/Admin/Dashboard"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                                    Dashboard
+                                  </div>
+                                </Link>
                               )}
-                            >
-                              {t('nav.children')}
-                            </Link>
-                          )}
-                        </Menu.Item>
-                        <Menu.Item>
-                          {({ active }) => (
-                            <Link
-                              to="/User/Scheduling"
-                              className={cn(
-                                active ? "bg-gray-100" : "",
-                                "block px-4 py-2 text-sm text-gray-700"
+                            </Menu.Item>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/Admin/ManageAccount"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Manage Accounts
+                                  </div>
+                                </Link>
                               )}
-                            >
-                              {t('nav.schedule')}
-                            </Link>
-                          )}
-                        </Menu.Item>
-                        <Menu.Item>
-                          {({ active }) => (
-                            <Link
-                              to="/User/History"
-                              className={cn(
-                                active ? "bg-gray-100" : "",
-                                "block px-4 py-2 text-sm text-gray-700"
+                            </Menu.Item>
+                          </>
+                        )}
+
+                        {/* Staff (Doctor/Nurse) specific menu items */}
+                        {(userRole === "DOCTOR" || userRole === "NURSE") && (
+                          <>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/Staff/StaffPage"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                    Staff Portal
+                                  </div>
+                                </Link>
                               )}
-                            >
-                              {t('nav.history')}
-                            </Link>
-                          )}
-                        </Menu.Item>
+                            </Menu.Item>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/Staff/Vaccination"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Vaccination
+                                  </div>
+                                </Link>
+                              )}
+                            </Menu.Item>
+                          </>
+                        )}
+
+                        {/* User specific menu items */}
+                        {userRole === "USER" && (
+                          <>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/User/Children"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    {t('nav.children')}
+                                  </div>
+                                </Link>
+                              )}
+                            </Menu.Item>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/User/Scheduling"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    {t('nav.schedule')}
+                                  </div>
+                                </Link>
+                              )}
+                            </Menu.Item>
+                            <Menu.Item>
+                              {({ active }) => (
+                                <Link
+                                  to="/User/History"
+                                  className={cn(
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm text-gray-700"
+                                  )}
+                                >
+                                  <div className="flex items-center">
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    {t('nav.history')}
+                                  </div>
+                                </Link>
+                              )}
+                            </Menu.Item>
+                          </>
+                        )}
+
+                        {/* Logout button for all roles */}
                         <Menu.Item>
                           {({ active }) => (
                             <button

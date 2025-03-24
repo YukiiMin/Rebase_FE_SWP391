@@ -1,26 +1,54 @@
 import { useFormik } from "formik";
 import { jwtDecode } from "jwt-decode";
-import React from "react";
-import { Button, Col, Form, Modal, Row } from "react-bootstrap";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+
+// ShadCN Components
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Loader2, Baby } from "lucide-react";
+import { format } from "date-fns";
 
 function AddChild({ setIsOpen, open, onAdded }) {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const decodedToken = token ? jwtDecode(token) : null;
 	const childAPI = "http://localhost:8080/children";
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
+	const [success, setSuccess] = useState("");
 
-	const handleClose = () => setIsOpen(false); //Close modal
+	const handleClose = () => setIsOpen(false);
 
 	const validation = Yup.object().shape({
-		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
-		lastName: Yup.string().required("Last name is required").min(2, "Last name must be at least 2 characters"),
+		firstName: Yup.string()
+			.required("First name is required")
+			.min(2, "First name must be at least 2 characters"),
+		lastName: Yup.string()
+			.required("Last name is required")
+			.min(2, "Last name must be at least 2 characters"),
 		dob: Yup.date().required("Date of birth is required"),
-		height: Yup.number().required("Height is required").positive("Height must be positive"),
-		weight: Yup.number().required("Weight is required").positive("Weight must be positive"),
-		gender: Yup.string().oneOf(["MALE", "FEMALE"]).required("Gender is required"),
-		imageUrl: Yup.string().url("Invalid URL"), // optional, but if present, must be a valid URL
+		height: Yup.number()
+			.required("Height is required")
+			.positive("Height must be positive"),
+		weight: Yup.number()
+			.required("Weight is required")
+			.positive("Weight must be positive"),
+		gender: Yup.string()
+			.oneOf(["MALE", "FEMALE"])
+			.required("Gender is required"),
+		imageUrl: Yup.string().url("Invalid URL"),
 	});
 
 	const formik = useFormik({
@@ -31,8 +59,8 @@ function AddChild({ setIsOpen, open, onAdded }) {
 			height: "",
 			weight: "",
 			gender: "MALE",
-			// imageUrl: "string",
-			imageUrl: "https://media.npr.org/assets/img/2013/03/11/istock-4306066-baby_custom-00a02f589803ea4cb7b723dd1df6981d77e7cdc7.jpg",
+			imageUrl:
+				"https://media.npr.org/assets/img/2013/03/11/istock-4306066-baby_custom-00a02f589803ea4cb7b723dd1df6981d77e7cdc7.jpg",
 		},
 		onSubmit: (values) => {
 			handleAddChild(values);
@@ -42,6 +70,10 @@ function AddChild({ setIsOpen, open, onAdded }) {
 
 	const handleAddChild = async (values) => {
 		try {
+			setLoading(true);
+			setError("");
+			setSuccess("");
+			
 			const childData = {
 				name: `${values.firstName} ${values.lastName}`,
 				dob: values.dob,
@@ -50,8 +82,10 @@ function AddChild({ setIsOpen, open, onAdded }) {
 				gender: values.gender,
 				urlImage: values.imageUrl,
 			};
+			
 			const accountId = decodedToken.sub;
 			console.log(accountId);
+			
 			const response = await fetch(`${childAPI}/${accountId}/create`, {
 				method: "POST",
 				headers: {
@@ -60,107 +94,184 @@ function AddChild({ setIsOpen, open, onAdded }) {
 				},
 				body: JSON.stringify(childData),
 			});
+			
 			if (response.ok) {
 				console.log("Adding child successful");
-				alert("Adding child successful!");
-				handleClose();
-				const newChild = await response.json();
-				onAdded(newChild);
-				console.log(newChild);
-				// navigate("/children");
-				// window.location.reload(); // Reload page after redirect
+				setSuccess("Child added successfully!");
+				setTimeout(() => {
+					handleClose();
+					const newChild = response.json().then((data) => {
+						onAdded(data);
+						console.log(data);
+					});
+				}, 1500);
 			} else {
+				const errorData = await response.json();
+				setError(errorData.message || "Failed to add child. Please try again.");
 				console.error("Something went wrong when adding child: ", response.status);
-				alert("Adding child failed. Please try again.");
 			}
 		} catch (err) {
 			console.error("Add child error:", err);
-			alert("An error occurred during adding child. Please try again.");
+			setError(err.message || "An error occurred. Please try again.");
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	const handleFileChange = (event) => {
-		formik.setFieldValue("imageUrl", event.currentTarget.files[0]);
-	};
-
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose}>
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add child</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="fisrtName">
-								<Form.Label>First name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter first name"
-									name="firstName"
-									value={formik.values.firstName}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.firstName && formik.errors.firstName}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.firstName}</Form.Control.Feedback>
-							</Form.Group>
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[500px]">
+				<DialogHeader>
+					<DialogTitle className="flex items-center text-xl font-semibold">
+						<Baby className="mr-2 h-5 w-5" />
+						Add New Child
+					</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-4 py-2">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					{success && (
+						<Alert className="bg-green-50 text-green-800 border-green-200">
+							<AlertDescription>{success}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="firstName">First Name</Label>
+							<Input
+								id="firstName"
+								name="firstName"
+								placeholder="Enter first name"
+								value={formik.values.firstName}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.firstName && formik.errors.firstName ? "border-red-500" : ""}
+							/>
+							{formik.touched.firstName && formik.errors.firstName && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.firstName}</p>
+							)}
+						</div>
 
-							<Form.Group as={Col} controlId="lastName">
-								<Form.Label>Last name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter last name"
-									name="lastName"
-									value={formik.values.lastName}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.lastName && formik.errors.lastName}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.lastName}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
+						<div className="space-y-2">
+							<Label htmlFor="lastName">Last Name</Label>
+							<Input
+								id="lastName"
+								name="lastName"
+								placeholder="Enter last name"
+								value={formik.values.lastName}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.lastName && formik.errors.lastName ? "border-red-500" : ""}
+							/>
+							{formik.touched.lastName && formik.errors.lastName && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.lastName}</p>
+							)}
+						</div>
+					</div>
 
-						<Form.Group className="mb-3">
-							<Form.Check inline defaultChecked label="Male" name="gender" type="radio" id="Male" value="MALE" onChange={formik.handleChange} isInvalid={formik.touched.gender && formik.errors.gender} />
-							<Form.Check inline label="Female" name="gender" type="radio" id="Female" value="FEMALE" onChange={formik.handleChange} isInvalid={formik.touched.gender && formik.errors.gender} />
-							{formik.touched.gender && formik.errors.gender && <div className="invalid-feedback d-block">{formik.errors.gender}</div>}
-						</Form.Group>
+					<div className="space-y-2">
+						<Label>Gender</Label>
+						<RadioGroup
+							name="gender"
+							value={formik.values.gender}
+							onValueChange={(value) => formik.setFieldValue("gender", value)}
+							className="flex space-x-4"
+						>
+							<div className="flex items-center space-x-2">
+								<RadioGroupItem value="MALE" id="MALE" />
+								<Label htmlFor="MALE">Male</Label>
+							</div>
+							<div className="flex items-center space-x-2">
+								<RadioGroupItem value="FEMALE" id="FEMALE" />
+								<Label htmlFor="FEMALE">Female</Label>
+							</div>
+						</RadioGroup>
+						{formik.touched.gender && formik.errors.gender && (
+							<p className="text-sm text-red-500 mt-1">{formik.errors.gender}</p>
+						)}
+					</div>
 
-						<Form.Group className="mb-3" controlId="dateOfBirth">
-							<Form.Label>Date of Birth</Form.Label>
-							<Form.Control type="date" name="dob" value={formik.values.dob} onChange={formik.handleChange} isInvalid={formik.touched.dob && formik.errors.dob} />
-							<Form.Control.Feedback type="invalid">{formik.errors.dob}</Form.Control.Feedback>
-						</Form.Group>
+					<div className="space-y-2">
+						<Label htmlFor="dob">Date of Birth</Label>
+						<Input
+							id="dob"
+							name="dob"
+							type="date"
+							value={formik.values.dob}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							className={formik.touched.dob && formik.errors.dob ? "border-red-500" : ""}
+							max={format(new Date(), "yyyy-MM-dd")}
+						/>
+						{formik.touched.dob && formik.errors.dob && (
+							<p className="text-sm text-red-500 mt-1">{formik.errors.dob}</p>
+						)}
+					</div>
 
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="weight">
-								<Form.Label>Weight (kg)</Form.Label>
-								<Form.Control type="number" placeholder="Weight" name="weight" value={formik.values.weight} onChange={formik.handleChange} isInvalid={formik.touched.weight && formik.errors.weight} />
-								<Form.Control.Feedback type="invalid">{formik.errors.weight}</Form.Control.Feedback>
-							</Form.Group>
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="weight">Weight (kg)</Label>
+							<Input
+								id="weight"
+								name="weight"
+								type="number"
+								placeholder="Weight"
+								value={formik.values.weight}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.weight && formik.errors.weight ? "border-red-500" : ""}
+								step="0.1"
+								min="0"
+							/>
+							{formik.touched.weight && formik.errors.weight && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.weight}</p>
+							)}
+						</div>
 
-							<Form.Group as={Col} controlId="lastName">
-								<Form.Label>Height (cm)</Form.Label>
-								<Form.Control type="number" placeholder="Height" name="height" value={formik.values.height} onChange={formik.handleChange} isInvalid={formik.touched.height && formik.errors.height} />
-								<Form.Control.Feedback type="invalid">{formik.errors.height}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
+						<div className="space-y-2">
+							<Label htmlFor="height">Height (cm)</Label>
+							<Input
+								id="height"
+								name="height"
+								type="number"
+								placeholder="Height"
+								value={formik.values.height}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.height && formik.errors.height ? "border-red-500" : ""}
+								step="0.1"
+								min="0"
+							/>
+							{formik.touched.height && formik.errors.height && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.height}</p>
+							)}
+						</div>
+					</div>
 
-						{/* <Form.Group controlId="formFile" className="mb-3">
-							<Form.Label>Child Image</Form.Label>
-							<Form.Control type="file" name="imageUrl" onChange={handleFileChange} />
-						</Form.Group> */}
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+					<DialogFooter className="pt-2">
+						<Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+							Cancel
 						</Button>
-						<Button type="submit" variant="primary">
-							Add
+						<Button type="submit" disabled={loading}>
+							{loading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Adding...
+								</>
+							) : (
+								"Add Child"
+							)}
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

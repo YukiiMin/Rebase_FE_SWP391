@@ -1,15 +1,38 @@
 import { useFormik } from "formik";
 // import React from "react";
 import React, { useState } from "react";
-import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+
+// ShadCN Components
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./ui/select";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Loader2 } from "lucide-react";
 
 function AddAccount({ setIsOpen, open, onAccountAdded }) {
 	const userAPI = "http://localhost:8080/users/register";
 	const staffAPI = "http://localhost:8080/users/staff";
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
 	const validation = Yup.object().shape({
 		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
@@ -63,8 +86,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 
 	// const handleClose = () => setIsOpen(false); //Close modal
 	// Mới thêm vào
-	const handleRoleChange = (e) => {
-		const { value } = e.target;
+	const handleRoleChange = (value) => {
 		formik.setFieldValue("roleName", value);
 		setIsStaff(value === "DOCTOR" || value === "NURSE");
 	};
@@ -73,6 +95,9 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 
 	const handleAddAccount = async (values) => {
 		try {
+			setLoading(true);
+			setError("");
+			
 			// Chọn API endpoint dựa trên role
 			const apiEndpoint = 
 				["DOCTOR", "NURSE"].includes(values.roleName) 
@@ -103,159 +128,223 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 			} else {
 				// Xử lý lỗi chi tiết hơn
 				const errorData = await response.json();
-				alert(`Account creation failed: ${errorData.message || "Unknown error"}`);
+				setError(errorData.message || "Account creation failed");
 			}
 		} catch (err) {
 			console.error("Account creation failed:", err);
-			alert("Account creation failed: " + err.message);
+			setError(err.message || "An unexpected error occurred");
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add New Account</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="txtFirstname">
-								<Form.Label>First Name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter first name"
-									name="firstName"
-									value={formik.values.firstName}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.firstName && formik.errors.firstName}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.firstName}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="txtLastname">
-								<Form.Label>Last name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter last name"
-									name="lastName"
-									value={formik.values.lastName}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.lastName && formik.errors.lastName}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.lastName}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-
-						<Form.Group className="mb-3">
-							<Form.Check inline defaultChecked label="Male" name="gender" type="radio" id="Male" value="MALE" onChange={formik.handleChange} />
-							<Form.Check inline label="Female" name="gender" type="radio" id="Female" value="FEMALE" onChange={formik.handleChange} />
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="txtUsername">
-							<Form.Label>Username</Form.Label>
-							<Form.Control
-								type="text"
-								placeholder="Enter username"
-								name="username"
-								value={formik.values.username}
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[600px]">
+				<DialogHeader>
+					<DialogTitle className="text-xl font-semibold">Add New Account</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-4 py-4">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="firstName">First Name</Label>
+							<Input
+								id="firstName"
+								name="firstName"
+								placeholder="Enter first name"
+								value={formik.values.firstName}
 								onChange={formik.handleChange}
-								isInvalid={formik.touched.username && formik.errors.username}
+								onBlur={formik.handleBlur}
+								className={formik.touched.firstName && formik.errors.firstName ? "border-red-500" : ""}
 							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.username}</Form.Control.Feedback>
-						</Form.Group>
+							{formik.touched.firstName && formik.errors.firstName && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.firstName}</p>
+							)}
+						</div>
 
-						<Form.Group className="mb-3" controlId="txtPassword">
-							<Form.Label>Password</Form.Label>
-							<Form.Control
-								type="password"
-								placeholder="Password"
-								disabled
-								name="password"
-								value={formik.values.password}
-								// onChange={formik.handleChange}
-								// isInvalid={formik.touched.password && formik.errors.password}
-							/>
-							{/* <Form.Control.Feedback type="invalid">{formik.errors.password}</Form.Control.Feedback> */}
-							{/* Mới thêm vàovào */}
-							<Form.Text className="text-muted">
-								Default password is "123456". User should change it after first login.
-							</Form.Text>
-						</Form.Group>
-						{/* 
-						<Form.Group className="mb-3" controlId="txtConfirm">
-							<Form.Label>Confirm password</Form.Label>
-							<Form.Control
-								type="password"
-								placeholder="Confirm password"
-								name="confirmPassword"
-								value={formik.values.confirmPassword}
+						<div className="space-y-2">
+							<Label htmlFor="lastName">Last Name</Label>
+							<Input
+								id="lastName"
+								name="lastName"
+								placeholder="Enter last name"
+								value={formik.values.lastName}
 								onChange={formik.handleChange}
-								isInvalid={formik.touched.confirmPassword && formik.errors.confirmPassword}
+								onBlur={formik.handleBlur}
+								className={formik.touched.lastName && formik.errors.lastName ? "border-red-500" : ""}
 							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.confirmPassword}</Form.Control.Feedback>
-						</Form.Group> */}
+							{formik.touched.lastName && formik.errors.lastName && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.lastName}</p>
+							)}
+						</div>
+					</div>
 
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="txtEmail">
-								<Form.Label>Email</Form.Label>
-								<Form.Control type="email" placeholder="Enter email" name="email" value={formik.values.email} onChange={formik.handleChange} isInvalid={formik.touched.email && formik.errors.email} />
-								<Form.Control.Feedback type="invalid">{formik.errors.email}</Form.Control.Feedback>
-							</Form.Group>
+					<div className="space-y-2">
+						<Label>Gender</Label>
+						<RadioGroup
+							name="gender"
+							value={formik.values.gender}
+							onValueChange={(value) => formik.setFieldValue("gender", value)}
+							className="flex space-x-4"
+						>
+							<div className="flex items-center space-x-2">
+								<RadioGroupItem value="MALE" id="MALE" />
+								<Label htmlFor="MALE">Male</Label>
+							</div>
+							<div className="flex items-center space-x-2">
+								<RadioGroupItem value="FEMALE" id="FEMALE" />
+								<Label htmlFor="FEMALE">Female</Label>
+							</div>
+						</RadioGroup>
+					</div>
 
-							<Form.Group as={Col} controlId="txtPhone">
-								<Form.Label>Phone number</Form.Label>
-								<Form.Control
-									type="tel"
-									placeholder="Enter phone number"
-									name="phoneNumber"
-									value={formik.values.phoneNumber}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.phoneNumber && formik.errors.phoneNumber}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.phoneNumber}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-						{/* Mới thêm vào */}
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="txtAddress">
-								<Form.Label>Address</Form.Label>
-								<Form.Control type="text" placeholder="Enter address" name="address" value={formik.values.address} onChange={formik.handleChange} isInvalid={formik.touched.address && formik.errors.address} />
-								<Form.Control.Feedback type="invalid">{formik.errors.address}</Form.Control.Feedback>
-							</Form.Group>
+					<div className="space-y-2">
+						<Label htmlFor="username">Username</Label>
+						<Input
+							id="username"
+							name="username"
+							placeholder="Enter username"
+							value={formik.values.username}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							className={formik.touched.username && formik.errors.username ? "border-red-500" : ""}
+						/>
+						{formik.touched.username && formik.errors.username && (
+							<p className="text-sm text-red-500 mt-1">{formik.errors.username}</p>
+						)}
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="password">Password</Label>
+						<Input
+							id="password"
+							name="password"
+							type="password"
+							disabled
+							value={formik.values.password}
+						/>
+						{/* <Form.Control.Feedback type="invalid">{formik.errors.password}</Form.Control.Feedback> */}
+						{/* Mới thêm vàovào */}
+						<p className="text-xs text-muted-foreground">
+							Default password is "123456". User should change it after first login.
+						</p>
+					</div>
+					{/* 
+					<Form.Group className="mb-3" controlId="txtConfirm">
+						<Form.Label>Confirm password</Form.Label>
+						<Form.Control
+							type="password"
+							placeholder="Confirm password"
+							name="confirmPassword"
+							value={formik.values.confirmPassword}
+							onChange={formik.handleChange}
+							isInvalid={formik.touched.confirmPassword && formik.errors.confirmPassword}
+						/>
+						<Form.Control.Feedback type="invalid">{formik.errors.confirmPassword}</Form.Control.Feedback>
+					</Form.Group> */}
+
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="email">Email</Label>
+							<Input
+								id="email"
+								name="email"
+								type="email"
+								placeholder="Enter email"
+								value={formik.values.email}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.email && formik.errors.email ? "border-red-500" : ""}
+							/>
+							{formik.touched.email && formik.errors.email && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.email}</p>
+							)}
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="phoneNumber">Phone Number</Label>
+							<Input
+								id="phoneNumber"
+								name="phoneNumber"
+								type="tel"
+								placeholder="Enter phone number"
+								value={formik.values.phoneNumber}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.phoneNumber && formik.errors.phoneNumber ? "border-red-500" : ""}
+							/>
+							{formik.touched.phoneNumber && formik.errors.phoneNumber && (
+								<p className="text-sm text-red-500 mt-1">{formik.errors.phoneNumber}</p>
+							)}
+						</div>
+					</div>
+					{/* Mới thêm vào */}
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="address">Address</Label>
+							<Input
+								id="address"
+								name="address"
+								placeholder="Enter address"
+								value={formik.values.address}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className={formik.touched.address && formik.errors.address ? "border-red-500" : ""}
+							/>
 							{/* {/*  */}
-							<Form.Group as={Col} controlId="txtRole">
-								<Form.Label>Role</Form.Label>
-								{/* <Form.Select aria-label="Role" name="role" value={formik.values.role} onChange={formik.handleChange} isInvalid={formik.touched.role && formik.errors.role}>
-									<option value="">---Choose Role---</option> */}
-									
-								<Form.Select 
-									aria-label="Role" 
-									name="roleName" 
-									value={formik.values.roleName} 
-									onChange={handleRoleChange} 
-									isInvalid={formik.touched.roleName && formik.errors.roleName}
+							<Form.Control.Feedback type="invalid">{formik.errors.address}</Form.Control.Feedback>
+						</div>
+						{/* {/*  */}
+						<div className="space-y-2">
+							<Label htmlFor="roleName">Role</Label>
+							{/* <Form.Select aria-label="Role" name="role" value={formik.values.role} onChange={formik.handleChange} isInvalid={formik.touched.role && formik.errors.role}>
+								<option value="">---Choose Role---</option> */}
+								
+							<Select
+								name="roleName"
+								value={formik.values.roleName}
+								onValueChange={handleRoleChange}
+							>
+								<SelectTrigger
+									className={formik.touched.roleName && formik.errors.roleName ? "border-red-500" : ""}
 								>
-									<option value="">Select Role</option>
-									<option value="ADMIN">Admin</option>
-									<option value="DOCTOR">Doctor</option>
-									<option value="NURSE">Nurse</option>									
-								</Form.Select>
-								<Form.Control.Feedback type="invalid">{formik.errors.roleName}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+									<SelectValue placeholder="Select Role" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="ADMIN">Admin</SelectItem>
+									<SelectItem value="DOCTOR">Doctor</SelectItem>
+									<SelectItem value="NURSE">Nurse</SelectItem>									
+								</SelectContent>
+							</Select>
+							<Form.Control.Feedback type="invalid">{formik.errors.roleName}</Form.Control.Feedback>
+						</div>
+					</div>
+
+					<DialogFooter className="pt-4">
+						<Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+							Cancel
 						</Button>
-						<Button variant="primary" type="submit">
-							Save Changes
+						<Button type="submit" disabled={loading}>
+							{loading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Creating...
+								</>
+							) : (
+								"Create Account"
+							)}
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

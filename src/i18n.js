@@ -68,8 +68,24 @@ const enTranslations = {
     footer: {
       description: 'Vietnam\'s leading quality vaccine immunization system, committed to providing safe and professional vaccination services.',
       contact: 'Contact',
-      rights: '© 2023 VaccineCare. All rights reserved.'
+      rights: 'All rights reserved.'
     }
+  },
+  footer: {
+    quickLinks: 'Quick Links',
+    address: 'Address',
+    workingHours: 'Working Hours',
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+    closed: 'Closed',
+    privacy: 'Privacy Policy',
+    terms: 'Terms of Service',
+    copyright: '© 2023 VaccineCare. All rights reserved.'
   }
 };
 
@@ -140,8 +156,24 @@ const viTranslations = {
     footer: {
       description: 'Hệ thống tiêm chủng vắc xin chất lượng hàng đầu Việt Nam, cam kết mang đến dịch vụ tiêm chủng an toàn và chuyên nghiệp.',
       contact: 'Liên Hệ',
-      rights: '© 2023 VaccineCare. Tất cả quyền được bảo lưu.'
+      rights: 'Tất cả quyền được bảo lưu.'
     }
+  },
+  footer: {
+    quickLinks: 'Liên Kết Nhanh',
+    address: 'Địa Chỉ',
+    workingHours: 'Giờ Làm Việc',
+    monday: 'Thứ Hai',
+    tuesday: 'Thứ Ba',
+    wednesday: 'Thứ Tư',
+    thursday: 'Thứ Năm',
+    friday: 'Thứ Sáu',
+    saturday: 'Thứ Bảy',
+    sunday: 'Chủ Nhật',
+    closed: 'Đóng cửa',
+    privacy: 'Chính Sách Bảo Mật',
+    terms: 'Điều Khoản Dịch Vụ',
+    copyright: '© 2025 VaccineCare. Tất cả quyền được bảo lưu.'
   }
 };
 

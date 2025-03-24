@@ -18,6 +18,8 @@ import * as Yup from "yup";
 import { jwtDecode } from "jwt-decode";
 import AddChild from "../components/AddChild";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { cn } from "../lib/utils";
+import { UserIcon, SyringeIcon, PackageIcon, CalendarIcon } from "lucide-react";
 
 function BookingPage() {
 	const vaccineAPI = "http://localhost:8080/vaccine";
@@ -39,6 +41,13 @@ function BookingPage() {
 	const [type, setType] = useState("single");
 
 	const [isOpen, setIsOpen] = useState(false);
+
+	const [pageLoading, setPageLoading] = useState(true);
+	const [apiErrors, setApiErrors] = useState({
+		vaccines: false,
+		combos: false,
+		children: false
+	});
 
 	const validation = Yup.object({
 		childId: Yup.number().required("Choose your child."),
@@ -65,80 +74,216 @@ function BookingPage() {
 			console.log("You must login to use this feature");
 			return;
 		}
-		getChild();
-		getVaccines();
-		getCombo();
+		
+		const loadData = async () => {
+			setPageLoading(true);
+			
+			try {
+				await Promise.all([
+					getChild(),
+					getVaccines(),
+					getCombo()
+				]);
+			} catch (error) {
+				console.error("Error loading initial data:", error);
+			} finally {
+				setPageLoading(false);
+			}
+		};
+		
+		loadData();
 	}, [navigate, token]);
+
+	// Near the top of the component after useState declarations
+	useEffect(() => {
+		// Debug token information
+		console.log("Token available:", !!token);
+		if (token) {
+			try {
+				console.log("Token decoded sub:", decodedToken?.sub);
+				console.log("Token scope:", decodedToken?.scope);
+				const expiry = decodedToken?.exp ? new Date(decodedToken.exp * 1000).toISOString() : 'unknown';
+				console.log("Token expiry:", expiry);
+				console.log("Token valid:", decodedToken?.exp ? (decodedToken.exp * 1000 > Date.now()) : 'unknown');
+			} catch (error) {
+				console.error("Error debugging token:", error);
+			}
+		}
+	}, [token, decodedToken]);
 
 	//Get list of single Vaccine
 	const getVaccines = async () => {
 		try {
+			setApiErrors(prev => ({ ...prev, vaccines: false }));
 			const response = await fetch(`${vaccineAPI}/get`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
+			console.log("Vaccine API response status:", response.status);
+			
 			if (response.ok) {
-				const data = await response.json();
-				setVaccinesList(data.result);
+				// Get the raw text first to check if it's valid JSON
+				const text = await response.text();
+				
+				// Try to parse the text as JSON
+				let data;
+				try {
+					data = JSON.parse(text);
+					console.log("Vaccine data received:", data);
+				} catch (jsonError) {
+					console.error("Invalid JSON response from vaccine API:", text);
+					console.error("JSON parse error:", jsonError);
+					setApiErrors(prev => ({ ...prev, vaccines: true }));
+					setVaccinesList([]);
+					return;
+				}
+				
+				if (data && data.result) {
+					setVaccinesList(data.result);
+				} else {
+					console.error("Invalid vaccine data structure:", data);
+					setVaccinesList([]);
+					setApiErrors(prev => ({ ...prev, vaccines: true }));
+				}
 			} else {
 				console.error("Get vaccine error: ", response.status);
+				setVaccinesList([]);
+				setApiErrors(prev => ({ ...prev, vaccines: true }));
 			}
 		} catch (err) {
-			console.error(err);
+			console.error("Vaccine API error:", err);
+			setVaccinesList([]);
+			setApiErrors(prev => ({ ...prev, vaccines: true }));
 		}
 	};
 
 	//Get list of Combo Vaccine
 	const getCombo = async () => {
 		try {
+			setApiErrors(prev => ({ ...prev, combos: false }));
 			const response = await fetch(`${comboAPI}`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
+			console.log("Combo API response status:", response.status);
+			
 			if (response.ok) {
-				const data = await response.json();
-				const groupedCombos = groupCombos(data.result);
-				setComboList(groupedCombos);
+				// Get the raw text first to check if it's valid JSON
+				const text = await response.text();
+				
+				// Try to parse the text as JSON
+				let data;
+				try {
+					data = JSON.parse(text);
+					console.log("Combo data received:", data);
+				} catch (jsonError) {
+					console.error("Invalid JSON response from combo API:", text);
+					console.error("JSON parse error:", jsonError);
+					setApiErrors(prev => ({ ...prev, combos: true }));
+					setComboList([]);
+					return;
+				}
+				
+				if (data && data.result) {
+					const groupedCombos = groupCombos(data.result);
+					setComboList(groupedCombos);
+				} else {
+					console.error("Invalid combo data structure:", data);
+					setComboList([]);
+					setApiErrors(prev => ({ ...prev, combos: true }));
+				}
 			} else {
 				console.error("Get combo error: ", response.status);
+				setComboList([]);
+				setApiErrors(prev => ({ ...prev, combos: true }));
 			}
 		} catch (err) {
-			console.error(err);
+			console.error("Combo API error:", err);
+			setComboList([]);
+			setApiErrors(prev => ({ ...prev, combos: true }));
 		}
 	};
 
 	//Get account's children
 	const getChild = async () => {
 		try {
+			setApiErrors(prev => ({ ...prev, children: false }));
 			const accountId = decodedToken.sub;
+			
+			// Log account ID for debugging
+			console.log("Fetching children for account ID:", accountId);
+			
 			const response = await fetch(`${userAPI}/${accountId}/children`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
 			});
+			
+			// Log response status
+			console.log("Children API response status:", response.status);
+			
 			if (response.ok) {
-				const data = await response.json();
-				console.log("Children data:", data);
+				// Get the raw text first to check if it's valid JSON
+				const text = await response.text();
 				
-				// The endpoint returns an AccDTO with result.children array
-				if (data && data.result && data.result.children) {
-					setChilds(data.result.children);
-					if (data.result.children.length === 0) {
+				// Try to parse the text as JSON
+				let data;
+				try {
+					data = JSON.parse(text);
+					console.log("Raw children API response:", data);
+				} catch (jsonError) {
+					console.error("Invalid JSON response:", text);
+					console.error("JSON parse error:", jsonError);
+					setBookingError("Invalid response from server. Please try again.");
+					setApiErrors(prev => ({ ...prev, children: true }));
+					return;
+				}
+				
+				// Check the structure of the data to ensure we're handling it correctly
+				if (data && data.result) {
+					// The structure might be different than expected
+					// It could be data.result directly instead of data.result.children
+					let childrenData = Array.isArray(data.result) ? data.result : 
+							 (data.result.children ? data.result.children : []);
+					
+					console.log("Processed children data:", childrenData);
+					
+					// Ensure each child has valid properties
+					childrenData = childrenData.map(child => {
+						// Ensure we have at least an ID and a name for display
+						const validChild = {
+							...child,
+							id: child.id || child.childId || Math.floor(Math.random() * 10000) + 1,
+							name: child.name || 
+								 (child.firstName && child.lastName ? `${child.firstName} ${child.lastName}` : 
+								 `Child ${child.id || child.childId || "Unknown"}`)
+						};
+						return validChild;
+					});
+					
+					setChilds(childrenData);
+					
+					if (childrenData.length === 0) {
 						setBookingError("No children found. Please add a child.");
+					} else {
+						setBookingError("");
 					}
 				} else {
 					console.error("Invalid children data structure:", data);
 					setBookingError("Could not load children data. Please try again.");
+					setApiErrors(prev => ({ ...prev, children: true }));
 				}
 			} else {
 				console.error("Get children failed: ", response.status);
 				setBookingError("Could not load children data. Please try again.");
+				setApiErrors(prev => ({ ...prev, children: true }));
 			}
 		} catch (err) {
 			console.log(err);
 			setBookingError("Could not load children data. Please try again.");
+			setApiErrors(prev => ({ ...prev, children: true }));
 		}
 	};
 
@@ -304,7 +449,10 @@ function BookingPage() {
 			}
 
 			// Find the selected child by its ID, and make sure we're using the right property
-			const selectedChild = childs.find((child) => child.id === parseInt(values.childId));
+			const selectedChildId = parseInt(values.childId);
+			const selectedChild = childs.find((child) => 
+				(child.id === selectedChildId) || (child.childId === selectedChildId)
+			);
 			console.log("Selected child:", selectedChild, "Child ID:", values.childId);
 			
 			if (!selectedChild) {
@@ -356,344 +504,507 @@ function BookingPage() {
 		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 	};
 
+	// Find the selected child by its ID, and make sure we're using the right property
+	const handleSelectChange = (value) => {
+		// Only set value if it's not empty
+		if (value && value.trim() !== "") {
+			formik.setFieldValue("childId", value);
+		}
+	};
+
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
 			<MainNav />
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-				<div className="mb-8">
-					<h1 className="text-3xl font-bold text-gray-900 text-center">Vaccination Booking</h1>
-				</div>
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="mb-8 text-center"
+				>
+					<h1 className="text-4xl font-bold text-blue-900">Vaccination Booking</h1>
+					<p className="mt-2 text-gray-600">Schedule your vaccination appointment with ease</p>
+				</motion.div>
 
-				<form onSubmit={formik.handleSubmit} className="space-y-8">
-					<Card>
-						<CardHeader>
-							<CardTitle>Select Child</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="flex flex-col sm:flex-row gap-4">
-								<div className="flex-grow">
-									<Select
-										name="childId"
-										value={formik.values.childId}
-										onValueChange={(value) => formik.setFieldValue("childId", value)}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Select a child" />
-										</SelectTrigger>
-										<SelectContent>
-											{childs.length > 0 ? (
-												childs.map((child) => (
-													<SelectItem key={child.id} value={child.id.toString()}>
-														{child.name}
-													</SelectItem>
-												))
-											) : (
-												<SelectItem value="" disabled>
-													No children found
-												</SelectItem>
-											)}
-										</SelectContent>
-									</Select>
-									{formik.touched.childId && formik.errors.childId && (
-										<p className="text-sm text-red-500 mt-1">{formik.errors.childId}</p>
-									)}
-								</div>
-								<Button 
-									type="button" 
-									variant="outline" 
-									className="flex items-center"
-									onClick={() => setIsOpen(true)}
-								>
-									<PlusCircleIcon className="mr-2 h-4 w-4" />
-									Add Child
-								</Button>
-							</div>
-							{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} onAdded={handleChildAdd} />}
-						</CardContent>
-					</Card>
+				{pageLoading ? (
+					<div className="text-center py-12">
+						<div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+						<p className="mt-4 text-gray-600">Loading booking information...</p>
+					</div>
+				) : (
+					<>
+						{(apiErrors.vaccines || apiErrors.combos || apiErrors.children) && (
+							<Alert variant="destructive" className="mb-6">
+								<AlertDescription>
+									There was an error loading some data. Please refresh the page or try again later.
+								</AlertDescription>
+							</Alert>
+						)}
 
-					<Tabs value={type} onValueChange={handleTypeChange} className="w-full">
-						<TabsList className="grid w-full grid-cols-2">
-							<TabsTrigger value="single">Single Vaccines</TabsTrigger>
-							<TabsTrigger value="combo">Combo Packages</TabsTrigger>
-						</TabsList>
-						
-						<TabsContent value="single" className="mt-6">
-							<Card>
-								<CardHeader>
-									<CardTitle>Select Individual Vaccines</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-										<div>
-											<h3 className="text-lg font-medium mb-4">Available Vaccines</h3>
-											{vaccinesList.length > 0 ? (
-												<Table>
-													<TableHeader>
-														<TableRow>
-															<TableHead className="w-12"></TableHead>
-															<TableHead>Vaccine Name</TableHead>
-															<TableHead>Price</TableHead>
-														</TableRow>
-													</TableHeader>
-													<TableBody>
-														{vaccinesList.map((vaccine) => (
-															<TableRow key={vaccine.id}>
-																<TableCell>
-																	<Checkbox
-																		checked={selectedVaccine.some((v) => v.vaccine.id === vaccine.id)}
-																		onCheckedChange={() => handleVaccineSelection(vaccine)}
-																	/>
-																</TableCell>
-																<TableCell>{vaccine.name}</TableCell>
-																<TableCell>{formatCurrency(vaccine.salePrice)}</TableCell>
-															</TableRow>
-														))}
-													</TableBody>
-												</Table>
-											) : (
-												<div className="text-center py-4 text-gray-500">
-													No vaccine data found. Check your network connection.
-												</div>
-											)}
+						<form onSubmit={formik.handleSubmit} className="space-y-8">
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.2 }}
+							>
+								<Card className="overflow-hidden border-blue-100">
+									<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-100">
+										<CardTitle className="flex items-center text-blue-900">
+											<UserIcon className="w-5 h-5 mr-2" />
+											Select Child
+										</CardTitle>
+									</CardHeader>
+									<CardContent className="p-6">
+										<div className="flex flex-col sm:flex-row gap-4">
+											<div className="flex-grow">
+												<Select
+													name="childId"
+													value={formik.values.childId}
+													onValueChange={handleSelectChange}
+												>
+													<SelectTrigger className="bg-white border-gray-200 text-gray-900 h-11">
+														<SelectValue placeholder="Select a child" className="text-gray-500" />
+													</SelectTrigger>
+													<SelectContent>
+														{childs.length > 0 ? (
+															childs.map((child) => {
+																const childId = (child.id || child.childId || Math.floor(Math.random() * 10000) + 1).toString();
+																const childName = child.name || 
+																	(child.firstName && child.lastName ? `${child.firstName} ${child.lastName}` : 
+																	"Child " + childId);
+																
+																return (
+																	<SelectItem 
+																		key={`child-${childId}`} 
+																		value={childId}
+																		className="text-gray-900 hover:bg-blue-50"
+																	>
+																		{childName}
+																	</SelectItem>
+																);
+															})
+														) : (
+															<SelectItem value="no-child" disabled className="text-gray-500">
+																No children found
+															</SelectItem>
+														)}
+													</SelectContent>
+												</Select>
+												{formik.touched.childId && formik.errors.childId && (
+													<p className="text-sm text-red-500 mt-1">{formik.errors.childId}</p>
+												)}
+											</div>
+											<Button 
+												type="button" 
+												variant="outline" 
+												className="flex items-center hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors h-11"
+												onClick={() => setIsOpen(true)}
+											>
+												<PlusCircleIcon className="mr-2 h-4 w-4" />
+												Add Child
+											</Button>
 										</div>
-										
-										<div>
-											<h3 className="text-lg font-medium mb-4">Your Selected Vaccines</h3>
-											{selectedVaccine.length > 0 ? (
-												<Table>
-													<TableHeader>
-														<TableRow>
-															<TableHead>Vaccine Name</TableHead>
-															<TableHead>Quantity</TableHead>
-															<TableHead>Price</TableHead>
-														</TableRow>
-													</TableHeader>
-													<TableBody>
-														{selectedVaccine.map((v) => (
-															<TableRow key={v.vaccine.id}>
-																<TableCell>{v.vaccine.name}</TableCell>
-																<TableCell>{v.quantity}</TableCell>
-																<TableCell>{formatCurrency(v.vaccine.salePrice * v.quantity)}</TableCell>
-															</TableRow>
-														))}
-														<TableRow>
-															<TableCell colSpan={2} className="text-right font-medium">Total:</TableCell>
-															<TableCell className="font-semibold">
-																{formatCurrency(selectedVaccine.reduce((total, v) => total + (v.vaccine.salePrice * v.quantity), 0))}
-															</TableCell>
-														</TableRow>
-													</TableBody>
-												</Table>
-											) : (
-												<div className="text-center py-8 border rounded-md bg-gray-50">
-													<p className="text-gray-500">No vaccines selected</p>
-													{selectedVaccine.length === 0 && bookingError && (
-														<Alert variant="destructive" className="mt-4">
-															<AlertDescription>{bookingError}</AlertDescription>
-														</Alert>
-													)}
-												</div>
-											)}
-										</div>
-									</div>
-								</CardContent>
-							</Card>
-						</TabsContent>
-						
-						<TabsContent value="combo" className="mt-6">
-							<Card>
-								<CardHeader>
-									<CardTitle>Select Vaccine Combos</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-										<div>
-											<h3 className="text-lg font-medium mb-4">Available Combos</h3>
-											{comboList.length > 0 ? (
-												<Table>
-													<TableHeader>
-														<TableRow>
-															<TableHead className="w-12"></TableHead>
-															<TableHead>Combo Name</TableHead>
-															<TableHead>Price</TableHead>
-														</TableRow>
-													</TableHeader>
-													<TableBody>
-														{comboList.map((combo) => (
-															<TableRow key={combo.comboId}>
-																<TableCell>
-																	<Checkbox
-																		checked={selectedCombo.some((c) => c.comboId === combo.comboId)}
-																		onCheckedChange={() => handleComboSelection(combo)}
-																	/>
-																</TableCell>
-																<TableCell>
-																	<div>
-																		<div className="font-medium">{combo.comboName}</div>
-																		<div className="text-sm text-gray-500">
-																			{combo.vaccines.slice(0, 2).join(", ")}
-																			{combo.vaccines.length > 2 && ` +${combo.vaccines.length - 2} more`}
+									</CardContent>
+								</Card>
+							</motion.div>
+
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.4 }}
+							>
+								<Tabs value={type} onValueChange={handleTypeChange} className="w-full">
+									<TabsList className="grid w-full grid-cols-2 bg-blue-50 p-1 gap-2">
+										<TabsTrigger 
+											value="single"
+											className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+										>
+											Single Vaccines
+										</TabsTrigger>
+										<TabsTrigger 
+											value="combo"
+											className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+										>
+											Combo Packages
+										</TabsTrigger>
+									</TabsList>
+									
+									<TabsContent value="single" className="mt-6">
+										<Card className="border-blue-100">
+											<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-100">
+												<CardTitle className="flex items-center text-blue-900">
+													<SyringeIcon className="w-5 h-5 mr-2" />
+													Select Individual Vaccines
+												</CardTitle>
+											</CardHeader>
+											<CardContent className="p-6">
+												<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+													<div>
+														<h3 className="text-lg font-medium mb-4 text-blue-900">Available Vaccines</h3>
+														{vaccinesList.length > 0 ? (
+															<div className="space-y-3">
+																{vaccinesList.map((vaccine) => (
+																	<div
+																		key={vaccine.id}
+																		className={cn(
+																			"p-4 rounded-lg border transition-all",
+																			selectedVaccine.some((v) => v.vaccine.id === vaccine.id)
+																				? "border-blue-200 bg-blue-50"
+																				: "border-gray-200"
+																		)}
+																	>
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center space-x-3">
+																				<Checkbox
+																					checked={selectedVaccine.some((v) => v.vaccine.id === vaccine.id)}
+																					onCheckedChange={() => {
+																						const index = selectedVaccine.findIndex((v) => v.vaccine.id === vaccine.id);
+																						if (index !== -1) {
+																							// Vaccine already selected, remove it
+																							const newSelectedVaccine = [...selectedVaccine];
+																							newSelectedVaccine.splice(index, 1);
+																							setSelectedVaccine(newSelectedVaccine);
+																						} else {
+																							// Vaccine not selected, add it
+																							setSelectedVaccine([...selectedVaccine, { vaccine, quantity: 1 }]);
+																						}
+																					}}
+																					className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+																				/>
+																				<div>
+																					<p className="font-medium text-gray-900">{vaccine.name}</p>
+																					<div className="flex flex-col gap-1 mt-1">
+																						<p className="text-sm text-gray-500">Manufacturer: {vaccine.manufacturer}</p>
+																						<p className="text-sm text-gray-500">Category: {vaccine.vaccineCategory}</p>
+																					</div>
+																				</div>
+																			</div>
+																			<p className="font-semibold text-blue-600">{formatCurrency(vaccine.salePrice)}</p>
 																		</div>
 																	</div>
-																</TableCell>
-																<TableCell>
-																	{combo.saleOff > 0 ? (
-																		<div>
-																			<div className="line-through text-gray-500">{formatCurrency(combo.total)}</div>
-																			<div className="text-green-600">
-																				{formatCurrency(combo.total * (1 - combo.saleOff / 100))}
-																				<span className="ml-1 text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
-																					{combo.saleOff}% OFF
-																				</span>
+																))}
+															</div>
+														) : (
+															<div className="text-center py-8 border rounded-lg bg-gray-50">
+																<p className="text-gray-500">No vaccine data found</p>
+															</div>
+														)}
+													</div>
+													
+													<div>
+														<h3 className="text-lg font-medium mb-4 text-blue-900">Your Selected Vaccines</h3>
+														{selectedVaccine.length > 0 ? (
+															<div className="space-y-4">
+																{selectedVaccine.map((v) => (
+																	<motion.div
+																		key={v.vaccine.id}
+																		initial={{ opacity: 0, x: 20 }}
+																		animate={{ opacity: 1, x: 0 }}
+																		exit={{ opacity: 0, x: -20 }}
+																		className="p-4 rounded-lg border border-blue-200 bg-blue-50"
+																	>
+																		<div className="flex justify-between items-start">
+																			<div>
+																				<p className="font-medium text-gray-900">{v.vaccine.name}</p>
+																				<p className="text-sm text-gray-500 mt-1">Quantity: {v.quantity}</p>
 																			</div>
+																			<p className="font-semibold text-blue-600">
+																				{formatCurrency(v.vaccine.salePrice * v.quantity)}
+																			</p>
 																		</div>
-																	) : (
-																		formatCurrency(combo.total)
-																	)}
-																</TableCell>
-															</TableRow>
-														))}
-													</TableBody>
-												</Table>
-											) : (
-												<div className="text-center py-4 text-gray-500">
-													No combo data found. Check your network connection.
-												</div>
-											)}
-										</div>
-										
-										<div>
-											<h3 className="text-lg font-medium mb-4">Your Selected Combos</h3>
-											{selectedCombo.length > 0 ? (
-												<div className="space-y-4">
-													{selectedCombo.map((combo) => (
-														<Card key={combo.comboId}>
-															<CardContent className="pt-6">
-																<h4 className="font-medium text-lg">{combo.comboName}</h4>
-																<p className="text-sm text-gray-500 mt-1">{combo.description}</p>
-																
-																<div className="mt-4">
-																	<h5 className="text-sm font-medium mb-2">Included Vaccines:</h5>
-																	<ul className="list-disc pl-5 text-sm text-gray-600">
-																		{combo.vaccines.map((vaccine, idx) => (
-																			<li key={idx}>{vaccine}</li>
-																		))}
-																	</ul>
+																	</motion.div>
+																))}
+																<div className="mt-4 p-4 border-t border-blue-200">
+																	<div className="flex justify-between items-center">
+																		<span className="font-medium text-gray-900">Total:</span>
+																		<span className="font-semibold text-blue-600">
+																			{formatCurrency(
+																				selectedVaccine.reduce(
+																					(total, v) => total + (v.vaccine.salePrice * v.quantity),
+																					0
+																				)
+																			)}
+																		</span>
+																	</div>
 																</div>
-																
-																<div className="mt-4 flex justify-between items-center">
-																	<span className="text-sm text-gray-600">Price:</span>
-																	{combo.saleOff > 0 ? (
-																		<div className="text-right">
-																			<div className="line-through text-sm text-gray-500">{formatCurrency(combo.total)}</div>
-																			<div className="font-semibold">{formatCurrency(combo.total * (1 - combo.saleOff / 100))}</div>
-																		</div>
-																	) : (
-																		<span className="font-semibold">{formatCurrency(combo.total)}</span>
-																	)}
-																</div>
-															</CardContent>
-														</Card>
-													))}
-													<div className="mt-4 py-3 px-4 border-t border-gray-200 flex justify-between">
-														<span className="font-medium">Total:</span>
-														<span className="font-semibold">
-															{formatCurrency(
-																selectedCombo.reduce(
-																	(total, combo) => total + (combo.total * (1 - combo.saleOff / 100)), 
-																	0
-																)
-															)}
-														</span>
+															</div>
+														) : (
+															<div className="text-center py-8 border rounded-lg bg-gray-50">
+																<p className="text-gray-500">No vaccines selected</p>
+															</div>
+														)}
 													</div>
 												</div>
-											) : (
-												<div className="text-center py-8 border rounded-md bg-gray-50">
-													<p className="text-gray-500">No combo packages selected</p>
-													{selectedCombo.length === 0 && bookingError && (
-														<Alert variant="destructive" className="mt-4">
-															<AlertDescription>{bookingError}</AlertDescription>
-														</Alert>
+											</CardContent>
+										</Card>
+									</TabsContent>
+									
+									<TabsContent value="combo" className="mt-6">
+										<Card className="border-blue-100">
+											<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-100">
+												<CardTitle className="flex items-center text-blue-900">
+													<PackageIcon className="w-5 h-5 mr-2" />
+													Select Vaccine Combos
+												</CardTitle>
+											</CardHeader>
+											<CardContent className="p-6">
+												<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+													<div>
+														<h3 className="text-lg font-medium mb-4 text-blue-900">Available Combos</h3>
+														{comboList.length > 0 ? (
+															<div className="space-y-4">
+																{comboList.map((combo) => (
+																	<div
+																		key={combo.comboId}
+																		className={cn(
+																			"p-4 rounded-lg border transition-all cursor-pointer",
+																			selectedCombo.some((c) => c.comboId === combo.comboId)
+																				? "border-blue-200 bg-blue-50"
+																				: "border-gray-200 hover:border-blue-200 hover:bg-blue-50"
+																		)}
+																		onClick={() => handleComboSelection(combo)}
+																	>
+																		<div className="flex items-start justify-between">
+																			<div className="flex items-start space-x-3">
+																				<Checkbox
+																					checked={selectedCombo.some((c) => c.comboId === combo.comboId)}
+																					className="mt-1 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+																				/>
+																				<div>
+																					<p className="font-medium text-gray-900">{combo.comboName}</p>
+																					<p className="text-sm text-gray-500 mt-1">{combo.description}</p>
+																					<div className="flex flex-wrap gap-1 mt-2">
+																						{combo.vaccines.map((vaccine, idx) => (
+																							<span
+																								key={idx}
+																								className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
+																							>
+																								{vaccine}
+																							</span>
+																						))}
+																					</div>
+																				</div>
+																			</div>
+																			<div className="text-right">
+																				{combo.saleOff > 0 && (
+																					<div className="line-through text-sm text-gray-500">
+																						{formatCurrency(combo.total)}
+																					</div>
+																				)}
+																				<div className="font-semibold text-blue-600">
+																					{formatCurrency(combo.total * (1 - combo.saleOff / 100))}
+																				</div>
+																				{combo.saleOff > 0 && (
+																					<span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 mt-1">
+																						Save {combo.saleOff}%
+																					</span>
+																				)}
+																			</div>
+																		</div>
+																	</div>
+																))}
+															</div>
+														) : (
+															<div className="text-center py-8 border rounded-lg bg-gray-50">
+																<p className="text-gray-500">No combo packages found</p>
+															</div>
+														)}
+													</div>
+													
+													<div>
+														<h3 className="text-lg font-medium mb-4 text-blue-900">Your Selected Combos</h3>
+														{selectedCombo.length > 0 ? (
+															<div className="space-y-4">
+																{selectedCombo.map((combo) => (
+																	<motion.div
+																		key={combo.comboId}
+																		initial={{ opacity: 0, x: 20 }}
+																		animate={{ opacity: 1, x: 0 }}
+																		exit={{ opacity: 0, x: -20 }}
+																		className="p-4 rounded-lg border border-blue-200 bg-blue-50"
+																	>
+																		<h4 className="font-medium text-gray-900">{combo.comboName}</h4>
+																		<p className="text-sm text-gray-600 mt-1">{combo.description}</p>
+																	
+																		<div className="mt-3">
+																			<div className="text-sm text-gray-500">Included vaccines:</div>
+																			<div className="flex flex-wrap gap-1 mt-1">
+																				{combo.vaccines.map((vaccine, idx) => (
+																					<span
+																						key={idx}
+																						className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-blue-700 border border-blue-200"
+																					>
+																						{vaccine}
+																					</span>
+																				))}
+																			</div>
+																		</div>
+																	
+																		<div className="mt-3 flex justify-between items-center">
+																			<span className="text-sm text-gray-600">Price:</span>
+																			<div className="text-right">
+																				{combo.saleOff > 0 && (
+																					<div className="line-through text-sm text-gray-500">
+																						{formatCurrency(combo.total)}
+																					</div>
+																				)}
+																				<div className="font-semibold text-blue-600">
+																					{formatCurrency(combo.total * (1 - combo.saleOff / 100))}
+																				</div>
+																			</div>
+																		</div>
+																	</motion.div>
+																))}
+																<div className="mt-4 p-4 border-t border-blue-200">
+																	<div className="flex justify-between items-center">
+																		<span className="font-medium text-gray-900">Total:</span>
+																		<span className="font-semibold text-blue-600">
+																			{formatCurrency(
+																				selectedCombo.reduce(
+																					(total, combo) => total + (combo.total * (1 - combo.saleOff / 100)),
+																					0
+																				)
+																			)}
+																		</span>
+																	</div>
+																</div>
+															</div>
+														) : (
+															<div className="text-center py-8 border rounded-lg bg-gray-50">
+																<p className="text-gray-500">No combo packages selected</p>
+															</div>
+														)}
+													</div>
+												</div>
+											</CardContent>
+										</Card>
+									</TabsContent>
+								</Tabs>
+							</motion.div>
+
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.6 }}
+							>
+								<Card className="border-blue-100">
+									<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-100">
+										<CardTitle className="flex items-center text-blue-900">
+											<CalendarIcon className="w-5 h-5 mr-2" />
+											Appointment Details
+										</CardTitle>
+									</CardHeader>
+									<CardContent className="p-6">
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+											<div className="space-y-4">
+												<div className="space-y-2">
+													<Label htmlFor="vaccinationDate" className="text-gray-700">Vaccination Date</Label>
+													<Input
+														id="vaccinationDate"
+														name="vaccinationDate"
+														type="date"
+														value={formik.values.vaccinationDate}
+														onChange={formik.handleChange}
+														className={cn(
+															"h-11",
+															formik.touched.vaccinationDate && formik.errors.vaccinationDate
+																? "border-red-500 focus:ring-red-500"
+																: "border-gray-200 focus:ring-blue-500"
+														)}
+													/>
+													{formik.touched.vaccinationDate && formik.errors.vaccinationDate && (
+														<p className="text-sm text-red-500 mt-1">{formik.errors.vaccinationDate}</p>
 													)}
 												</div>
-											)}
-										</div>
-									</div>
-								</CardContent>
-							</Card>
-						</TabsContent>
-					</Tabs>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Appointment Details</CardTitle>
-						</CardHeader>
-						<CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="vaccinationDate">Vaccination Date</Label>
-									<Input
-										id="vaccinationDate"
-										name="vaccinationDate"
-										type="date"
-										value={formik.values.vaccinationDate}
-										onChange={formik.handleChange}
-										className={formik.touched.vaccinationDate && formik.errors.vaccinationDate ? "border-red-500" : ""}
-									/>
-									{formik.touched.vaccinationDate && formik.errors.vaccinationDate && (
-										<p className="text-sm text-red-500 mt-1">{formik.errors.vaccinationDate}</p>
-									)}
-								</div>
-							</div>
-							
-							<div className="space-y-4">
-								<div>
-									<Label className="mb-2 block">Payment Method</Label>
-									<RadioGroup
-										defaultValue="credit"
-										value={formik.values.payment}
-										onValueChange={(value) => formik.setFieldValue("payment", value)}
-									>
-										<div className="flex items-start space-x-2 mb-3">
-											<RadioGroupItem value="credit" id="payment-credit" />
-											<div>
-												<Label htmlFor="payment-credit" className="font-medium">Payment by credit card</Label>
-												<p className="text-sm text-gray-500">Secure online payment with credit or debit card</p>
+											</div>
+											
+											<div className="space-y-4">
+												<Label className="text-gray-700">Payment Method</Label>
+												<RadioGroup
+													defaultValue="credit"
+													value={formik.values.payment}
+													onValueChange={(value) => formik.setFieldValue("payment", value)}
+													className="space-y-3"
+												>
+													<div className="flex items-start space-x-3">
+														<RadioGroupItem 
+															value="credit" 
+															id="payment-credit"
+															className="mt-1 border-gray-300 text-blue-600"
+														/>
+														<div>
+															<Label htmlFor="payment-credit" className="font-medium text-gray-900">
+																Payment by credit card
+															</Label>
+															<p className="text-sm text-gray-500">
+																Secure online payment with credit or debit card
+															</p>
+														</div>
+													</div>
+													
+													<div className="flex items-start space-x-3 opacity-50">
+														<RadioGroupItem 
+															value="cash" 
+															id="payment-cash" 
+															disabled
+															className="mt-1 border-gray-300"
+														/>
+														<div>
+															<Label htmlFor="payment-cash" className="font-medium text-gray-900">
+																Cash payment at the cashier
+															</Label>
+															<p className="text-sm text-gray-500">
+																Pay at the clinic before your appointment
+															</p>
+														</div>
+													</div>
+													
+													<div className="flex items-start space-x-3 opacity-50">
+														<RadioGroupItem 
+															value="app" 
+															id="payment-app" 
+															disabled
+															className="mt-1 border-gray-300"
+														/>
+														<div>
+															<Label htmlFor="payment-app" className="font-medium text-gray-900">
+																Mobile payment
+															</Label>
+															<p className="text-sm text-gray-500">
+																Pay via e-commerce applications, VNPAY-QR, Momo, etc.
+															</p>
+														</div>
+													</div>
+												</RadioGroup>
 											</div>
 										</div>
-										<div className="flex items-start space-x-2 mb-3 opacity-50">
-											<RadioGroupItem value="cash" id="payment-cash" disabled />
-											<div>
-												<Label htmlFor="payment-cash" className="font-medium">Cash payment at the cashier</Label>
-												<p className="text-sm text-gray-500">Pay at the clinic before your appointment</p>
-											</div>
-										</div>
-										<div className="flex items-start space-x-2 opacity-50">
-											<RadioGroupItem value="app" id="payment-app" disabled />
-											<div>
-												<Label htmlFor="payment-app" className="font-medium">Mobile payment</Label>
-												<p className="text-sm text-gray-500">Pay via e-commerce applications, VNPAY-QR, Momo, etc.</p>
-											</div>
-										</div>
-									</RadioGroup>
-								</div>
-							</div>
-						</CardContent>
-					</Card>
+									</CardContent>
+								</Card>
+							</motion.div>
 
-					{bookingError && (
-						<Alert variant="destructive">
-							<AlertDescription>{bookingError}</AlertDescription>
-						</Alert>
-					)}
+							{bookingError && (
+								<Alert variant="destructive">
+									<AlertDescription>{bookingError}</AlertDescription>
+								</Alert>
+							)}
 
-					<div className="flex justify-end">
-						<Button type="submit" size="lg">
-							Proceed to Checkout
-						</Button>
-					</div>
-				</form>
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ duration: 0.5, delay: 0.8 }}
+								className="flex justify-end"
+							>
+								<Button 
+									type="submit" 
+									size="lg"
+									className="bg-blue-600 hover:bg-blue-700 text-white px-8"
+								>
+									Proceed to Checkout
+								</Button>
+							</motion.div>
+						</form>
+					</>
+				)}
 			</div>
 		</div>
 	);

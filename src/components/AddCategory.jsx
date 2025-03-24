@@ -1,11 +1,27 @@
 import { useFormik } from "formik";
-import React from "react";
-import { Button, Form, Modal } from "react-bootstrap";
+import React, { useState } from "react";
 import * as Yup from "yup";
+
+// ShadCN Components
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Loader2 } from "lucide-react";
 
 function AddCategory({ open, setIsOpen, onAddedCategory }) {
 	const token = localStorage.getItem("token");
 	const vaccineAPI = "http://localhost:8080/vaccine";
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
 	const validation = Yup.object({
 		categoryName: Yup.string().required("Category name is required."),
@@ -29,6 +45,9 @@ function AddCategory({ open, setIsOpen, onAddedCategory }) {
 
 	const handleSubmit = async (values) => {
 		try {
+			setLoading(true);
+			setError("");
+			
 			const response = await fetch(`${vaccineAPI}/category/add`, {
 				method: "POST",
 				headers: {
@@ -37,6 +56,7 @@ function AddCategory({ open, setIsOpen, onAddedCategory }) {
 				},
 				body: JSON.stringify(values),
 			});
+			
 			if (response.ok) {
 				console.log("Adding category successful");
 				const newCategory = await response.json();
@@ -44,58 +64,83 @@ function AddCategory({ open, setIsOpen, onAddedCategory }) {
 				handleClose();
 				onAddedCategory(newCategory.result);
 			} else {
+				const errorData = await response.json();
+				setError(errorData.message || "Failed to add category");
 				console.error("Adding category failed: ", response.status);
 			}
 		} catch (err) {
 			console.error("Adding category failed: ", err);
+			setError(err.message || "An unexpected error occurred");
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose} size="sm" backdrop="static">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add New Category</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Form.Group className="mb-3" controlId="categoryName">
-							<Form.Label>Category name</Form.Label>
-							<Form.Control
-								type="text"
-								placeholder="Enter category name"
-								name="categoryName"
-								value={formik.values.categoryName}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.categoryName && formik.errors.categoryName}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.categoryName}</Form.Control.Feedback>
-						</Form.Group>
-						<Form.Group className="mb-3" controlId="categoryDescription">
-							<Form.Label>Description</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={2}
-								placeholder="Enter description"
-								name="description"
-								value={formik.values.description}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.description && formik.errors.description}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.description}</Form.Control.Feedback>
-						</Form.Group>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[425px]">
+				<DialogHeader>
+					<DialogTitle className="text-xl font-semibold">Add New Category</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-4 py-2">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div className="space-y-2">
+						<Label htmlFor="categoryName">Category Name</Label>
+						<Input
+							id="categoryName"
+							name="categoryName"
+							placeholder="Enter category name"
+							value={formik.values.categoryName}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							className={formik.touched.categoryName && formik.errors.categoryName ? "border-red-500" : ""}
+						/>
+						{formik.touched.categoryName && formik.errors.categoryName && (
+							<p className="text-sm text-red-500 mt-1">{formik.errors.categoryName}</p>
+						)}
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="description">Description</Label>
+						<Textarea
+							id="description"
+							name="description"
+							placeholder="Enter description"
+							rows={3}
+							value={formik.values.description}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							className={formik.touched.description && formik.errors.description ? "border-red-500" : ""}
+						/>
+						{formik.touched.description && formik.errors.description && (
+							<p className="text-sm text-red-500 mt-1">{formik.errors.description}</p>
+						)}
+					</div>
+
+					<DialogFooter className="pt-2">
+						<Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+							Cancel
 						</Button>
-						<Button variant="primary" type="submit">
-							Save Changes
+						<Button type="submit" disabled={loading}>
+							{loading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Saving...
+								</>
+							) : (
+								"Save Category"
+							)}
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

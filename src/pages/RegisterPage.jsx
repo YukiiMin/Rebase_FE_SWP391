@@ -3,12 +3,12 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { motion } from "framer-motion";
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import MainNav from "../components/MainNav";
 
 function RegisterPage() {
 	const navigate = useNavigate();
@@ -93,134 +93,148 @@ function RegisterPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-			<div className="sm:mx-auto sm:w-full sm:max-w-md">
-				<h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-					Create your account
-				</h2>
-				<p className="mt-2 text-center text-sm text-gray-600">
-					Already have an account?{" "}
-					<Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-						Sign in
-					</Link>
-				</p>
+		<div className="min-h-screen flex flex-col relative">
+			<MainNav />
+			
+			{/* Background image */}
+			<div className="absolute inset-0 z-0">
+				<div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
+				<img 
+					src="https://th.bing.com/th/id/OIP.6PZQuYOccPCKkGIyNl2ZiQHaFj?rs=1&pid=ImgDetMain" 
+					alt="Vaccination Background" 
+					className="w-full h-full object-cover object-center"
+				/>
 			</div>
+			
+			{/* Content */}
+			<div className="flex-1 flex justify-center items-center relative z-20 px-4 py-8">
+				<motion.div 
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-xl"
+				>
+					<div className="text-center mb-6">
+						<h2 className="text-2xl font-bold text-blue-900 mb-1">
+							Create your account
+						</h2>
+						<p className="text-gray-600">
+							Already have an account?{" "}
+							<Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+								Sign in
+							</Link>
+						</p>
+					</div>
 
-			<div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-				<Card>
-					<CardHeader>
-						<CardTitle>Register</CardTitle>
-						<CardDescription>Fill out the form below to create your account</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{errorMsg && (
-							<Alert variant="destructive" className="mb-6">
-								<ExclamationTriangleIcon className="h-4 w-4" />
-								<AlertTitle>Error</AlertTitle>
-								<AlertDescription>{errorMsg}</AlertDescription>
-							</Alert>
-						)}
+					{errorMsg && (
+						<Alert variant="destructive" className="mb-6">
+							<ExclamationTriangleIcon className="h-4 w-4" />
+							<AlertTitle>Error</AlertTitle>
+							<AlertDescription>{errorMsg}</AlertDescription>
+						</Alert>
+					)}
 
-						{success && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="mb-6 p-4 rounded-md bg-green-50 text-green-800 flex items-center"
-							>
-								<CheckCircleIcon className="h-5 w-5 mr-2 text-green-400" />
-								<div>
-									<p className="font-medium">Registration successful!</p>
-									<p className="text-sm">Redirecting you to login...</p>
-								</div>
-							</motion.div>
-						)}
-
-						<form onSubmit={formik.handleSubmit} className="space-y-4">
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label htmlFor="name">Full Name</Label>
-									<Input
-										id="name"
-										name="name"
-										value={formik.values.name}
-										onChange={formik.handleChange}
-										onBlur={formik.handleBlur}
-										placeholder="Enter your full name"
-										className={formik.touched.name && formik.errors.name ? "border-red-500" : ""}
-									/>
-									{formik.touched.name && formik.errors.name && (
-										<p className="text-red-500 text-sm mt-1">{formik.errors.name}</p>
-									)}
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="dob">Date of Birth</Label>
-									<Input
-										id="dob"
-										name="dob"
-										type="date"
-										value={formik.values.dob}
-										onChange={formik.handleChange}
-										onBlur={formik.handleBlur}
-										className={formik.touched.dob && formik.errors.dob ? "border-red-500" : ""}
-									/>
-									{formik.touched.dob && formik.errors.dob && (
-										<p className="text-red-500 text-sm mt-1">{formik.errors.dob}</p>
-									)}
-								</div>
+					{success && (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							className="mb-6 p-4 rounded-md bg-green-50 text-green-800 flex items-center"
+						>
+							<CheckCircleIcon className="h-5 w-5 mr-2 text-green-400" />
+							<div>
+								<p className="font-medium">Registration successful!</p>
+								<p className="text-sm">Redirecting you to login...</p>
 							</div>
+						</motion.div>
+					)}
 
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<div className="space-y-2">
-									<Label htmlFor="phone">Phone Number</Label>
-									<Input
-										id="phone"
-										name="phone"
-										value={formik.values.phone}
-										onChange={formik.handleChange}
-										onBlur={formik.handleBlur}
-										placeholder="10 digit phone number"
-										className={formik.touched.phone && formik.errors.phone ? "border-red-500" : ""}
-									/>
-									{formik.touched.phone && formik.errors.phone && (
-										<p className="text-red-500 text-sm mt-1">{formik.errors.phone}</p>
-									)}
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="email">Email Address</Label>
-									<Input
-										id="email"
-										name="email"
-										type="email"
-										value={formik.values.email}
-										onChange={formik.handleChange}
-										onBlur={formik.handleBlur}
-										placeholder="Enter your email"
-										className={formik.touched.email && formik.errors.email ? "border-red-500" : ""}
-									/>
-									{formik.touched.email && formik.errors.email && (
-										<p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
-									)}
-								</div>
-							</div>
-
+					<form onSubmit={formik.handleSubmit} className="space-y-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
-								<Label htmlFor="username">Username</Label>
+								<Label htmlFor="name">Full Name</Label>
 								<Input
-									id="username"
-									name="username"
-									value={formik.values.username}
+									id="name"
+									name="name"
+									value={formik.values.name}
 									onChange={formik.handleChange}
 									onBlur={formik.handleBlur}
-									placeholder="Choose a username"
-									className={formik.touched.username && formik.errors.username ? "border-red-500" : ""}
+									placeholder="Enter your full name"
+									className={`bg-white/80 ${formik.touched.name && formik.errors.name ? "border-red-500" : ""}`}
 								/>
-								{formik.touched.username && formik.errors.username && (
-									<p className="text-red-500 text-sm mt-1">{formik.errors.username}</p>
+								{formik.touched.name && formik.errors.name && (
+									<p className="text-red-500 text-sm mt-1">{formik.errors.name}</p>
 								)}
 							</div>
 
+							<div className="space-y-2">
+								<Label htmlFor="dob">Date of Birth</Label>
+								<Input
+									id="dob"
+									name="dob"
+									type="date"
+									value={formik.values.dob}
+									onChange={formik.handleChange}
+									onBlur={formik.handleBlur}
+									className={`bg-white/80 ${formik.touched.dob && formik.errors.dob ? "border-red-500" : ""}`}
+								/>
+								{formik.touched.dob && formik.errors.dob && (
+									<p className="text-red-500 text-sm mt-1">{formik.errors.dob}</p>
+								)}
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<div className="space-y-2">
+								<Label htmlFor="phone">Phone Number</Label>
+								<Input
+									id="phone"
+									name="phone"
+									value={formik.values.phone}
+									onChange={formik.handleChange}
+									onBlur={formik.handleBlur}
+									placeholder="10 digit phone number"
+									className={`bg-white/80 ${formik.touched.phone && formik.errors.phone ? "border-red-500" : ""}`}
+								/>
+								{formik.touched.phone && formik.errors.phone && (
+									<p className="text-red-500 text-sm mt-1">{formik.errors.phone}</p>
+								)}
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="email">Email Address</Label>
+								<Input
+									id="email"
+									name="email"
+									type="email"
+									value={formik.values.email}
+									onChange={formik.handleChange}
+									onBlur={formik.handleBlur}
+									placeholder="Enter your email"
+									className={`bg-white/80 ${formik.touched.email && formik.errors.email ? "border-red-500" : ""}`}
+								/>
+								{formik.touched.email && formik.errors.email && (
+									<p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
+								)}
+							</div>
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="username">Username</Label>
+							<Input
+								id="username"
+								name="username"
+								value={formik.values.username}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								placeholder="Choose a username"
+								className={`bg-white/80 ${formik.touched.username && formik.errors.username ? "border-red-500" : ""}`}
+							/>
+							{formik.touched.username && formik.errors.username && (
+								<p className="text-red-500 text-sm mt-1">{formik.errors.username}</p>
+							)}
+						</div>
+
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<Label htmlFor="password">Password</Label>
 								<Input
@@ -231,7 +245,7 @@ function RegisterPage() {
 									onChange={formik.handleChange}
 									onBlur={formik.handleBlur}
 									placeholder="Create a password"
-									className={formik.touched.password && formik.errors.password ? "border-red-500" : ""}
+									className={`bg-white/80 ${formik.touched.password && formik.errors.password ? "border-red-500" : ""}`}
 								/>
 								{formik.touched.password && formik.errors.password && (
 									<p className="text-red-500 text-sm mt-1">{formik.errors.password}</p>
@@ -248,21 +262,26 @@ function RegisterPage() {
 									onChange={formik.handleChange}
 									onBlur={formik.handleBlur}
 									placeholder="Confirm your password"
-									className={formik.touched.confirmPassword && formik.errors.confirmPassword ? "border-red-500" : ""}
+									className={`bg-white/80 ${formik.touched.confirmPassword && formik.errors.confirmPassword ? "border-red-500" : ""}`}
 								/>
 								{formik.touched.confirmPassword && formik.errors.confirmPassword && (
 									<p className="text-red-500 text-sm mt-1">{formik.errors.confirmPassword}</p>
 								)}
 							</div>
+						</div>
 
-							<div className="pt-2">
-								<Button type="submit" className="w-full" disabled={loading || success}>
-									{loading ? "Registering..." : "Register"}
-								</Button>
-							</div>
-						</form>
-					</CardContent>
-					<CardFooter className="flex justify-center border-t pt-6">
+						<div className="pt-2">
+							<Button 
+								type="submit" 
+								className="w-full bg-blue-600 hover:bg-blue-700" 
+								disabled={loading || success}
+							>
+								{loading ? "Registering..." : "Register"}
+							</Button>
+						</div>
+					</form>
+
+					<div className="mt-6 text-center">
 						<p className="text-sm text-gray-600">
 							By creating an account, you agree to our{" "}
 							<Link to="#" className="font-medium text-blue-600 hover:text-blue-500">
@@ -273,8 +292,8 @@ function RegisterPage() {
 								Privacy Policy
 							</Link>
 						</p>
-					</CardFooter>
-				</Card>
+					</div>
+				</motion.div>
 			</div>
 		</div>
 	);

@@ -9,6 +9,10 @@ import MainNav from "../components/MainNav";
 import { motion } from "framer-motion";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { CreditCard, Calendar, Lock } from "lucide-react";
+import { InfoIcon } from "lucide-react";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { Label } from "../components/ui/label";
 
 function TransactionPage() {
 	const paymentAPI = "http://localhost:8080/payment";
@@ -448,13 +452,19 @@ function TransactionPage() {
 						</div>
 
 						<div className="md:col-span-1">
-							<Card>
-								<CardHeader>
-									<CardTitle>Your transaction detail</CardTitle>
+							<Card className="border-blue-100">
+								<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-100">
+									<CardTitle className="flex items-center text-blue-900">
+										<CreditCard className="w-5 h-5 mr-2" />
+										Payment Details
+									</CardTitle>
 								</CardHeader>
-								<CardContent>
-									<div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-4">
-										<h3 className="font-semibold mb-2">Test Mode Info:</h3>
+								<CardContent className="p-6">
+									<div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-6">
+										<h3 className="font-semibold mb-2 flex items-center">
+											<InfoIcon className="w-4 h-4 mr-2" />
+											Test Mode Info
+										</h3>
 										<p className="mb-2">Please use these test card details:</p>
 										<ul className="list-disc list-inside text-sm space-y-1">
 											<li>Card number: 4242 4242 4242 4242</li>
@@ -464,103 +474,136 @@ function TransactionPage() {
 										</ul>
 									</div>
 
-									<form onSubmit={handleSubmit} className="space-y-4">
+									<form onSubmit={handleSubmit} className="space-y-6">
 										<div className="space-y-2">
-											<label className="block text-sm font-medium text-gray-700">Card Number</label>
-											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-												<CardNumberElement
-													options={{
-														style: {
-															base: {
-																fontSize: "16px",
-																color: "#424770",
-																"::placeholder": {
-																	color: "#aab7c4",
+											<Label className="text-sm font-medium text-gray-700">Card Number</Label>
+											<div className="relative">
+												<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+													<CreditCard className="h-5 w-5 text-gray-400" />
+												</div>
+												<div className="border rounded-md p-3 pl-10 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+													<CardNumberElement
+														options={{
+															style: {
+																base: {
+																	fontSize: "16px",
+																	color: "#424770",
+																	"::placeholder": {
+																		color: "#aab7c4",
+																	},
+																},
+																invalid: {
+																	color: "#9e2146",
 																},
 															},
-															invalid: {
-																color: "#9e2146",
-															},
-														},
-													}}
-												/>
+														}}
+													/>
+												</div>
 											</div>
 										</div>
 
-										<div className="space-y-2">
-											<label className="block text-sm font-medium text-gray-700">Card Expiration Date</label>
-											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-												<CardExpiryElement
-													options={{
-														style: {
-															base: {
-																fontSize: "16px",
-																color: "#424770",
-																"::placeholder": {
-																	color: "#aab7c4",
+										<div className="grid grid-cols-2 gap-4">
+											<div className="space-y-2">
+												<Label className="text-sm font-medium text-gray-700">Expiry Date</Label>
+												<div className="relative">
+													<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+														<Calendar className="h-5 w-5 text-gray-400" />
+													</div>
+													<div className="border rounded-md p-3 pl-10 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+														<CardExpiryElement
+															options={{
+																style: {
+																	base: {
+																		fontSize: "16px",
+																		color: "#424770",
+																		"::placeholder": {
+																			color: "#aab7c4",
+																		},
+																	},
+																	invalid: {
+																		color: "#9e2146",
+																	},
 																},
-															},
-															invalid: {
-																color: "#9e2146",
-															},
-														},
-													}}
-												/>
+															}}
+														/>
+													</div>
+												</div>
 											</div>
-										</div>
 
-										<div className="space-y-2">
-											<label className="block text-sm font-medium text-gray-700">CVC</label>
-											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
-												<CardCvcElement
-													options={{
-														style: {
-															base: {
-																fontSize: "16px",
-																color: "#424770",
-																"::placeholder": {
-																	color: "#aab7c4",
+											<div className="space-y-2">
+												<Label className="text-sm font-medium text-gray-700">CVC</Label>
+												<div className="relative">
+													<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+														<Lock className="h-5 w-5 text-gray-400" />
+													</div>
+													<div className="border rounded-md p-3 pl-10 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+														<CardCvcElement
+															options={{
+																style: {
+																	base: {
+																		fontSize: "16px",
+																		color: "#424770",
+																		"::placeholder": {
+																			color: "#aab7c4",
+																		},
+																	},
+																	invalid: {
+																		color: "#9e2146",
+																	},
 																},
-															},
-															invalid: {
-																color: "#9e2146",
-															},
-														},
-													}}
-												/>
+															}}
+														/>
+													</div>
+												</div>
 											</div>
 										</div>
 
 										{error && (
-											<Alert variant="destructive">
-												<ExclamationTriangleIcon className="h-4 w-4" />
-												<AlertDescription>{error}</AlertDescription>
+											<Alert variant="destructive" className="bg-red-50 border-red-200">
+												<ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
+												<AlertDescription className="text-red-700">{error}</AlertDescription>
 											</Alert>
 										)}
 
 										{success && (
 											<Alert className="bg-green-50 text-green-800 border-green-200">
+												<CheckCircleIcon className="h-4 w-4 text-green-500" />
 												<AlertDescription>{success}</AlertDescription>
 											</Alert>
 										)}
 
-										<div className="flex flex-col space-y-2">
+										<div className="flex flex-col space-y-3">
 											{error && error.includes("payment session") && (
 												<Button 
 													variant="outline" 
 													type="button" 
 													onClick={retryPayment} 
 													disabled={loading || retryCount >= 3}
+													className="w-full border-blue-200 text-blue-700 hover:bg-blue-50"
 												>
-													{loading ? "Processing..." : "Retry Payment"}
+													{loading ? (
+														<div className="flex items-center">
+															<div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+															Processing...
+														</div>
+													) : (
+														"Retry Payment"
+													)}
 												</Button>
 											)}
 											<Button 
 												type="submit" 
-												className="w-full" 
+												className="w-full bg-blue-600 hover:bg-blue-700 text-white"
 												disabled={!stripe || loading || !clientSecret}
 											>
-												{loading ? "Processing..." : "Confirm"}
+												{loading ? (
+													<div className="flex items-center">
+														<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+														Processing...
+													</div>
+												) : (
+													"Confirm Payment"
+												)}
 											</Button>
 										</div>
 									</form>

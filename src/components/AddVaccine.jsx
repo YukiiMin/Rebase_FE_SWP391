@@ -1,17 +1,37 @@
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import React, { useEffect, useState } from "react";
-import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AddCategory from "./AddCategory";
 import AddProtocol from "./AddProtocol";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./ui/select";
+import { Switch } from "./ui/switch";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Separator } from "./ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Loader2, Plus } from "lucide-react";
 
 function AddVaccine({ setIsOpen, open, onAdded }) {
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
-	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const vaccineAPI = "http://localhost:8080/vaccine";
-	// const apiBaseUrl = "http://localhost:8080/api/vaccine";
 
 	const [categories, setCategories] = useState([]);
 	const [protocols, setProtocols] = useState([]);
@@ -19,8 +39,10 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 	const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
 	const [selectedProtocol, setSelectedProtocol] = useState("");
 	const [totalDose, setTotalDose] = useState(1);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	const handleClose = () => setIsOpen(false); //Close modal
+	const handleClose = () => setIsOpen(false);
 
 	const validation = Yup.object({
 		name: Yup.string().required("Vaccine Name is required"),
@@ -36,7 +58,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		recommended: Yup.string().required("Recommended For is required").min(30, "Recommended For must be at least 30 characters"),
 		preVaccination: Yup.string().required("Pre-Vaccination Information is required").min(30, "Pre-Vaccination Information must be at least 30 characters"),
 		compatibility: Yup.string().required("Compatibility is required").min(30, "Compatibility must be at least 30 characters"),
-		// imageUrl: Yup.mixed().required("Vaccine Image is required"),
 		quantity: Yup.number().required("Quantity is required").min(0, "Quantity cannot be negative"),
 		unitPrice: Yup.number().required("Unit price is required").min(0, "Unit price cannot be negative"),
 		salePrice: Yup.number().required("Sale price is required").min(0, "Sale price cannot be negative").moreThan(Yup.ref("unitPrice"), "Sale price must be higher than Unit price"),
@@ -59,7 +80,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			recommended: "",
 			preVaccination: "",
 			compatibility: "",
-			imagineUrl: "https://vnvc.vn/wp-content/uploads/2024/09/vaccine-qdenga-1.jpg", //Tam thoi de URL cho den khi su dung duoc Upload img
+			imagineUrl: "https://vnvc.vn/wp-content/uploads/2024/09/vaccine-qdenga-1.jpg", // Using default image URL
 			quantity: "",
 			unitPrice: "",
 			salePrice: "",
@@ -78,7 +99,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 	}, []);
 
 	useEffect(() => {
-		// Update the totalDose state when the form value changes
 		setTotalDose(formik.values.totalDose);
 	}, [formik.values.totalDose]);
 
@@ -87,13 +107,12 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			const response = await fetch(`${vaccineAPI}/categories`);
 			if (response.ok) {
 				const data = await response.json();
-				console.log("Categories:", data);
 				setCategories(data.result);
 			} else {
-				console.error("Fetching category failed: ", response.status);
+				setError("Failed to fetch categories");
 			}
 		} catch (err) {
-			console.error("Fetching category failed: ", err);
+			setError(`Error fetching categories: ${err.message}`);
 		}
 	};
 
@@ -102,13 +121,12 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			const response = await fetch(`${vaccineAPI}/protocols`);
 			if (response.ok) {
 				const data = await response.json();
-				console.log("Protocols:", data);
 				setProtocols(data.result);
 			} else {
-				console.error("Fetching protocols failed: ", response.status);
+				setError("Failed to fetch protocols");
 			}
 		} catch (err) {
-			console.error("Fetching protocols failed: ", err);
+			setError(`Error fetching protocols: ${err.message}`);
 		}
 	};
 
@@ -125,20 +143,22 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			});
 
 			if (response.ok) {
-				const data = await response.json();
-				console.log("Vaccine added to protocol successfully:", data);
+				await response.json();
 				return true;
 			} else {
-				console.error("Failed to add vaccine to protocol:", response.status);
+				setError(`Failed to add vaccine to protocol: ${response.status}`);
 				return false;
 			}
 		} catch (err) {
-			console.error("Error adding vaccine to protocol:", err);
+			setError(`Error adding vaccine to protocol: ${err.message}`);
 			return false;
 		}
 	};
 
 	const handleAddVaccine = async (values) => {
+		setIsLoading(true);
+		setError("");
+		
 		try {
 			const categoryId = values.categoryId;
 			const vaccineData = {
@@ -161,7 +181,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				status: values.status,
 				totalDose: values.totalDose,
 			};
-			console.log(categoryId, vaccineData);
+			
 			const response = await fetch(`${vaccineAPI}/add/${categoryId}`, {
 				method: "POST",
 				headers: {
@@ -172,9 +192,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			});
 			
 			if (response.ok) {
-				console.log("Adding vaccine successful");
 				const newVaccine = await response.json();
-				console.log(newVaccine.result);
 				
 				// If a protocol was selected, add the vaccine to the protocol
 				if (selectedProtocol) {
@@ -182,27 +200,23 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 					const success = await handleAddVaccineToProtocol(vaccineId, selectedProtocol);
 					
 					if (success) {
-						alert("Vaccine added successfully with protocol assignment");
-					} else {
-						alert("Vaccine added but failed to assign protocol");
+						handleClose();
+						onAdded(newVaccine.result);
 					}
 				} else {
-					alert("Vaccine added successfully!");
+					handleClose();
+					onAdded(newVaccine.result);
 				}
-				
-				handleClose();
-				onAdded(newVaccine.result);
 			} else {
-				console.error("Adding vaccine failed: ", response.status);
-				alert("Failed to add vaccine. Please try again.");
+				setError(`Failed to add vaccine: ${response.status}`);
 			}
 		} catch (err) {
-			console.error("Add vaccine error:", err);
-			alert("Error adding vaccine: " + err.message);
+			setError(`Error adding vaccine: ${err.message}`);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	//Function to set the new vaccine category to the top of the list
 	const handleCategoryAdded = (newCategory) => {
 		if (newCategory) {
 			setCategories([newCategory, ...categories]);
@@ -220,309 +234,425 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		}
 	};
 
-	const handleFileChange = (event) => {
-		formik.setFieldValue("imageUrl", event.currentTarget.files[0]);
-	};
-
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add New Vaccine</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="vaccineName">
-								<Form.Label>Vaccine Name *</Form.Label>
-								<Form.Control type="text" placeholder="Enter Vaccine Name" name="name" value={formik.values.name} onChange={formik.handleChange} isInvalid={formik.touched.name && formik.errors.name} />
-								<Form.Control.Feedback type="invalid">{formik.errors.name}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="manufacturer">
-								<Form.Label>Manufacturer *</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter Manufacturer"
-									name="manufacturer"
-									value={formik.values.manufacturer}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.manufacturer && formik.errors.manufacturer}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.manufacturer}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="category">
-								<div className="d-flex justify-content-between align-items-center">
-									<Form.Label className="mb-0">Category</Form.Label>
-									<Button size="sm" variant="outline-primary" onClick={() => setIsModalOpen(true)}>
-										Add category
-									</Button>
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="max-w-[900px] h-[90vh] overflow-y-auto">
+				<DialogHeader>
+					<DialogTitle className="text-xl font-semibold">Add New Vaccine</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-6">
+					{error && (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					<Tabs defaultValue="basic" className="w-full">
+						<TabsList className="grid grid-cols-4 mb-4">
+							<TabsTrigger value="basic">Basic Info</TabsTrigger>
+							<TabsTrigger value="details">Medical Details</TabsTrigger>
+							<TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+							<TabsTrigger value="inventory">Inventory & Pricing</TabsTrigger>
+						</TabsList>
+						
+						{/* Basic Info Tab */}
+						<TabsContent value="basic" className="space-y-6">
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="name">Vaccine Name *</Label>
+									<Input
+										id="name"
+										name="name"
+										placeholder="Enter Vaccine Name"
+										value={formik.values.name}
+										onChange={formik.handleChange}
+										className={formik.touched.name && formik.errors.name ? "border-red-500" : ""}
+									/>
+									{formik.touched.name && formik.errors.name && (
+										<p className="text-sm text-red-500">{formik.errors.name}</p>
+									)}
 								</div>
-								<Form.Select 
-									name="categoryId" 
-									value={formik.values.categoryId} 
-									onChange={formik.handleChange} 
-									isInvalid={formik.touched.categoryId && formik.errors.categoryId}
-								>
-									<option value="">---Choose Category---</option>
-									{categories && categories.map((category) => (
-										<option key={category.categoryId} value={category.categoryId}>
-											{category.categoryName}
-										</option>
-									))}
-								</Form.Select>
-								<Form.Control.Feedback type="invalid">{formik.errors.categoryId}</Form.Control.Feedback>
-								{isModalOpen && <AddCategory open={isModalOpen} setIsOpen={setIsModalOpen} onAddedCategory={handleCategoryAdded} />}
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="totalDose">
-								<Form.Label>Total Dose Count</Form.Label>
-								<Form.Control 
-									type="number" 
-									min="1" 
-									max="5"
-									placeholder="Enter total number of doses" 
-									name="totalDose" 
-									value={formik.values.totalDose} 
-									onChange={formik.handleChange} 
-									isInvalid={formik.touched.totalDose && formik.errors.totalDose} 
-								/>
-								<Form.Text className="text-muted">
-									Number of vaccine doses required (max 5)
-								</Form.Text>
-								<Form.Control.Feedback type="invalid">{formik.errors.totalDose}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="protocol">
-								<div className="d-flex justify-content-between align-items-center">
-									<Form.Label className="mb-0">Protocol</Form.Label>
-									<Button size="sm" variant="outline-primary" onClick={() => setIsProtocolModalOpen(true)}>
-										Add Protocol
-									</Button>
+								
+								<div className="space-y-2">
+									<Label htmlFor="manufacturer">Manufacturer *</Label>
+									<Input
+										id="manufacturer"
+										name="manufacturer"
+										placeholder="Enter Manufacturer"
+										value={formik.values.manufacturer}
+										onChange={formik.handleChange}
+										className={formik.touched.manufacturer && formik.errors.manufacturer ? "border-red-500" : ""}
+									/>
+									{formik.touched.manufacturer && formik.errors.manufacturer && (
+										<p className="text-sm text-red-500">{formik.errors.manufacturer}</p>
+									)}
 								</div>
-								<Form.Select
-									value={selectedProtocol}
-									onChange={(e) => setSelectedProtocol(e.target.value)}
-								>
-									<option value="">---Choose Protocol---</option>
-									{protocols && protocols.map((protocol) => (
-										<option 
-											key={protocol.protocolId} 
-											value={protocol.protocolId}
-											disabled={protocol.details?.length < totalDose}
+							</div>
+							
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<div className="flex justify-between items-center">
+										<Label htmlFor="categoryId">Category *</Label>
+										<Button 
+											type="button" 
+											variant="outline" 
+											size="sm" 
+											onClick={() => setIsModalOpen(true)}
+											className="flex items-center gap-1 text-xs h-7"
 										>
-											{protocol.name} ({protocol.details?.length || 0} doses)
-											{protocol.details?.length < totalDose ? " - Not enough doses" : ""}
-										</option>
-									))}
-								</Form.Select>
-								<Form.Text className="text-muted">
-									Select a protocol with at least {totalDose} doses
-								</Form.Text>
-								{isProtocolModalOpen && <AddProtocol open={isProtocolModalOpen} setIsOpen={setIsProtocolModalOpen} onAddedProtocol={handleProtocolAdded} />}
-							</Form.Group>
-
-							{/* <Form.Group as={Col} controlId="dosage">
-								<Form.Label>Dosage</Form.Label>
-								<Form.Control type="number" placeholder="Enter Dosage" name="dosage" value={formik.values.dosage} onChange={formik.handleChange} isInvalid={formik.touched.dosage && formik.errors.dosage} />
-								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
-							</Form.Group> */}
-								<Form.Group as={Col} controlId="dosage">
-								<Form.Label>Dosage *</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter DosageDosage"
-									name="dosage"
-									value={formik.values.dosage}
+											<Plus className="h-3 w-3" />
+											Add category
+										</Button>
+									</div>
+									<Select
+										name="categoryId"
+										value={formik.values.categoryId}
+										onValueChange={(value) => formik.setFieldValue("categoryId", value)}
+									>
+										<SelectTrigger className={formik.touched.categoryId && formik.errors.categoryId ? "border-red-500" : ""}>
+											<SelectValue placeholder="---Choose Category---" />
+										</SelectTrigger>
+										<SelectContent>
+											{categories && categories.map((category) => (
+												<SelectItem key={category.categoryId} value={category.categoryId.toString()}>
+													{category.categoryName}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									{formik.touched.categoryId && formik.errors.categoryId && (
+										<p className="text-sm text-red-500">{formik.errors.categoryId}</p>
+									)}
+									{isModalOpen && <AddCategory open={isModalOpen} setIsOpen={setIsModalOpen} onAddedCategory={handleCategoryAdded} />}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="totalDose">Total Dose Count *</Label>
+									<Input
+										id="totalDose"
+										name="totalDose"
+										type="number"
+										min="1"
+										max="5"
+										placeholder="Enter total number of doses"
+										value={formik.values.totalDose}
+										onChange={formik.handleChange}
+										className={formik.touched.totalDose && formik.errors.totalDose ? "border-red-500" : ""}
+									/>
+									<p className="text-xs text-gray-500">Number of vaccine doses required (max 5)</p>
+									{formik.touched.totalDose && formik.errors.totalDose && (
+										<p className="text-sm text-red-500">{formik.errors.totalDose}</p>
+									)}
+								</div>
+							</div>
+							
+							<div className="grid grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<div className="flex justify-between items-center">
+										<Label htmlFor="protocol">Protocol</Label>
+										<Button 
+											type="button" 
+											variant="outline" 
+											size="sm" 
+											onClick={() => setIsProtocolModalOpen(true)}
+											className="flex items-center gap-1 text-xs h-7"
+										>
+											<Plus className="h-3 w-3" />
+											Add Protocol
+										</Button>
+									</div>
+									<Select
+										value={selectedProtocol}
+										onValueChange={setSelectedProtocol}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="---Choose Protocol---" />
+										</SelectTrigger>
+										<SelectContent>
+											{protocols && protocols.map((protocol) => (
+												<SelectItem 
+													key={protocol.protocolId} 
+													value={protocol.protocolId.toString()}
+													disabled={protocol.details?.length < totalDose}
+												>
+													{protocol.name} ({protocol.details?.length || 0} doses)
+													{protocol.details?.length < totalDose ? " - Not enough doses" : ""}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<p className="text-xs text-gray-500">Select a protocol with at least {totalDose} doses</p>
+									{isProtocolModalOpen && <AddProtocol open={isProtocolModalOpen} setIsOpen={setIsProtocolModalOpen} onAddedProtocol={handleProtocolAdded} />}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="dosage">Dosage *</Label>
+									<Input
+										id="dosage"
+										name="dosage"
+										placeholder="Enter Dosage (e.g. 0.5ml/dose)"
+										value={formik.values.dosage}
+										onChange={formik.handleChange}
+										className={formik.touched.dosage && formik.errors.dosage ? "border-red-500" : ""}
+									/>
+									{formik.touched.dosage && formik.errors.dosage && (
+										<p className="text-sm text-red-500">{formik.errors.dosage}</p>
+									)}
+								</div>
+							</div>
+							
+							<div className="space-y-2">
+								<Label htmlFor="description">Description *</Label>
+								<Textarea
+									id="description"
+									name="description"
+									placeholder="Enter Description"
+									rows={3}
+									value={formik.values.description}
 									onChange={formik.handleChange}
-									isInvalid={formik.touched.dosage && formik.errors.dosage}
+									className={formik.touched.description && formik.errors.description ? "border-red-500" : ""}
 								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.dosage}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="quantity">
-								<Form.Label>Quantity</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Quantity"
-									name="quantity"
-									value={formik.values.quantity}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.quantity && formik.errors.quantity}
+								{formik.touched.description && formik.errors.description && (
+									<p className="text-sm text-red-500">{formik.errors.description}</p>
+								)}
+							</div>
+						</TabsContent>
+						
+						{/* Medical Details Tab */}
+						<TabsContent value="details" className="space-y-6">
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="contraindications">Contraindications *</Label>
+									<Textarea
+										id="contraindications"
+										name="contraindications"
+										placeholder="Enter Contraindications"
+										rows={3}
+										value={formik.values.contraindications}
+										onChange={formik.handleChange}
+										className={formik.touched.contraindications && formik.errors.contraindications ? "border-red-500" : ""}
+									/>
+									{formik.touched.contraindications && formik.errors.contraindications && (
+										<p className="text-sm text-red-500">{formik.errors.contraindications}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="precautions">Precautions *</Label>
+									<Textarea
+										id="precautions"
+										name="precautions"
+										placeholder="Enter Precautions"
+										rows={3}
+										value={formik.values.precautions}
+										onChange={formik.handleChange}
+										className={formik.touched.precautions && formik.errors.precautions ? "border-red-500" : ""}
+									/>
+									{formik.touched.precautions && formik.errors.precautions && (
+										<p className="text-sm text-red-500">{formik.errors.precautions}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="interactions">Interactions *</Label>
+									<Textarea
+										id="interactions"
+										name="interactions"
+										placeholder="Enter Interactions"
+										rows={3}
+										value={formik.values.interactions}
+										onChange={formik.handleChange}
+										className={formik.touched.interactions && formik.errors.interactions ? "border-red-500" : ""}
+									/>
+									{formik.touched.interactions && formik.errors.interactions && (
+										<p className="text-sm text-red-500">{formik.errors.interactions}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="adverseReaction">Adverse Reactions *</Label>
+									<Textarea
+										id="adverseReaction"
+										name="adverseReaction"
+										placeholder="Enter Adverse Reactions"
+										rows={3}
+										value={formik.values.adverseReaction}
+										onChange={formik.handleChange}
+										className={formik.touched.adverseReaction && formik.errors.adverseReaction ? "border-red-500" : ""}
+									/>
+									{formik.touched.adverseReaction && formik.errors.adverseReaction && (
+										<p className="text-sm text-red-500">{formik.errors.adverseReaction}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="storageConditions">Storage Conditions *</Label>
+									<Textarea
+										id="storageConditions"
+										name="storageConditions"
+										placeholder="Enter Storage Conditions"
+										rows={3}
+										value={formik.values.storageConditions}
+										onChange={formik.handleChange}
+										className={formik.touched.storageConditions && formik.errors.storageConditions ? "border-red-500" : ""}
+									/>
+									{formik.touched.storageConditions && formik.errors.storageConditions && (
+										<p className="text-sm text-red-500">{formik.errors.storageConditions}</p>
+									)}
+								</div>
+							</div>
+						</TabsContent>
+						
+						{/* Recommendations Tab */}
+						<TabsContent value="recommendations" className="space-y-6">
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="recommended">Recommended For *</Label>
+									<Textarea
+										id="recommended"
+										name="recommended"
+										placeholder="Enter Recommended For"
+										rows={3}
+										value={formik.values.recommended}
+										onChange={formik.handleChange}
+										className={formik.touched.recommended && formik.errors.recommended ? "border-red-500" : ""}
+									/>
+									{formik.touched.recommended && formik.errors.recommended && (
+										<p className="text-sm text-red-500">{formik.errors.recommended}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="preVaccination">Pre-Vaccination Information *</Label>
+									<Textarea
+										id="preVaccination"
+										name="preVaccination"
+										placeholder="Enter Pre-Vaccination Information"
+										rows={3}
+										value={formik.values.preVaccination}
+										onChange={formik.handleChange}
+										className={formik.touched.preVaccination && formik.errors.preVaccination ? "border-red-500" : ""}
+									/>
+									{formik.touched.preVaccination && formik.errors.preVaccination && (
+										<p className="text-sm text-red-500">{formik.errors.preVaccination}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="compatibility">Compatibility *</Label>
+									<Textarea
+										id="compatibility"
+										name="compatibility"
+										placeholder="Enter Compatibility Information"
+										rows={3}
+										value={formik.values.compatibility}
+										onChange={formik.handleChange}
+										className={formik.touched.compatibility && formik.errors.compatibility ? "border-red-500" : ""}
+									/>
+									{formik.touched.compatibility && formik.errors.compatibility && (
+										<p className="text-sm text-red-500">{formik.errors.compatibility}</p>
+									)}
+								</div>
+							</div>
+						</TabsContent>
+						
+						{/* Inventory & Pricing Tab */}
+						<TabsContent value="inventory" className="space-y-6">
+							<div className="grid grid-cols-3 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="quantity">Quantity *</Label>
+									<Input
+										id="quantity"
+										name="quantity"
+										type="number"
+										min="0"
+										placeholder="Enter Quantity"
+										value={formik.values.quantity}
+										onChange={formik.handleChange}
+										className={formik.touched.quantity && formik.errors.quantity ? "border-red-500" : ""}
+									/>
+									{formik.touched.quantity && formik.errors.quantity && (
+										<p className="text-sm text-red-500">{formik.errors.quantity}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="unitPrice">Unit Price ($) *</Label>
+									<Input
+										id="unitPrice"
+										name="unitPrice"
+										type="number"
+										min="0"
+										placeholder="Enter Unit Price"
+										value={formik.values.unitPrice}
+										onChange={formik.handleChange}
+										className={formik.touched.unitPrice && formik.errors.unitPrice ? "border-red-500" : ""}
+									/>
+									{formik.touched.unitPrice && formik.errors.unitPrice && (
+										<p className="text-sm text-red-500">{formik.errors.unitPrice}</p>
+									)}
+								</div>
+								
+								<div className="space-y-2">
+									<Label htmlFor="salePrice">Sale Price ($) *</Label>
+									<Input
+										id="salePrice"
+										name="salePrice"
+										type="number"
+										min="0"
+										placeholder="Enter Sale Price"
+										value={formik.values.salePrice}
+										onChange={formik.handleChange}
+										className={formik.touched.salePrice && formik.errors.salePrice ? "border-red-500" : ""}
+									/>
+									{formik.touched.salePrice && formik.errors.salePrice && (
+										<p className="text-sm text-red-500">{formik.errors.salePrice}</p>
+									)}
+								</div>
+							</div>
+							
+							<div className="flex items-center space-x-2">
+								<Switch
+									id="status"
+									name="status"
+									checked={formik.values.status}
+									onCheckedChange={(checked) => formik.setFieldValue("status", checked)}
 								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.quantity}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="unitPPrice">
-								<Form.Label>Unit Price ($)</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Unit Price"
-									name="unitPrice"
-									value={formik.values.unitPrice}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.unitPrice && formik.errors.unitPrice}
+								<Label htmlFor="status">Active Status</Label>
+							</div>
+							
+							<div className="space-y-2">
+								<Label htmlFor="imageUrl">Image URL</Label>
+								<Input
+									id="imageUrl"
+									name="imageUrl"
+									placeholder="Enter image URL or use default"
+									value={formik.values.imagineUrl}
+									onChange={(e) => formik.setFieldValue("imagineUrl", e.target.value)}
+									disabled
+									className="bg-gray-50"
 								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.unitPrice}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="salePsalePrice">
-								<Form.Label>Sale Price ($)</Form.Label>
-								<Form.Control
-									type="number"
-									placeholder="Enter Sale Price"
-									name="salePrice"
-									value={formik.values.salePrice}
-									onChange={formik.handleChange}
-									isInvalid={formik.touched.salePrice && formik.errors.salePrice}
-								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.salePrice}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-						<Form.Group className="mb-3" controlId="description">
-							<Form.Label>Description</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Description"
-								name="description"
-								value={formik.values.description}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.description && formik.errors.description}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.description}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="contraindications">
-							<Form.Label>Contraindications</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Contraindications"
-								name="contraindications"
-								value={formik.values.contraindications}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.contraindications && formik.errors.contraindications}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.contraindications}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="precautions">
-							<Form.Label>Precautions</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Precautions"
-								name="precautions"
-								value={formik.values.precautions}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.precautions && formik.errors.precautions}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.precautions}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="interactions">
-							<Form.Label>Interactions</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Interactions"
-								name="interactions"
-								value={formik.values.interactions}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.interactions && formik.errors.interactions}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.interactions}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="adverseReaction">
-							<Form.Label>Adverse Reactions</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Adverse Reactions"
-								name="adverseReaction"
-								value={formik.values.adverseReaction}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.adverseReaction && formik.errors.adverseReaction}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.adverseReaction}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="storageConditions">
-							<Form.Label>Storage Conditions</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Storage Conditions"
-								name="storageConditions"
-								value={formik.values.storageConditions}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.storageConditions && formik.errors.storageConditions}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.storageConditions}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="recommended">
-							<Form.Label>Recommended For</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Recommended For"
-								name="recommended"
-								value={formik.values.recommended}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.recommended && formik.errors.recommended}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.recommended}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="preVaccination">
-							<Form.Label>Pre-Vaccination Information</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Pre-Vaccination Information"
-								name="preVaccination"
-								value={formik.values.preVaccination}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.preVaccination && formik.errors.preVaccination}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.preVaccination}</Form.Control.Feedback>
-						</Form.Group>
-
-						<Form.Group className="mb-3" controlId="compatibility">
-							<Form.Label>Compatibility</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								placeholder="Enter Compatibility Information"
-								name="compatibility"
-								value={formik.values.compatibility}
-								onChange={formik.handleChange}
-								isInvalid={formik.touched.compatibility && formik.errors.compatibility}
-							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.compatibility}</Form.Control.Feedback>
-						</Form.Group>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+								<p className="text-xs text-gray-500">Using default image URL (file upload to be implemented later)</p>
+							</div>
+						</TabsContent>
+					</Tabs>
+					
+					<DialogFooter className="mt-6">
+						<Button variant="outline" type="button" onClick={handleClose}>
+							Cancel
 						</Button>
-						<Button variant="primary" type="submit">
-							Save Changes
+						<Button 
+							type="submit" 
+							disabled={isLoading}
+						>
+							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							Save Vaccine
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
