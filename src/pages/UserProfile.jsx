@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
-import Navigation from "../components/Navbar";
-import { Button, Card, Col, Container, ListGroup, Row } from "react-bootstrap";
-import SideMenu from "../components/SideMenu";
-import UpdateUser from "../components/UpdateUser";
-import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
+import MainNav from "../components/MainNav";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
+import { motion } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { PencilIcon, UserIcon } from "@heroicons/react/24/outline";
+import UserSidebar from "../components/UserSidebar";
+import UpdateUser from "../components/UpdateUser";
 
 function UserProfile() {
 	const userAPI = "http://localhost:8080/users";
@@ -48,44 +52,62 @@ function UserProfile() {
 	};
 
 	return (
-		<div>
-			<Navigation />
-			<br />
-			<Container>
-				{console.log(user)}
-				<Row>
-					<SideMenu />
-					<Col>
-						<h2>User Profile:</h2>
-						<hr></hr>
-						<Container className="d-flex justify-content-center">
-							<Card style={{ width: "18rem" }}>
-								<Card.Img variant="top" src="src/alt/notfound.jpg" />
-								<ListGroup className="list-group-flush">
-									<ListGroup.Item>
-										Fullname: {user.firstName} {user.lastName}
-									</ListGroup.Item>
-									<ListGroup.Item>Gender: {user.gender}</ListGroup.Item>
-									<ListGroup.Item>Email: {user.email}</ListGroup.Item>
-									<ListGroup.Item>Phone number: {user.phoneNumber}</ListGroup.Item>
-									<ListGroup.Item>Address: {user.address}</ListGroup.Item>
-								</ListGroup>
-								<Card.Body>
-									<Button
-										onClick={() => {
-											setIsOpen(true);
-										}}>
-										Edit profile
+		<div className="min-h-screen bg-gray-50">
+			<MainNav />
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+				<div className="flex flex-col md:flex-row gap-8">
+					<div className="md:w-1/4">
+						<UserSidebar />
+					</div>
+					<div className="md:w-3/4">
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5 }}
+						>
+							<h2 className="text-2xl font-bold text-gray-900 mb-6">User Profile</h2>
+							<Card className="shadow-sm">
+								<CardHeader className="pb-0 flex justify-center">
+									<Avatar className="h-24 w-24">
+										<AvatarImage src="/src/alt/notfound.jpg" alt="Profile image" />
+										<AvatarFallback className="bg-primary text-white">
+											<UserIcon className="h-12 w-12" />
+										</AvatarFallback>
+									</Avatar>
+								</CardHeader>
+								<CardContent className="pt-6">
+									<div className="space-y-4">
+										<ProfileItem label="Full Name" value={`${user.firstName || ''} ${user.lastName || ''}`} />
+										<ProfileItem label="Gender" value={user.gender || 'Not specified'} />
+										<ProfileItem label="Email" value={user.email || 'Not specified'} />
+										<ProfileItem label="Phone Number" value={user.phoneNumber || 'Not specified'} />
+										<ProfileItem label="Address" value={user.address || 'Not specified'} />
+									</div>
+								</CardContent>
+								<CardFooter className="flex justify-center">
+									<Button 
+										onClick={() => setIsOpen(true)}
+										className="flex items-center gap-2"
+									>
+										<PencilIcon className="h-4 w-4" />
+										Edit Profile
 									</Button>
 									{isOpen && <UpdateUser setIsOpen={setIsOpen} open={isOpen} user={user} />}
-								</Card.Body>
+								</CardFooter>
 							</Card>
-						</Container>
-					</Col>
-				</Row>
-			</Container>
+						</motion.div>
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }
+
+const ProfileItem = ({ label, value }) => (
+	<div className="flex flex-col sm:flex-row sm:justify-between border-b pb-2">
+		<span className="font-medium text-gray-500">{label}:</span>
+		<span className="text-gray-900">{value}</span>
+	</div>
+);
 
 export default UserProfile;

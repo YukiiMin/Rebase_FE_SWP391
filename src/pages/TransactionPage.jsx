@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
-import Navigation from "../components/Navbar";
-import { Alert, Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Separator } from "../components/ui/separator";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CardCvcElement, CardElement, CardExpiryElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import MainNav from "../components/MainNav";
+import { motion } from "framer-motion";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 
 function TransactionPage() {
 	const paymentAPI = "http://localhost:8080/payment";
@@ -286,249 +292,284 @@ function TransactionPage() {
 		console.log("Elements initialized:", !!elements);
 	}, [stripe, elements]);
 
+	// Format date
+	const formatDate = (dateString) => {
+		if (!dateString) return "N/A";
+		const date = new Date(dateString);
+		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+	};
+
 	// Return early with an error message if state is missing
 	if (missingState) {
 		return (
-			<div>
-				<Navigation />
-				<Container className="mt-5">
-					<Alert variant="danger">
-						<Alert.Heading>Transaction Data Missing</Alert.Heading>
-						<p>
+			<div className="min-h-screen bg-gray-50">
+				<MainNav />
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+					<Alert variant="destructive" className="mb-6">
+						<ExclamationTriangleIcon className="h-5 w-5" />
+						<AlertTitle>Transaction Data Missing</AlertTitle>
+						<AlertDescription>
 							No transaction data was found. This typically happens when you try to access this page directly
 							without going through the booking process.
-						</p>
-						<hr />
-						<div className="d-flex justify-content-end">
-							<Button variant="outline-danger" onClick={() => navigate('/BookingPage')}>
-								Return to Booking
-							</Button>
-						</div>
+						</AlertDescription>
 					</Alert>
-				</Container>
+					<Button variant="outline" onClick={() => navigate('/BookingPage')}>
+						Return to Booking
+					</Button>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div>
-			{console.log(selectedVaccine, selectedCombo, child, vaccinationDate, payment, type)}
-			<Navigation />
-			<br />
-			<Container>
-				<h2>Transaction</h2>
-				<hr />
-				<p>Please make sure to check your booking detail carefully. We won't hold any responsibility after you clicked Confirm</p>
+		<div className="min-h-screen bg-gray-50">
+			<MainNav />
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+				<motion.div
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+				>
+					<h1 className="text-3xl font-bold text-gray-900 mb-4">Transaction</h1>
+					<p className="mb-6 text-gray-600">Please make sure to check your booking detail carefully. We won't hold any responsibility after you clicked Confirm</p>
 
-				{/* Debug info - can be removed in production */}
-				<div className="alert alert-info">
-					<p>
-						<strong>Debug Info:</strong>
-					</p>
-					<p>Order ID: {orderId || "Not available"}</p>
-					<p>Total Amount: ${orderTotal} USD</p>
-					<p>Note: Payments are processed in USD currency.</p>
-				</div>
+					{/* Debug info - styled with Tailwind */}
+					<div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
+						<h3 className="text-lg font-semibold mb-2">Debug Info:</h3>
+						<p>Order ID: {orderId || "Not available"}</p>
+						<p>Total Amount: ${orderTotal} USD</p>
+						<p className="text-sm mt-2">Note: Payments are processed in USD currency.</p>
+					</div>
 
-				<Row>
-					<Col>
-						<Card>
-							<Card.Header>
-								<Card.Title>Your booking detail</Card.Title>
-							</Card.Header>
-							<Card.Body>
-								<Card.Text>
-									<b>Child name: </b>
-									{child?.name || "N/A"} <br />
-									<b>Appointment date: </b>
-									{vaccinationDate || "N/A"} <br />
-								</Card.Text>
-							</Card.Body>
-						</Card>
-						<Card>
-							<Card.Header>
-								<Card.Title>Your order</Card.Title>
-							</Card.Header>
-							<Card.Body>
-								{type === "single" && (
-									<Table bordered>
-										<thead>
-											<tr>
-												<th>#</th>
-												<th>Vaccine name</th>
-												<th>Quantity</th>
-												<th>Price/Dose (USD)</th>
-											</tr>
-										</thead>
-										<tbody>
-											{selectedVaccine.length > 0 ? (
-												<>
-													{selectedVaccine.map((v) => (
-														<tr key={v.vaccine.id}>
-															<td>{v.vaccine.id}</td>
-															<td>{v.vaccine.name}</td>
-															<td>{v.quantity}</td>
-															<td>{v.vaccine.salePrice}</td>
-														</tr>
-													))}
-													<tr>
-														<td colSpan={3}>Total</td>
-														<td>{orderTotal}</td>
-													</tr>
-												</>
-											) : (
-												<>No vaccine selected</>
-											)}
-										</tbody>
-									</Table>
-								)}
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+						<div className="md:col-span-2">
+							<Card className="mb-6">
+								<CardHeader>
+									<CardTitle>Your booking detail</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="space-y-2">
+										<div className="flex justify-between">
+											<span className="font-medium">Child name:</span>
+											<span>{child?.name || "N/A"}</span>
+										</div>
+										<div className="flex justify-between">
+											<span className="font-medium">Appointment date:</span>
+											<span>{formatDate(vaccinationDate)}</span>
+										</div>
+									</div>
+								</CardContent>
+							</Card>
 
-								{type === "combo" && (
-									<Table>
-										<thead>
-											<tr>
-												<th>#</th>
-												<th>Combo name</th>
-												<th>Included Vaccines</th>
-												<th>Sale off</th>
-												<th>Price($)</th>
-											</tr>
-										</thead>
-										<tbody>
-											{selectedCombo.length > 0 ? (
-												<>
-													{selectedCombo.map((combo) => (
-														<tr key={combo.comboId}>
-															{/* {console.log(combo)} */}
-															<td>{combo.comboId}</td>
-															<td>{combo.comboName}</td>
-															<td>
-																<ul>
-																	{combo.vaccines.map((vaccine, index) => (
-																		<li key={index}>{vaccine}</li>
-																	))}
-																</ul>
-															</td>
-															<td>{combo.saleOff}%</td>
-															<td>{combo.total}</td>
-														</tr>
-													))}
-													<tr>
-														<td colSpan={4}>Total</td>
-														<td>{orderTotal}</td>
-													</tr>
-												</>
-											) : (
-												<>No combo selected</>
-											)}
-										</tbody>
-									</Table>
-								)}
-							</Card.Body>
-						</Card>
-					</Col>
-					<Col lg={6}>
-						<Card>
-							<Card.Header>
-								<Card.Title>Your transaction detail</Card.Title>
-							</Card.Header>
-							<Card.Body>
-								<div className="alert alert-warning mb-3">
-									<p>
-										<strong>Test Mode Info:</strong>
-									</p>
-									<p>Please use these test card details:</p>
-									<ul>
-										<li>Card number: 4242 4242 4242 4242</li>
-										<li>Expiry date: Any future date (MM/YY format, e.g., 12/25)</li>
-										<li>CVC: Any 3 digits</li>
-										<li>Name: Any name</li>
-									</ul>
-								</div>
-								<Form onSubmit={handleSubmit}>
-									<Form.Group className="mb-3">
-										<Form.Label>Card Number</Form.Label>
-										{/* Bỏ <CardNumberElement />      <CardExpiryElement />*/}
-										<div className="form-control">
-											<CardNumberElement
-												options={{
-													style: {
-														base: {
-															fontSize: "16px",
-															color: "#424770",
-															"::placeholder": {
-																color: "#aab7c4",
-															},
-														},
-														invalid: {
-															color: "#9e2146",
-														},
-													},
-												}}
-											/>
-										</div>
-									</Form.Group>
-									<Form.Group className="mb-3">
-										<Form.Label>Card Expiration Date</Form.Label>
-										{/*Bỏ <CardExpiryElement />  */}
-										<div className="form-control">
-											<CardExpiryElement
-												options={{
-													style: {
-														base: {
-															fontSize: "16px",
-															color: "#424770",
-															"::placeholder": {
-																color: "#aab7c4",
-															},
-														},
-														invalid: {
-															color: "#9e2146",
-														},
-													},
-												}}
-											/>
-										</div>
-									</Form.Group>
-									<Form.Group className="mb-3">
-										<Form.Label>CVC</Form.Label>
-										{/* Bỏ <CardCvcElement /> */}
-										<div className="form-control">
-											<CardCvcElement
-												options={{
-													style: {
-														base: {
-															fontSize: "16px",
-															color: "#424770",
-															"::placeholder": {
-																color: "#aab7c4",
-															},
-														},
-														invalid: {
-															color: "#9e2146",
-														},
-													},
-												}}
-											/>
-										</div>
-									</Form.Group>
-									{/* <CardElement /> */}
-									{error && <div className="text-danger">{error}</div>}
-									{success && <div className="text-success">{success}</div>}
-									{error && error.includes("payment session") && (
-										<Button variant="warning" className="me-2 mt-2" onClick={retryPayment} disabled={loading || retryCount >= 3}>
-											{loading ? "Processing..." : "Retry Payment"}
-										</Button>
+							<Card>
+								<CardHeader>
+									<CardTitle>Your order</CardTitle>
+								</CardHeader>
+								<CardContent>
+									{type === "single" && (
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>#</TableHead>
+													<TableHead>Vaccine name</TableHead>
+													<TableHead>Quantity</TableHead>
+													<TableHead className="text-right">Price/Dose (USD)</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{selectedVaccine.length > 0 ? (
+													<>
+														{selectedVaccine.map((v) => (
+															<TableRow key={v.vaccine.id}>
+																<TableCell>{v.vaccine.id}</TableCell>
+																<TableCell className="font-medium">{v.vaccine.name}</TableCell>
+																<TableCell>{v.quantity}</TableCell>
+																<TableCell className="text-right">{v.vaccine.salePrice}</TableCell>
+															</TableRow>
+														))}
+														<TableRow>
+															<TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
+															<TableCell className="text-right font-bold">${orderTotal}</TableCell>
+														</TableRow>
+													</>
+												) : (
+													<TableRow>
+														<TableCell colSpan={4} className="text-center py-4 text-gray-500">No vaccine selected</TableCell>
+													</TableRow>
+												)}
+											</TableBody>
+										</Table>
 									)}
-									<Button type="submit" disabled={!stripe || loading || !clientSecret} className="mt-2">
-										{loading ? "Processing..." : "Confirm"}
-									</Button>
-								</Form>
-							</Card.Body>
-						</Card>
-					</Col>
-				</Row>
-			</Container>
+
+									{type === "combo" && (
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>#</TableHead>
+													<TableHead>Combo name</TableHead>
+													<TableHead>Included Vaccines</TableHead>
+													<TableHead>Sale off</TableHead>
+													<TableHead className="text-right">Price($)</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{selectedCombo.length > 0 ? (
+													<>
+														{selectedCombo.map((combo) => (
+															<TableRow key={combo.comboId}>
+																<TableCell>{combo.comboId}</TableCell>
+																<TableCell className="font-medium">{combo.comboName}</TableCell>
+																<TableCell>
+																	<ul className="list-disc list-inside">
+																		{combo.vaccines.map((vaccine, index) => (
+																			<li key={index} className="text-sm">{vaccine}</li>
+																		))}
+																	</ul>
+																</TableCell>
+																<TableCell>{combo.saleOff}%</TableCell>
+																<TableCell className="text-right">{combo.total}</TableCell>
+															</TableRow>
+														))}
+														<TableRow>
+															<TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+															<TableCell className="text-right font-bold">${orderTotal}</TableCell>
+														</TableRow>
+													</>
+												) : (
+													<TableRow>
+														<TableCell colSpan={5} className="text-center py-4 text-gray-500">No combo selected</TableCell>
+													</TableRow>
+												)}
+											</TableBody>
+										</Table>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+
+						<div className="md:col-span-1">
+							<Card>
+								<CardHeader>
+									<CardTitle>Your transaction detail</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-4">
+										<h3 className="font-semibold mb-2">Test Mode Info:</h3>
+										<p className="mb-2">Please use these test card details:</p>
+										<ul className="list-disc list-inside text-sm space-y-1">
+											<li>Card number: 4242 4242 4242 4242</li>
+											<li>Expiry date: Any future date (MM/YY format, e.g., 12/25)</li>
+											<li>CVC: Any 3 digits</li>
+											<li>Name: Any name</li>
+										</ul>
+									</div>
+
+									<form onSubmit={handleSubmit} className="space-y-4">
+										<div className="space-y-2">
+											<label className="block text-sm font-medium text-gray-700">Card Number</label>
+											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+												<CardNumberElement
+													options={{
+														style: {
+															base: {
+																fontSize: "16px",
+																color: "#424770",
+																"::placeholder": {
+																	color: "#aab7c4",
+																},
+															},
+															invalid: {
+																color: "#9e2146",
+															},
+														},
+													}}
+												/>
+											</div>
+										</div>
+
+										<div className="space-y-2">
+											<label className="block text-sm font-medium text-gray-700">Card Expiration Date</label>
+											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+												<CardExpiryElement
+													options={{
+														style: {
+															base: {
+																fontSize: "16px",
+																color: "#424770",
+																"::placeholder": {
+																	color: "#aab7c4",
+																},
+															},
+															invalid: {
+																color: "#9e2146",
+															},
+														},
+													}}
+												/>
+											</div>
+										</div>
+
+										<div className="space-y-2">
+											<label className="block text-sm font-medium text-gray-700">CVC</label>
+											<div className="border rounded-md p-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+												<CardCvcElement
+													options={{
+														style: {
+															base: {
+																fontSize: "16px",
+																color: "#424770",
+																"::placeholder": {
+																	color: "#aab7c4",
+																},
+															},
+															invalid: {
+																color: "#9e2146",
+															},
+														},
+													}}
+												/>
+											</div>
+										</div>
+
+										{error && (
+											<Alert variant="destructive">
+												<ExclamationTriangleIcon className="h-4 w-4" />
+												<AlertDescription>{error}</AlertDescription>
+											</Alert>
+										)}
+
+										{success && (
+											<Alert className="bg-green-50 text-green-800 border-green-200">
+												<AlertDescription>{success}</AlertDescription>
+											</Alert>
+										)}
+
+										<div className="flex flex-col space-y-2">
+											{error && error.includes("payment session") && (
+												<Button 
+													variant="outline" 
+													type="button" 
+													onClick={retryPayment} 
+													disabled={loading || retryCount >= 3}
+												>
+													{loading ? "Processing..." : "Retry Payment"}
+												</Button>
+											)}
+											<Button 
+												type="submit" 
+												className="w-full" 
+												disabled={!stripe || loading || !clientSecret}
+											>
+												{loading ? "Processing..." : "Confirm"}
+											</Button>
+										</div>
+									</form>
+								</CardContent>
+							</Card>
+						</div>
+					</div>
+				</motion.div>
+			</div>
 		</div>
 	);
 }

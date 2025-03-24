@@ -6,8 +6,10 @@ import Navigation from "../components/Navbar";
 
 function VaccineManage() {
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
-	const [vaccineList, setVaccineList] = useState([]);
-	const vaccineAPI = "http://localhost:8080/vaccine/get";
+	const [vaccines, setVaccines] = useState([]);
+	const apiUrl = "http://localhost:8080/vaccine/get";
+	const token = localStorage.getItem("token");
+
 	const [isOpen, setIsOpen] = useState(false); //Form Add Vaccine
 	const [searchName, setSearchName] = useState("");
 	const [searchManufacturer, setSearchManufacturer] = useState("");
@@ -162,61 +164,63 @@ function VaccineManage() {
 								</thead>
 								<tbody>
 									{currentVaccines.length > 0 ? (
-									currentVaccines.map((vaccine) => (
-										<tr key={vaccine.id}>
-											<td>{vaccine.id}</td>
-											<td>{vaccine.name}</td>
-											<td>
-												<Image src={vaccine.imagineUrl} alt={`${vaccine.name} image`} thumbnail style={{ maxWidth: '100px' }}/>
-											</td>
-											<td>
-												{vaccine.description && vaccine.description.length > 100 
-													? `${vaccine.description.substring(0, 100)}...` 
-													: vaccine.description}
-											</td>
-											<td>{vaccine.manufacturer}</td>
-											<td>{vaccine.quantity}</td>
-											<td>${vaccine.unitPrice}</td>
-											<td>${vaccine.salePrice}</td>
-											<td>
-												<Badge bg="info">{vaccine.totalDose}</Badge>
-											</td>
-											<td>
-												{vaccine.status 
-													? (vaccine.quantity > 0 
-														? <Badge bg="success">Available</Badge> 
-														: <Badge bg="warning">Out of Stock</Badge>)
-													: <Badge bg="danger">Disabled</Badge>}
-											</td>
-											<td>
-												<Button variant="info" size="sm" className="me-2 mb-1">
-													Protocol
-												</Button>
-												<Button variant="primary" size="sm" className="me-2 mb-1">
-													Edit
-												</Button>
-												<Button variant="danger" size="sm" className="mb-1">
-													Delete
-												</Button>
-											</td>
-										</tr>
-									))
-								) : (
-									<>
+										currentVaccines.map((vaccine) => (
+											<tr key={vaccine.id}>
+												<td>{vaccine.id}</td>
+												<td>{vaccine.name}</td>
+												<td>
+													<Image 
+														src={vaccine.imagineUrl || 'https://via.placeholder.com/100'} 
+														alt={`${vaccine.name} image`} 
+														thumbnail 
+														style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
+													/>
+												</td>
+												<td>
+													{vaccine.description && vaccine.description.length > 100 
+														? `${vaccine.description.substring(0, 100)}...` 
+														: vaccine.description}
+												</td>
+												<td>{vaccine.manufacturer}</td>
+												<td>{vaccine.quantity}</td>
+												<td>${vaccine.unitPrice}</td>
+												<td>${vaccine.salePrice}</td>
+												<td>
+													<Badge bg="info">{vaccine.totalDose}</Badge>
+												</td>
+												<td>
+													{vaccine.status 
+														? (vaccine.quantity > 0 
+															? <Badge bg="success">Available</Badge> 
+															: <Badge bg="warning">Out of Stock</Badge>)
+														: <Badge bg="danger">Disabled</Badge>}
+												</td>
+												<td>
+													<Button variant="info" size="sm" className="me-2 mb-1">
+														Protocol
+													</Button>
+													<Button variant="primary" size="sm" className="me-2 mb-1">
+														Edit
+													</Button>
+													<Button variant="danger" size="sm" className="mb-1">
+														Delete
+													</Button>
+												</td>
+											</tr>
+										))
+									) : (
 										<tr>
-											<td colSpan={12} align="center">
-												No Result
-											</td>
+											<td colSpan={11} className="text-center">No vaccine added yet</td>
 										</tr>
-									</>
-								)}
-							</tbody>
-						</Table>
-						{pagination}
-					</Container>
-				</Col>
-			</Row>
-		</div>
+									)}
+								</tbody>
+							</Table>
+							{pagination}
+						</Container>
+					</Col>
+				</Row>
+			</div>
+		</>
 	);
 }
 

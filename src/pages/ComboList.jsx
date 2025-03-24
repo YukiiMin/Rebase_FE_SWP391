@@ -1,23 +1,32 @@
 import React, { useEffect, useState } from "react";
-import Navigation from "../components/Navbar";
-import { Button, Card, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
+import MainNav from "../components/MainNav";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 function ComboList() {
-	const comboAPI = "http://localhost:8080/vaccine/get/comboDetail";
+	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [comboList, setComboList] = useState([]);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [filteredCombos, setFilteredCombos] = useState([]);
 
 	useEffect(() => {
 		getCombo();
-		// fetch(comboAPI)
-		// 	.then((response) => response.json())
-		// 	.then((data) => {
-		// 		const groupedCombos = groupCombos(data.result);
-		// 		setComboList(groupedCombos);
-		// 		// setComboList(data.result);
-		// 	})
-		// 	.catch((error) => console.error("Error fetching combos:", error));
 	}, []);
+
+	useEffect(() => {
+		if (searchTerm === "") {
+			setFilteredCombos(comboList);
+		} else {
+			const filtered = comboList.filter(combo => 
+				combo.comboName.toLowerCase().includes(searchTerm.toLowerCase())
+			);
+			setFilteredCombos(filtered);
+		}
+	}, [searchTerm, comboList]);
 
 	const getCombo = async () => {
 		try {
@@ -25,8 +34,8 @@ function ComboList() {
 			if (response.ok) {
 				const data = await response.json();
 				const groupedCombos = groupCombos(data.result);
-				// console.log(data, groupedCombos);
 				setComboList(groupedCombos);
+				setFilteredCombos(groupedCombos);
 			} else {
 				console.error("Fetching combos failed: ", response.status);
 			}
@@ -55,54 +64,110 @@ function ComboList() {
 		return Object.values(grouped);
 	};
 
+	const handleSearchChange = (e) => {
+		setSearchTerm(e.target.value);
+	};
+	
+	// Animation variants
+	const containerVariants = {
+		hidden: { opacity: 0 },
+		visible: {
+			opacity: 1,
+			transition: {
+				staggerChildren: 0.1
+			}
+		}
+	};
+
+	const itemVariants = {
+		hidden: { opacity: 0, y: 20 },
+		visible: { opacity: 1, y: 0 }
+	};
+
 	return (
-		<div>
-			<Navigation />
-			<br />
-			<Container>
-				{/* {console.log(comboList)} */}
-				<h2>Vaccine combo list:</h2>
-				<Form>
-					<InputGroup className="mb-3">
-						<Form.Control placeholder="Vaccine combo name..." aria-label="Combo name" aria-describedby="basic-addon2" />
-						<Button variant="outline-secondary" id="button-addon2">
-							Search
-						</Button>
-					</InputGroup>
-				</Form>
+		<div className="min-h-screen bg-gray-50">
+			<MainNav />
+			
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
+					<h1 className="text-3xl font-bold text-gray-900 mb-4 md:mb-0">Vaccine Combo List</h1>
+					
+					<div className="w-full md:w-96">
+						<div className="relative">
+							<Input 
+								type="text"
+								placeholder="Search combo packages..." 
+								value={searchTerm} 
+								onChange={handleSearchChange}
+								className="pr-10"
+							/>
+							<div className="absolute right-0 top-0 h-full flex items-center pr-3">
+								<MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+							</div>
+						</div>
+					</div>
+				</div>
 
-				<Row xs={1} md={2} lg={4} className="g-4">
-					{comboList.map((combo) => (
-						<Col key={combo.comboId}>
-							<Card>
-								<Card.Img variant="top" src={"src/alt/notfound.jpg"} />
-								<Card.Body>
-									<Card.Title>{combo.comboName}</Card.Title>
-									<Card.Text>Include: {combo.vaccines.join(", ")}</Card.Text>
-									<Card.Text>
-										<b>Description:</b> {combo.description}
-									</Card.Text>
-									<Link to={`/ComboDetail/${combo.id}`}>
-										<Button>Detail</Button>
-									</Link>
-								</Card.Body>
-							</Card>
-						</Col>
-					))}
-				</Row>
-
-				<Row>
-					{comboList.length > 0 ? (
-						comboList.map((combo) => {
-							<div key={combo.comboId}>
-								<h5>{combo.comboName}</h5>
-							</div>;
-						})
-					) : (
-						<>No data</>
-					)}
-				</Row>
-			</Container>
+				{comboList.length > 0 ? (
+					<motion.div 
+						variants={containerVariants}
+						initial="hidden"
+						animate="visible"
+						className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+					>
+						{filteredCombos.map((combo) => (
+							<motion.div key={combo.comboId} variants={itemVariants}>
+								<Card className="h-full flex flex-col hover:shadow-lg transition-all duration-300">
+									<div className="h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
+										<img 
+											src={"src/alt/notfound.jpg"} 
+											alt={combo.comboName} 
+											className="w-full h-full object-cover"
+										/>
+									</div>
+									<CardHeader className="pb-2">
+										<CardTitle className="line-clamp-1">{combo.comboName}</CardTitle>
+									</CardHeader>
+									<CardContent className="pb-2 flex-grow">
+										<div className="mb-3">
+											<h3 className="text-sm font-semibold text-gray-600">Includes:</h3>
+											<ul className="list-disc list-inside text-sm text-gray-500 pl-2">
+												{combo.vaccines.map((vaccine, idx) => (
+													<li key={idx} className="line-clamp-1">{vaccine}</li>
+												))}
+											</ul>
+										</div>
+										{combo.saleOff > 0 && (
+											<div className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mb-2">
+												{combo.saleOff}% OFF
+											</div>
+										)}
+										<p className="text-gray-500 text-sm line-clamp-2">
+											<span className="font-semibold">Description:</span> {combo.description}
+										</p>
+									</CardContent>
+									<CardFooter className="pt-0">
+										<Button asChild className="w-full">
+											<Link to={`/ComboDetail/${combo.comboId}`}>View Details</Link>
+										</Button>
+									</CardFooter>
+								</Card>
+							</motion.div>
+						))}
+						
+						{filteredCombos.length === 0 && (
+							<div className="col-span-full flex items-center justify-center py-12">
+								<p className="text-gray-500 text-lg">No combo packages found matching "{searchTerm}"</p>
+							</div>
+						)}
+					</motion.div>
+				) : (
+					<div className="flex flex-col items-center justify-center py-16">
+						<div className="text-red-500 font-bold text-xl mb-2">No combo data retrieved.</div>
+						<p className="text-gray-500">Please check your network connection.</p>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

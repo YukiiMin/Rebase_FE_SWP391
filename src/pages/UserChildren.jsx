@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
-import Navigation from "../components/Navbar";
-import AddChild from "../components/AddChild";
-import { Button, Card, Col, Container, Row } from "react-bootstrap";
-import SideMenu from "../components/SideMenu";
 import { jwtDecode } from "jwt-decode";
+import MainNav from "../components/MainNav";
+import UserSidebar from "../components/UserSidebar";
+import AddChild from "../components/AddChild";
 import UpdateChild from "../components/UpdateChild";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
+import { motion } from "framer-motion";
+import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Alert, AlertDescription } from "../components/ui/alert";
 
 function UserChildren() {
 	const token = localStorage.getItem("token");
@@ -13,7 +17,6 @@ function UserChildren() {
 	const [isAddOpen, setIsAddOpen] = useState(false); //For add child form
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false); //For update child form
 	const [childs, setChilds] = useState([]);
-
 	const [selectedChild, setSelectedChild] = useState([]);
 
 	useEffect(() => {
@@ -30,13 +33,12 @@ function UserChildren() {
 			});
 			if (response.ok) {
 				const data = await response.json();
-				console.log(data);
 				setChilds(data.children);
 			} else {
 				console.error("Get children failed: ", response.status);
 			}
 		} catch (err) {
-			console.error("SOmething went wrong when fetching child: ", err);
+			console.error("Something went wrong when fetching child: ", err);
 		}
 	};
 
@@ -64,84 +66,121 @@ function UserChildren() {
 		}
 	};
 
+	// Animation variants
+	const containerVariants = {
+		hidden: { opacity: 0 },
+		visible: { 
+			opacity: 1,
+			transition: {
+				staggerChildren: 0.1
+			}
+		}
+	};
+
+	const itemVariants = {
+		hidden: { y: 20, opacity: 0 },
+		visible: { 
+			y: 0, 
+			opacity: 1,
+			transition: { type: "spring", stiffness: 100 }
+		}
+	};
+
 	return (
-		<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-			<Navigation />
-			<br />
-			<Container>
-				{console.log(childs)}
-				<Row>
-					<SideMenu />
-					<Col>
-						<Row className="mb-3">
-							<Col>
-								<h2 className="mb-0">Children</h2>
-							</Col>
-							<Col className="text-end">
-								<Button
-									onClick={() => {
-										setIsAddOpen(true);
-									}}>
-									Add
-								</Button>
-							</Col>
+		<div className="min-h-screen bg-gray-50">
+			<MainNav />
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+				<div className="flex flex-col md:flex-row gap-8">
+					<div className="md:w-1/4">
+						<UserSidebar />
+					</div>
+					<div className="md:w-3/4">
+						<div className="flex justify-between items-center mb-6">
+							<h2 className="text-2xl font-bold text-gray-900">Children</h2>
+							<Button 
+								onClick={() => setIsAddOpen(true)}
+								className="flex items-center gap-2"
+							>
+								<PlusIcon className="h-4 w-4" />
+								Add Child
+							</Button>
 							{isAddOpen && <AddChild setIsOpen={setIsAddOpen} open={isAddOpen} onAdded={handleChildAdd} />}
-						</Row>
-						<hr />
-						<Container>
-							{childs.length > 0 ? (
-								childs.map((child) => (
-									<Card className="shadow-sm" key={child.id}>
-										<Card.Header as="h5" className="bg-white">
-											{child.name}
-										</Card.Header>
-										<Card.Body>
-											<Card.Text>
-												<Row>
-													<Col xs={6}>
-														<strong>Id:</strong>
-													</Col>
-													<Col xs={6}>{child.id}</Col>
-													<Col xs={6}>
-														<strong>Gender:</strong>
-													</Col>
-													<Col xs={6}>{child.gender}</Col>
-													<Col xs={6}>
-														<strong>Date of birth:</strong>
-													</Col>
-													<Col xs={6}>{child.dob}</Col>
-													<Col xs={6}>
-														<strong>Weight:</strong>
-													</Col>
-													<Col xs={6}>{`${child.weight}kg`}</Col>
-													<Col xs={6}>
-														<strong>Height:</strong>
-													</Col>
-													<Col xs={6}>{`${child.height}cm`}</Col>
-												</Row>
-											</Card.Text>
-											<div className="d-flex justify-content-end">
-												<Button
-													variant="info"
-													className="me-2"
-													onClick={() => {
-														handleUpdateClick(child);
-													}}>
+						</div>
+
+						{childs.length > 0 ? (
+							<motion.div 
+								variants={containerVariants}
+								initial="hidden"
+								animate="visible"
+								className="grid grid-cols-1 gap-4"
+							>
+								{childs.map((child) => (
+									<motion.div key={child.id} variants={itemVariants}>
+										<Card className="shadow-sm">
+											<CardHeader className="bg-white pb-2">
+												<h3 className="text-lg font-semibold">{child.name}</h3>
+											</CardHeader>
+											<CardContent className="pt-2">
+												<dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+													<div>
+														<dt className="text-sm font-medium text-gray-500">ID</dt>
+														<dd className="text-sm text-gray-900">{child.id}</dd>
+													</div>
+													<div>
+														<dt className="text-sm font-medium text-gray-500">Gender</dt>
+														<dd className="text-sm text-gray-900">{child.gender}</dd>
+													</div>
+													<div>
+														<dt className="text-sm font-medium text-gray-500">Date of Birth</dt>
+														<dd className="text-sm text-gray-900">{child.dob}</dd>
+													</div>
+													<div>
+														<dt className="text-sm font-medium text-gray-500">Weight</dt>
+														<dd className="text-sm text-gray-900">{`${child.weight}kg`}</dd>
+													</div>
+													<div>
+														<dt className="text-sm font-medium text-gray-500">Height</dt>
+														<dd className="text-sm text-gray-900">{`${child.height}cm`}</dd>
+													</div>
+												</dl>
+											</CardContent>
+											<CardFooter className="flex justify-end gap-2">
+												<Button 
+													variant="outline"
+													size="sm"
+													className="flex items-center gap-1"
+													onClick={() => handleUpdateClick(child)}
+												>
+													<PencilIcon className="h-3.5 w-3.5" />
 													Edit
 												</Button>
-												<Button variant="danger">Delete</Button>
-											</div>
-										</Card.Body>
-										{isUpdateOpen && selectedChild && <UpdateChild setIsOpen={setIsUpdateOpen} open={isUpdateOpen} child={selectedChild} onUpdate={handleChildUpdate} />}
-									</Card>
-								))
-							) : (
-								<>No data</>
-							)}
-						</Container>
-					</Col>
-				</Row>
-			</Container>
+												<Button 
+													variant="destructive"
+													size="sm"
+													className="flex items-center gap-1"
+												>
+													<TrashIcon className="h-3.5 w-3.5" />
+													Delete
+												</Button>
+											</CardFooter>
+										</Card>
+									</motion.div>
+								))}
+							</motion.div>
+						) : (
+							<Alert>
+								<AlertDescription>
+									No children found. Please add a child to get started.
+								</AlertDescription>
+							</Alert>
+						)}
+						
+						{isUpdateOpen && selectedChild && (
+							<UpdateChild setIsOpen={setIsUpdateOpen} open={isUpdateOpen} child={selectedChild} onUpdate={handleChildUpdate} />
+						)}
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }

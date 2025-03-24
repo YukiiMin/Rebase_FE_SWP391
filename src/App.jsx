@@ -144,44 +144,54 @@ function App() {
 	// Refresh token
 	useEffect(() => {
 		const refreshToken = async () => {
-			if (isRefreshing || !authChecked) return;
+			     // Tạm bỏ qua việc refresh token khi dev
+				 console.log("Skipping token refresh during development");
+				 return;
+				 
+				 // ... phần code refresh token cũ
+			// if (isRefreshing || !authChecked) return;
 			
-			try {
-				if (token && decodedToken) {
-					// Kiểm tra token hết hạn
-					const currentTime = Date.now() / 1000;
-					if (decodedToken.exp < currentTime) {
-						console.log("Token expired, attempting to refresh");
-						setIsRefreshing(true);
+			// try {
+			// 	if (token && decodedToken) {
+			// 		// Kiểm tra token hết hạn
+			// 		const currentTime = Date.now() / 1000;
+			// 		if (decodedToken.exp < currentTime) {
+			// 			console.log("Token expired, attempting to refresh");
+			// 			setIsRefreshing(true);
 						
-						const response = await axios.post(api, {}, {
-							headers: {
-								'Authorization': `Bearer ${token}`
-							}
-						});
-	
-						if (response.data && response.data.token) {
-							TokenUtils.setToken(response.data.token);
-							setToken(response.data.token);
-							console.log("Token refreshed successfully");
-						} else {
-							throw new Error("Failed to refresh token");
-						}
-					}
-				}
-			} catch (error) {
-				console.error("Token refresh error:", error);
-				// Xử lý lỗi nhưng không tự động chuyển đến trang đăng nhập
-				if (window.location.pathname !== '/Login') {
-					TokenUtils.removeToken();
-					setToken(null);
-					setDecodedToken(null);
-				}
-			} finally {
-				setIsRefreshing(false);
-			}
+			// 			const response = await axios.post(api, {}, {
+			// 				headers: {
+			// 					'Authorization': `Bearer ${token}`
+			// 				}
+			// 			});
+
+			// 			if (response.data && response.data.token) {
+			// 				TokenUtils.setToken(response.data.token);
+			// 				setToken(response.data.token);
+			// 				console.log("Token refreshed successfully");
+			// 			} else {
+			// 				throw new Error("Failed to refresh token");
+			// 			}
+			// 		}
+			// 	}
+			// } catch (error) {
+			// 	console.error("Token refresh error:", error);
+			// 	// Xử lý lỗi nhưng không tự động chuyển đến trang đăng nhập
+			// 	if (error.message === "Unexpected end of JSON input") {
+			// 		console.error("API responded with invalid JSON. Backend might be unavailable.");
+			// 		// Thêm xử lý riêng cho lỗi parse JSON
+			// 	}
+				
+			// 	if (window.location.pathname !== '/Login') {
+			// 		TokenUtils.removeToken();
+			// 		setToken(null);
+			// 		setDecodedToken(null);
+			// 	}
+			// } finally {
+			// 	setIsRefreshing(false);
+			// }
 		};
-	
+
 		refreshToken();
 	}, [token, decodedToken, api, isRefreshing, authChecked]);
 
@@ -225,6 +235,11 @@ function App() {
 			response => response,
 			async error => {
 				if (!error.response || isRefreshing) {
+					console.log("Network error or already refreshing:", error.message);
+					// Kiểm tra lỗi parse JSON
+					if (error.message && error.message.includes("JSON")) {
+						console.error("JSON parsing error, API might be unavailable");
+					}
 					return Promise.reject(error);
 				}
 				
@@ -232,7 +247,12 @@ function App() {
 				if (error.response.status === 401 || error.response.status === 403) {
 					const originalRequest = error.config;
 					
+					// DEV MODE: Bỏ qua refresh token trong môi trường dev
+					console.log("DEV MODE: Skipping token refresh in interceptor");
+					return Promise.reject(error);
+					
 					// Tránh vòng lặp vô hạn
+					/*
 					if (!originalRequest._retry && token && decodedToken) {
 						originalRequest._retry = true;
 						
@@ -272,6 +292,7 @@ function App() {
 						setToken(null);
 						setDecodedToken(null);
 					}
+					*/
 				}
 				
 				return Promise.reject(error);
