@@ -36,6 +36,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import ProtocolManage from "./admin/ProtocolManage";
 import TokenUtils from "./utils/TokenUtils";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import VerifyOTPPage from "./pages/VerifyOTPPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 function App() {
 	const navigate = useNavigate();
@@ -326,6 +329,9 @@ function App() {
 					{/*Guest only*/}
 					<Route path={"/Login"} element={<ProtectedRoute element={LoginPage} guestOnly />} />
 					<Route path={"/Register"} element={<ProtectedRoute element={RegisterPage} guestOnly />} />
+					<Route path={"/forgot-password"} element={<ProtectedRoute element={ForgotPasswordPage} guestOnly />} />
+					<Route path={"/verify-otp"} element={<ProtectedRoute element={VerifyOTPPage} guestOnly />} />
+					<Route path={"/reset-password"} element={<ProtectedRoute element={ResetPasswordPage} guestOnly />} />
 
 					{/*User only */}
 					<Route path={"/User/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />

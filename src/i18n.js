@@ -86,6 +86,61 @@ const enTranslations = {
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
     copyright: '© 2023 VaccineCare. All rights reserved.'
+  },
+  register: {
+    title: "Create an Account",
+    haveAccount: "Already have an account?",
+    login: "Log in",
+    firstName: "First Name",
+    lastName: "Last Name",
+    dob: "Date of Birth",
+    phone: "Phone Number",
+    email: "Email Address",
+    username: "Username",
+    gender: "Gender",
+    selectGender: "Select gender",
+    male: "Male",
+    female: "Female",
+    other: "Other",
+    password: "Password",
+    createPassword: "Create a password",
+    confirmPassword: "Confirm Password",
+    confirmYourPassword: "Confirm your password",
+    signUp: "Sign Up",
+    processing: "Processing...",
+    register: "Register",
+    terms: "By creating an account, you agree to our",
+    termsLink: "Terms of Service",
+    and: "and",
+    privacyLink: "Privacy Policy",
+    passwordStrength: {
+      title: "Password strength:",
+      weak: "Weak",
+      medium: "Medium",
+      strong: "Strong",
+      requirements: "Password must have:",
+      length: "At least 8 characters",
+      lowercase: "At least 1 lowercase letter",
+      uppercase: "At least 1 uppercase letter",
+      number: "At least 1 number",
+      special: "At least 1 special character"
+    },
+    errors: {
+      required: "This field is required",
+      invalidEmail: "Invalid email address",
+      passwordLength: "Password must be at least 8 characters",
+      passwordMatch: "Passwords do not match",
+      phoneFormat: "Phone number must be 10 digits",
+      invalidUsername: "Username can only contain letters, numbers, and underscores",
+      usernameLength: "Username must be between 3 and 20 characters",
+      weakPassword: "Please create a stronger password",
+      registerFailed: "Registration failed. Please try again.",
+      serverError: "Server error. Please try again later."
+    },
+    success: {
+      title: "Registration successful!",
+      redirecting: "Redirecting you to login..."
+    }
   }
 };
 
@@ -174,6 +229,61 @@ const viTranslations = {
     privacy: 'Chính Sách Bảo Mật',
     terms: 'Điều Khoản Dịch Vụ',
     copyright: '© 2025 VaccineCare. Tất cả quyền được bảo lưu.'
+  },
+  register: {
+    title: "Tạo Tài Khoản",
+    haveAccount: "Đã có tài khoản?",
+    login: "Đăng nhập",
+    firstName: "Tên",
+    lastName: "Họ",
+    dob: "Ngày sinh",
+    phone: "Số điện thoại",
+    email: "Địa chỉ email",
+    username: "Tên đăng nhập",
+    gender: "Giới tính",
+    selectGender: "Chọn giới tính",
+    male: "Nam",
+    female: "Nữ",
+    other: "Khác",
+    password: "Mật khẩu",
+    createPassword: "Tạo mật khẩu",
+    confirmPassword: "Xác nhận mật khẩu",
+    confirmYourPassword: "Xác nhận mật khẩu của bạn",
+    signUp: "Đăng ký",
+    processing: "Đang xử lý...",
+    register: "Đăng ký",
+    terms: "Bằng cách tạo tài khoản, bạn đồng ý với",
+    termsLink: "Điều khoản dịch vụ",
+    and: "và",
+    privacyLink: "Chính sách bảo mật",
+    passwordStrength: {
+      title: "Độ mạnh mật khẩu:",
+      weak: "Yếu",
+      medium: "Trung bình",
+      strong: "Mạnh",
+      requirements: "Mật khẩu phải có:",
+      length: "Ít nhất 8 ký tự",
+      lowercase: "Ít nhất 1 chữ thường",
+      uppercase: "Ít nhất 1 chữ hoa",
+      number: "Ít nhất 1 số",
+      special: "Ít nhất 1 ký tự đặc biệt"
+    },
+    errors: {
+      required: "Trường này là bắt buộc",
+      invalidEmail: "Địa chỉ email không hợp lệ",
+      passwordLength: "Mật khẩu phải có ít nhất 8 ký tự",
+      passwordMatch: "Mật khẩu không khớp",
+      phoneFormat: "Số điện thoại phải có 10 chữ số",
+      invalidUsername: "Tên đăng nhập chỉ có thể chứa chữ cái, số và dấu gạch dưới",
+      usernameLength: "Tên đăng nhập phải từ 3 đến 20 ký tự",
+      weakPassword: "Vui lòng tạo mật khẩu mạnh hơn",
+      registerFailed: "Đăng ký thất bại. Vui lòng thử lại.",
+      serverError: "Lỗi máy chủ. Vui lòng thử lại sau."
+    },
+    success: {
+      title: "Đăng ký thành công!",
+      redirecting: "Đang chuyển hướng đến trang đăng nhập..."
+    }
   }
 };
 

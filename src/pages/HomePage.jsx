@@ -20,10 +20,10 @@ import {
 	User,
 	Phone,
 	Mail,
-	MapPin
+	MapPin,
+	AlertTriangle
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 export default function HomePage() {
 	const { t } = useTranslation();
@@ -32,41 +32,65 @@ export default function HomePage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [currentSlide, setCurrentSlide] = useState(0);
+	
+	const apiURL = "http://localhost:8080/vaccine";
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				// Fetch vaccines
-				const vaccineResponse = await fetch("http://localhost:8080/vaccine/get");
+				const vaccineResponse = await fetch(`${apiURL}/get`);
 				if (!vaccineResponse.ok) {
 					throw new Error(`Vaccine API error: ${vaccineResponse.status}`);
 				}
 				
 				// Kiểm tra và xử lý dữ liệu JSON an toàn hơn
-				let vaccineResult;
 				try {
 					const vaccineText = await vaccineResponse.text();
-					vaccineResult = JSON.parse(vaccineText);
+					let vaccineResult = [];
+					
+					if (vaccineText && vaccineText.trim() !== '') {
+						try {
+							const parsedData = JSON.parse(vaccineText);
+							if (Array.isArray(parsedData)) {
+								vaccineResult = parsedData;
+							}
+						} catch (parseError) {
+							console.error("Error parsing vaccine JSON:", parseError);
+						}
+					}
+					
 					setVaccineData(vaccineResult.slice(0, 3)); // Get only first 3 items
-				} catch (jsonError) {
-					console.error("Error parsing vaccine JSON:", jsonError);
+				} catch (error) {
+					console.error("Error processing vaccine data:", error);
 					setVaccineData([]);
 				}
 
 				// Fetch combos
-				const comboResponse = await fetch("http://localhost:8080/combo");
+				const comboResponse = await fetch(`${apiURL}/combo`);
 				if (!comboResponse.ok) {
 					throw new Error(`Combo API error: ${comboResponse.status}`);
 				}
 				
 				// Kiểm tra và xử lý dữ liệu JSON an toàn hơn
-				let comboResult;
 				try {
 					const comboText = await comboResponse.text();
-					comboResult = JSON.parse(comboText);
+					let comboResult = [];
+					
+					if (comboText && comboText.trim() !== '') {
+						try {
+							const parsedData = JSON.parse(comboText);
+							if (Array.isArray(parsedData)) {
+								comboResult = parsedData;
+							}
+						} catch (parseError) {
+							console.error("Error parsing combo JSON:", parseError);
+						}
+					}
+					
 					setComboData(comboResult.slice(0, 3)); // Get only first 3 items
-				} catch (jsonError) {
-					console.error("Error parsing combo JSON:", jsonError);
+				} catch (error) {
+					console.error("Error processing combo data:", error);
 					setComboData([]);
 				}
 
@@ -376,7 +400,7 @@ export default function HomePage() {
 					{error && (
 						<Alert className="mb-8 bg-amber-50 text-amber-800 border-amber-200 flex items-center gap-2 max-w-2xl mx-auto">
 							<div className="p-1 rounded-full bg-amber-200">
-								<ExclamationTriangleIcon className="h-4 w-4 text-amber-600" />
+								<AlertTriangle className="h-4 w-4 text-amber-600" />
 							</div>
 							<AlertDescription>
 								{error} Hiển thị dữ liệu demo cho mục đích trình bày.

@@ -1,19 +1,22 @@
 import { useFormik } from "formik";
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import TokenUtils from "../utils/TokenUtils";
 import MainNav from "../components/MainNav";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { motion } from "framer-motion";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff, X } from "lucide-react";
 import * as Yup from "yup";
+import { Alert, AlertDescription } from "../components/ui/alert";
 
 function LoginPage() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const accountAPI = "http://localhost:8080/auth/login";
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 
 	const validation = Yup.object({
 		username: Yup.string().required("Username is required"),
@@ -65,6 +68,15 @@ function LoginPage() {
 		}
 	};
 
+	const handleClose = () => {
+		// Nếu có state.from, quay lại trang đó, nếu không thì về homepage
+		if (location.state?.from) {
+			navigate(location.state.from);
+		} else {
+			navigate("/");
+		}
+	};
+
 	return (
 		<div className="min-h-screen flex flex-col relative">
 			<MainNav />
@@ -73,7 +85,7 @@ function LoginPage() {
 			<div className="absolute inset-0 z-0">
 				<div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
 				<img 
-					src="https://th.bing.com/th/id/OIP.6PZQuYOccPCKkGIyNl2ZiQHaFj?rs=1&pid=ImgDetMain" 
+					src="/vaccination-background.jpg" 
 					alt="Vaccination Background" 
 					className="w-full h-full object-cover object-center"
 				/>
@@ -85,14 +97,32 @@ function LoginPage() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5 }}
-					className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-md"
+					className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-md relative"
 				>
-					<div className="mb-6 text-center">
-						<h1 className="text-3xl font-bold text-blue-900 mb-2">Welcome,</h1>
-						<p className="text-gray-700">Sign in to continue!</p>
+					{/* Close button */}
+					<button onClick={handleClose} 
+						className="absolute top-4 right-4 transition-colors">
+					<X className="h-5 w-5 text-gray-500 hover:!text-red-800" />
+					</button>
+
+					<div className="text-center mb-6">
+						<h2 className="text-2xl font-bold text-[#1B1B1B] mb-2">Log in</h2>
+						<p className="text-gray-600">
+							Don't have an account?{" "}
+							<Link to="/register" className="text-blue-600 hover:text-blue-700">
+								Create Account
+							</Link>
+						</p>
 					</div>
-					
-					<form onSubmit={formik.handleSubmit} className="space-y-5">
+
+					{error && (
+						<Alert variant="destructive" className="mb-6">
+							<AlertCircle className="h-4 w-4" />
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+
+					<form onSubmit={formik.handleSubmit} className="space-y-6">
 						<div className="space-y-2">
 							<label htmlFor="username" className="text-sm font-medium text-gray-700">
 								Username
@@ -105,10 +135,10 @@ function LoginPage() {
 								value={formik.values.username}
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
-								className={`h-12 px-4 bg-white/80 ${formik.touched.username && formik.errors.username ? "border-red-500" : "border-gray-300"}`}
+								className={`h-11 ${formik.touched.username && formik.errors.username ? "border-red-500" : "border-gray-300"}`}
 							/>
 							{formik.touched.username && formik.errors.username && (
-								<p className="text-red-500 text-sm mt-1">{formik.errors.username}</p>
+								<p className="text-red-500 text-sm">{formik.errors.username}</p>
 							)}
 						</div>
 						
@@ -117,44 +147,63 @@ function LoginPage() {
 								<label htmlFor="password" className="text-sm font-medium text-gray-700">
 									Password
 								</label>
-								<Link to="/forget-password" className="text-sm text-blue-600 hover:text-blue-500">
+								<Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
 									Forgot Password?
 								</Link>
 							</div>
-							<Input
-								id="password"
-								name="password"
-								type="password"
-								placeholder="••••••••"
-								value={formik.values.password}
-								onChange={formik.handleChange}
-								onBlur={formik.handleBlur}
-								className={`h-12 px-4 bg-white/80 ${formik.touched.password && formik.errors.password ? "border-red-500" : "border-gray-300"}`}
-							/>
+							<div className="relative">
+								<Input
+									id="password"
+									name="password"
+									type={showPassword ? "text" : "password"}
+									placeholder="Enter your password"
+									value={formik.values.password}
+									onChange={formik.handleChange}
+									onBlur={formik.handleBlur}
+									className={`h-11 pr-10 ${formik.touched.password && formik.errors.password ? "border-red-500" : "border-gray-300"}`}
+								/>
+								<button
+									type="button"
+									onClick={() => setShowPassword(!showPassword)}
+									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+									tabIndex="-1"
+								>
+									{showPassword ? (
+										<EyeOff className="h-5 w-5" />
+									) : (
+										<Eye className="h-5 w-5" />
+									)}
+								</button>
+							</div>
 							{formik.touched.password && formik.errors.password && (
-								<p className="text-red-500 text-sm mt-1">{formik.errors.password}</p>
+								<p className="text-red-500 text-sm">{formik.errors.password}</p>
 							)}
 						</div>
-						
-						{error && (
-							<div className="bg-red-50 p-3 rounded-md flex items-start gap-2">
-								<AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-								<p className="text-sm text-red-700">{error}</p>
-							</div>
-						)}
-						
+
+						<div className="flex items-center gap-2">
+							<input type="checkbox" id="remember" className="rounded border-gray-300" />
+							<label htmlFor="remember" className="text-sm text-gray-600">Remember Me</label>
+						</div>
+
 						<Button 
 							type="submit" 
-							className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-base" 
+							className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base transition-all duration-200 hover:shadow-lg hover:scale-[1.02]" 
 							disabled={isLoading}
 						>
-							{isLoading ? "Logging in..." : "Login"}
+							{isLoading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Đang xử lý...
+								</>
+							) : "Đăng nhập"}
 						</Button>
+
+						<div className="text-center">
+							<Link to="#" className="text-sm text-blue-600 hover:text-blue-700">
+								Advanced options
+							</Link>
+						</div>
 					</form>
-					
-					<p className="mt-8 text-center text-sm text-gray-700">
-						I'm a new user, <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">Sign Up</Link>
-					</p>
 				</motion.div>
 			</div>
 		</div>

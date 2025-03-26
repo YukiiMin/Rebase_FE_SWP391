@@ -1,0 +1,2120 @@
+/* Icon sizes */
+.icon-xs {
+    font-size: 0.75rem;
+}
+
+.icon-sm {
+    font-size: 0.875rem;
+}
+
+.icon-md {
+    font-size: 1rem;
+}
+
+.icon-lg {
+    font-size: 1.25rem;
+}
+
+.icon-xl {
+    font-size: 1.5rem;
+}
+
+.icon-2xl {
+    font-size: 2rem;
+}
+
+/* Icon colors */
+.icon-primary {
+    color: #2563eb;
+}
+
+.icon-secondary {
+    color: #4b5563;
+}
+
+.icon-success {
+    color: #10b981;
+}
+
+.icon-danger {
+    color: #ef4444;
+}
+
+.icon-warning {
+    color: #f59e0b;
+}
+
+.icon-info {
+    color: #3b82f6;
+}
+
+.icon-light {
+    color: #f3f4f6;
+}
+
+.icon-dark {
+    color: #1f2937;
+}
+
+/* Icon hover effects */
+.icon-hover-primary:hover {
+    color: #1d4ed8;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-secondary:hover {
+    color: #374151;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-success:hover {
+    color: #059669;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-danger:hover {
+    color: #dc2626;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-warning:hover {
+    color: #d97706;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-info:hover {
+    color: #2563eb;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-light:hover {
+    color: #e5e7eb;
+    transition: color 0.2s ease-in-out;
+}
+
+.icon-hover-dark:hover {
+    color: #111827;
+    transition: color 0.2s ease-in-out;
+}
+
+/* Icon animations */
+.icon-spin {
+    animation: spin 1s linear infinite;
+}
+
+.icon-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.icon-bounce {
+    animation: bounce 1s infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(-25%);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+
+/* Icon transitions */
+.icon-transition {
+    transition: all 0.2s ease-in-out;
+}
+
+.icon-transition-slow {
+    transition: all 0.3s ease-in-out;
+}
+
+.icon-transition-fast {
+    transition: all 0.1s ease-in-out;
+}
+
+/* Icon shadows */
+.icon-shadow {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.icon-shadow-md {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.icon-shadow-lg {
+    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+}
+
+/* Icon backgrounds */
+.icon-bg-primary {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-secondary {
+    background-color: #4b5563;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-success {
+    background-color: #10b981;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-danger {
+    background-color: #ef4444;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-warning {
+    background-color: #f59e0b;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-info {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-light {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-bg-dark {
+    background-color: #1f2937;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+/* Icon borders */
+.icon-border {
+    border: 1px solid currentColor;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.icon-border-primary {
+    border-color: #2563eb;
+}
+
+.icon-border-secondary {
+    border-color: #4b5563;
+}
+
+.icon-border-success {
+    border-color: #10b981;
+}
+
+.icon-border-danger {
+    border-color: #ef4444;
+}
+
+.icon-border-warning {
+    border-color: #f59e0b;
+}
+
+.icon-border-info {
+    border-color: #3b82f6;
+}
+
+.icon-border-light {
+    border-color: #f3f4f6;
+}
+
+.icon-border-dark {
+    border-color: #1f2937;
+}
+
+/* Icon groups */
+.icon-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon-group-vertical {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Icon with text */
+.icon-with-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon-with-text-vertical {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Icon badges */
+.icon-badge {
+    position: relative;
+    display: inline-flex;
+}
+
+.icon-badge::after {
+    content: attr(data-badge);
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    min-width: 1.5rem;
+    text-align: center;
+}
+
+/* Icon tooltips */
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+}
+
+.icon-tooltip::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1f2937;
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease-in-out;
+}
+
+.icon-tooltip:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Icon loading states */
+.icon-loading {
+    position: relative;
+}
+
+.icon-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Icon disabled states */
+.icon-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Icon focus states */
+.icon-focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #2563eb;
+    border-radius: 0.375rem;
+}
+
+/* Icon active states */
+.icon-active {
+    transform: scale(0.95);
+}
+
+/* Icon pressed states */
+.icon-pressed {
+    transform: scale(0.9);
+}
+
+/* Icon hover states */
+.icon-hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Icon click states */
+.icon-click {
+    transform: scale(0.95);
+    transition: transform 0.1s ease-in-out;
+}
+
+/* Icon drag states */
+.icon-drag {
+    cursor: grab;
+}
+
+.icon-drag:active {
+    cursor: grabbing;
+}
+
+/* Icon drop states */
+.icon-drop {
+    border: 2px dashed currentColor;
+}
+
+/* Icon selected states */
+.icon-selected {
+    background-color: #2563eb;
+    color: white;
+}
+
+/* Icon error states */
+.icon-error {
+    color: #ef4444;
+}
+
+/* Icon success states */
+.icon-success {
+    color: #10b981;
+}
+
+/* Icon warning states */
+.icon-warning {
+    color: #f59e0b;
+}
+
+/* Icon info states */
+.icon-info {
+    color: #3b82f6;
+}
+
+/* Icon help states */
+.icon-help {
+    color: #6b7280;
+}
+
+/* Icon close states */
+.icon-close {
+    cursor: pointer;
+}
+
+.icon-close:hover {
+    color: #ef4444;
+}
+
+/* Icon menu states */
+.icon-menu {
+    cursor: pointer;
+}
+
+.icon-menu:hover {
+    color: #2563eb;
+}
+
+/* Icon search states */
+.icon-search {
+    cursor: pointer;
+}
+
+.icon-search:hover {
+    color: #2563eb;
+}
+
+/* Icon filter states */
+.icon-filter {
+    cursor: pointer;
+}
+
+.icon-filter:hover {
+    color: #2563eb;
+}
+
+/* Icon sort states */
+.icon-sort {
+    cursor: pointer;
+}
+
+.icon-sort:hover {
+    color: #2563eb;
+}
+
+/* Icon refresh states */
+.icon-refresh {
+    cursor: pointer;
+}
+
+.icon-refresh:hover {
+    color: #2563eb;
+}
+
+/* Icon download states */
+.icon-download {
+    cursor: pointer;
+}
+
+.icon-download:hover {
+    color: #2563eb;
+}
+
+/* Icon upload states */
+.icon-upload {
+    cursor: pointer;
+}
+
+.icon-upload:hover {
+    color: #2563eb;
+}
+
+/* Icon print states */
+.icon-print {
+    cursor: pointer;
+}
+
+.icon-print:hover {
+    color: #2563eb;
+}
+
+/* Icon share states */
+.icon-share {
+    cursor: pointer;
+}
+
+.icon-share:hover {
+    color: #2563eb;
+}
+
+/* Icon bookmark states */
+.icon-bookmark {
+    cursor: pointer;
+}
+
+.icon-bookmark:hover {
+    color: #2563eb;
+}
+
+/* Icon favorite states */
+.icon-favorite {
+    cursor: pointer;
+}
+
+.icon-favorite:hover {
+    color: #ef4444;
+}
+
+/* Icon like states */
+.icon-like {
+    cursor: pointer;
+}
+
+.icon-like:hover {
+    color: #ef4444;
+}
+
+/* Icon dislike states */
+.icon-dislike {
+    cursor: pointer;
+}
+
+.icon-dislike:hover {
+    color: #ef4444;
+}
+
+/* Icon comment states */
+.icon-comment {
+    cursor: pointer;
+}
+
+.icon-comment:hover {
+    color: #2563eb;
+}
+
+/* Icon reply states */
+.icon-reply {
+    cursor: pointer;
+}
+
+.icon-reply:hover {
+    color: #2563eb;
+}
+
+/* Icon forward states */
+.icon-forward {
+    cursor: pointer;
+}
+
+.icon-forward:hover {
+    color: #2563eb;
+}
+
+/* Icon back states */
+.icon-back {
+    cursor: pointer;
+}
+
+.icon-back:hover {
+    color: #2563eb;
+}
+
+/* Icon next states */
+.icon-next {
+    cursor: pointer;
+}
+
+.icon-next:hover {
+    color: #2563eb;
+}
+
+/* Icon previous states */
+.icon-previous {
+    cursor: pointer;
+}
+
+.icon-previous:hover {
+    color: #2563eb;
+}
+
+/* Icon first states */
+.icon-first {
+    cursor: pointer;
+}
+
+.icon-first:hover {
+    color: #2563eb;
+}
+
+/* Icon last states */
+.icon-last {
+    cursor: pointer;
+}
+
+.icon-last:hover {
+    color: #2563eb;
+}
+
+/* Icon play states */
+.icon-play {
+    cursor: pointer;
+}
+
+.icon-play:hover {
+    color: #2563eb;
+}
+
+/* Icon pause states */
+.icon-pause {
+    cursor: pointer;
+}
+
+.icon-pause:hover {
+    color: #2563eb;
+}
+
+/* Icon stop states */
+.icon-stop {
+    cursor: pointer;
+}
+
+.icon-stop:hover {
+    color: #2563eb;
+}
+
+/* Icon record states */
+.icon-record {
+    cursor: pointer;
+}
+
+.icon-record:hover {
+    color: #ef4444;
+}
+
+/* Icon microphone states */
+.icon-microphone {
+    cursor: pointer;
+}
+
+.icon-microphone:hover {
+    color: #2563eb;
+}
+
+/* Icon camera states */
+.icon-camera {
+    cursor: pointer;
+}
+
+.icon-camera:hover {
+    color: #2563eb;
+}
+
+/* Icon video states */
+.icon-video {
+    cursor: pointer;
+}
+
+.icon-video:hover {
+    color: #2563eb;
+}
+
+/* Icon audio states */
+.icon-audio {
+    cursor: pointer;
+}
+
+.icon-audio:hover {
+    color: #2563eb;
+}
+
+/* Icon image states */
+.icon-image {
+    cursor: pointer;
+}
+
+.icon-image:hover {
+    color: #2563eb;
+}
+
+/* Icon file states */
+.icon-file {
+    cursor: pointer;
+}
+
+.icon-file:hover {
+    color: #2563eb;
+}
+
+/* Icon folder states */
+.icon-folder {
+    cursor: pointer;
+}
+
+.icon-folder:hover {
+    color: #2563eb;
+}
+
+/* Icon trash states */
+.icon-trash {
+    cursor: pointer;
+}
+
+.icon-trash:hover {
+    color: #ef4444;
+}
+
+/* Icon archive states */
+.icon-archive {
+    cursor: pointer;
+}
+
+.icon-archive:hover {
+    color: #2563eb;
+}
+
+/* Icon unarchive states */
+.icon-unarchive {
+    cursor: pointer;
+}
+
+.icon-unarchive:hover {
+    color: #2563eb;
+}
+
+/* Icon star states */
+.icon-star {
+    cursor: pointer;
+}
+
+.icon-star:hover {
+    color: #f59e0b;
+}
+
+/* Icon heart states */
+.icon-heart {
+    cursor: pointer;
+}
+
+.icon-heart:hover {
+    color: #ef4444;
+}
+
+/* Icon flag states */
+.icon-flag {
+    cursor: pointer;
+}
+
+.icon-flag:hover {
+    color: #ef4444;
+}
+
+/* Icon bookmark states */
+.icon-bookmark {
+    cursor: pointer;
+}
+
+.icon-bookmark:hover {
+    color: #2563eb;
+}
+
+/* Icon link states */
+.icon-link {
+    cursor: pointer;
+}
+
+.icon-link:hover {
+    color: #2563eb;
+}
+
+/* Icon unlink states */
+.icon-unlink {
+    cursor: pointer;
+}
+
+.icon-unlink:hover {
+    color: #ef4444;
+}
+
+/* Icon lock states */
+.icon-lock {
+    cursor: pointer;
+}
+
+.icon-lock:hover {
+    color: #2563eb;
+}
+
+/* Icon unlock states */
+.icon-unlock {
+    cursor: pointer;
+}
+
+.icon-unlock:hover {
+    color: #2563eb;
+}
+
+/* Icon key states */
+.icon-key {
+    cursor: pointer;
+}
+
+.icon-key:hover {
+    color: #2563eb;
+}
+
+/* Icon shield states */
+.icon-shield {
+    cursor: pointer;
+}
+
+.icon-shield:hover {
+    color: #2563eb;
+}
+
+/* Icon user states */
+.icon-user {
+    cursor: pointer;
+}
+
+.icon-user:hover {
+    color: #2563eb;
+}
+
+/* Icon users states */
+.icon-users {
+    cursor: pointer;
+}
+
+.icon-users:hover {
+    color: #2563eb;
+}
+
+/* Icon user-plus states */
+.icon-user-plus {
+    cursor: pointer;
+}
+
+.icon-user-plus:hover {
+    color: #2563eb;
+}
+
+/* Icon user-minus states */
+.icon-user-minus {
+    cursor: pointer;
+}
+
+.icon-user-minus:hover {
+    color: #ef4444;
+}
+
+/* Icon user-check states */
+.icon-user-check {
+    cursor: pointer;
+}
+
+.icon-user-check:hover {
+    color: #10b981;
+}
+
+/* Icon user-times states */
+.icon-user-times {
+    cursor: pointer;
+}
+
+.icon-user-times:hover {
+    color: #ef4444;
+}
+
+/* Icon user-lock states */
+.icon-user-lock {
+    cursor: pointer;
+}
+
+.icon-user-lock:hover {
+    color: #2563eb;
+}
+
+/* Icon user-unlock states */
+.icon-user-unlock {
+    cursor: pointer;
+}
+
+.icon-user-unlock:hover {
+    color: #2563eb;
+}
+
+/* Icon user-shield states */
+.icon-user-shield {
+    cursor: pointer;
+}
+
+.icon-user-shield:hover {
+    color: #2563eb;
+}
+
+/* Icon user-cog states */
+.icon-user-cog {
+    cursor: pointer;
+}
+
+.icon-user-cog:hover {
+    color: #2563eb;
+}
+
+/* Icon user-edit states */
+.icon-user-edit {
+    cursor: pointer;
+}
+
+.icon-user-edit:hover {
+    color: #2563eb;
+}
+
+/* Icon user-friends states */
+.icon-user-friends {
+    cursor: pointer;
+}
+
+.icon-user-friends:hover {
+    color: #2563eb;
+}
+
+/* Icon user-graduate states */
+.icon-user-graduate {
+    cursor: pointer;
+}
+
+.icon-user-graduate:hover {
+    color: #2563eb;
+}
+
+/* Icon user-injured states */
+.icon-user-injured {
+    cursor: pointer;
+}
+
+.icon-user-injured:hover {
+    color: #ef4444;
+}
+
+/* Icon user-virus states */
+.icon-user-virus {
+    cursor: pointer;
+}
+
+.icon-user-virus:hover {
+    color: #ef4444;
+}
+
+/* Icon user-doctor states */
+.icon-user-doctor {
+    cursor: pointer;
+}
+
+.icon-user-doctor:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse states */
+.icon-user-nurse {
+    cursor: pointer;
+}
+
+.icon-user-nurse:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital states */
+.icon-user-hospital {
+    cursor: pointer;
+}
+
+.icon-user-hospital:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic states */
+.icon-user-clinic {
+    cursor: pointer;
+}
+
+.icon-user-clinic:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical states */
+.icon-user-medical {
+    cursor: pointer;
+}
+
+.icon-user-medical:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt states */
+.icon-user-medical-alt {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md states */
+.icon-user-md {
+    cursor: pointer;
+}
+
+.icon-user-md:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt states */
+.icon-user-md-alt {
+    cursor: pointer;
+}
+
+.icon-user-md-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt states */
+.icon-user-nurse-alt {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt states */
+.icon-user-doctor-alt {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt states */
+.icon-user-hospital-alt {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt states */
+.icon-user-clinic-alt {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt2 states */
+.icon-user-medical-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt2 states */
+.icon-user-md-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt2 states */
+.icon-user-nurse-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt2 states */
+.icon-user-doctor-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt2 states */
+.icon-user-hospital-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt2 states */
+.icon-user-clinic-alt2 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt2:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt3 states */
+.icon-user-medical-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt3 states */
+.icon-user-md-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt3 states */
+.icon-user-nurse-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt3 states */
+.icon-user-doctor-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt3 states */
+.icon-user-hospital-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt3 states */
+.icon-user-clinic-alt3 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt3:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt4 states */
+.icon-user-medical-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt4 states */
+.icon-user-md-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt4 states */
+.icon-user-nurse-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt4 states */
+.icon-user-doctor-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt4 states */
+.icon-user-hospital-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt4 states */
+.icon-user-clinic-alt4 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt4:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt5 states */
+.icon-user-medical-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt5 states */
+.icon-user-md-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt5 states */
+.icon-user-nurse-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt5 states */
+.icon-user-doctor-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt5 states */
+.icon-user-hospital-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt5 states */
+.icon-user-clinic-alt5 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt5:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt6 states */
+.icon-user-medical-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt6 states */
+.icon-user-md-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt6 states */
+.icon-user-nurse-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt6 states */
+.icon-user-doctor-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt6 states */
+.icon-user-hospital-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt6 states */
+.icon-user-clinic-alt6 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt6:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt7 states */
+.icon-user-medical-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt7 states */
+.icon-user-md-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt7 states */
+.icon-user-nurse-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt7 states */
+.icon-user-doctor-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt7 states */
+.icon-user-hospital-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt7 states */
+.icon-user-clinic-alt7 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt7:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt8 states */
+.icon-user-medical-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt8 states */
+.icon-user-md-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt8 states */
+.icon-user-nurse-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt8 states */
+.icon-user-doctor-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt8 states */
+.icon-user-hospital-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt8 states */
+.icon-user-clinic-alt8 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt8:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt9 states */
+.icon-user-medical-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt9 states */
+.icon-user-md-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt9 states */
+.icon-user-nurse-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt9 states */
+.icon-user-doctor-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt9 states */
+.icon-user-hospital-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt9 states */
+.icon-user-clinic-alt9 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt9:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt10 states */
+.icon-user-medical-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt10 states */
+.icon-user-md-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt10 states */
+.icon-user-nurse-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt10 states */
+.icon-user-doctor-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt10 states */
+.icon-user-hospital-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt10 states */
+.icon-user-clinic-alt10 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt10:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt11 states */
+.icon-user-medical-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt11 states */
+.icon-user-md-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt11 states */
+.icon-user-nurse-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt11 states */
+.icon-user-doctor-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt11 states */
+.icon-user-hospital-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt11 states */
+.icon-user-clinic-alt11 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt11:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt12 states */
+.icon-user-medical-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt12 states */
+.icon-user-md-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt12 states */
+.icon-user-nurse-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt12 states */
+.icon-user-doctor-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt12 states */
+.icon-user-hospital-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt12 states */
+.icon-user-clinic-alt12 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt12:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt13 states */
+.icon-user-medical-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt13 states */
+.icon-user-md-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt13 states */
+.icon-user-nurse-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt13 states */
+.icon-user-doctor-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt13 states */
+.icon-user-hospital-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt13 states */
+.icon-user-clinic-alt13 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt13:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt14 states */
+.icon-user-medical-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt14 states */
+.icon-user-md-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt14 states */
+.icon-user-nurse-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt14 states */
+.icon-user-doctor-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt14 states */
+.icon-user-hospital-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt14 states */
+.icon-user-clinic-alt14 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt14:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt15 states */
+.icon-user-medical-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt15 states */
+.icon-user-md-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt15 states */
+.icon-user-nurse-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt15 states */
+.icon-user-doctor-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt15 states */
+.icon-user-hospital-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt15 states */
+.icon-user-clinic-alt15 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt15:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt16 states */
+.icon-user-medical-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt16 states */
+.icon-user-md-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt16 states */
+.icon-user-nurse-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt16 states */
+.icon-user-doctor-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt16 states */
+.icon-user-hospital-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt16 states */
+.icon-user-clinic-alt16 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt16:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt17 states */
+.icon-user-medical-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt17 states */
+.icon-user-md-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt17 states */
+.icon-user-nurse-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt17 states */
+.icon-user-doctor-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt17 states */
+.icon-user-hospital-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt17 states */
+.icon-user-clinic-alt17 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt17:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt18 states */
+.icon-user-medical-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt18 states */
+.icon-user-md-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt18 states */
+.icon-user-nurse-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt18 states */
+.icon-user-doctor-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt18 states */
+.icon-user-hospital-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt18 states */
+.icon-user-clinic-alt18 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt18:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt19 states */
+.icon-user-medical-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt19 states */
+.icon-user-md-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt19 states */
+.icon-user-nurse-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt19 states */
+.icon-user-doctor-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt19 states */
+.icon-user-hospital-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt19 states */
+.icon-user-clinic-alt19 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt19:hover {
+    color: #2563eb;
+}
+
+/* Icon user-medical-alt20 states */
+.icon-user-medical-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-medical-alt20:hover {
+    color: #2563eb;
+}
+
+/* Icon user-md-alt20 states */
+.icon-user-md-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-md-alt20:hover {
+    color: #2563eb;
+}
+
+/* Icon user-nurse-alt20 states */
+.icon-user-nurse-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-nurse-alt20:hover {
+    color: #2563eb;
+}
+
+/* Icon user-doctor-alt20 states */
+.icon-user-doctor-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-doctor-alt20:hover {
+    color: #2563eb;
+}
+
+/* Icon user-hospital-alt20 states */
+.icon-user-hospital-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-hospital-alt20:hover {
+    color: #2563eb;
+}
+
+/* Icon user-clinic-alt20 states */
+.icon-user-clinic-alt20 {
+    cursor: pointer;
+}
+
+.icon-user-clinic-alt20:hover {
+    color: #2563eb;
+}
+</code_block_to_apply_changes_from>
+</rewritten_file> 

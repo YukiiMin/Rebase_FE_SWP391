@@ -603,6 +603,7 @@ function BookingPage() {
 												<PlusCircleIcon className="mr-2 h-4 w-4" />
 												Add Child
 											</Button>
+											{isOpen && <AddChild setIsOpen={setIsOpen} open={isOpen} onAdded={() => handleChildAdd()} />}
 										</div>
 									</CardContent>
 								</Card>
