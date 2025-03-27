@@ -11,8 +11,10 @@ import {
 } from "../components/ui/table";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useTranslation } from "react-i18next";
 
 function PriceListPage() {
+	const { t } = useTranslation();
 	const vaccineAPI = "http://localhost:8080/vaccine";
 	const [vaccineList, setVaccineList] = useState([]);
 
@@ -46,7 +48,7 @@ function PriceListPage() {
 					className="text-center mb-8"
 				>
 					<h1 className="text-3xl font-bold text-gray-900 mb-4">
-						Vaccination Price List and Payment Methods
+						{t('price_list.title')}
 					</h1>
 				</motion.div>
 
@@ -56,17 +58,17 @@ function PriceListPage() {
 					transition={{ duration: 0.5, delay: 0.1 }}
 					className="mb-12"
 				>
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">Vaccination Price List</h2>
+					<h2 className="text-2xl font-bold text-gray-900 mb-4">{t('price_list.vaccine_prices')}</h2>
 					<Card>
 						<CardContent className="p-0">
 							<Table>
 								<TableHeader>
 									<TableRow>
 										<TableHead>#</TableHead>
-										<TableHead>Vaccine Name</TableHead>
-										<TableHead>Origin</TableHead>
-										<TableHead>Price/Dose ($)</TableHead>
-										<TableHead>Status</TableHead>
+										<TableHead>{t('price_list.vaccine_name')}</TableHead>
+										<TableHead>{t('price_list.origin')}</TableHead>
+										<TableHead>{t('price_list.price_per_dose')}</TableHead>
+										<TableHead>{t('price_list.status')}</TableHead>
 									</TableRow>
 								</TableHeader>
 								<TableBody>
@@ -85,7 +87,7 @@ function PriceListPage() {
 																: "bg-red-100 text-red-800"
 														}`}
 													>
-														{vaccine.status ? "Available" : "Unavailable"}
+														{vaccine.status ? t('price_list.available') : t('price_list.unavailable')}
 													</span>
 												</TableCell>
 											</TableRow>
@@ -93,7 +95,7 @@ function PriceListPage() {
 									) : (
 										<TableRow>
 											<TableCell colSpan={5} className="text-center">
-												No data available
+												{t('price_list.no_data')}
 											</TableCell>
 										</TableRow>
 									)}
@@ -108,21 +110,21 @@ function PriceListPage() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5, delay: 0.2 }}
 				>
-					<h2 className="text-2xl font-bold text-gray-900 mb-4">Payment Methods</h2>
+					<h2 className="text-2xl font-bold text-gray-900 mb-4">{t('price_list.payment_methods')}</h2>
 					<Card>
 						<CardContent className="pt-6">
 							<ul className="space-y-2">
 								<li className="flex items-center">
 									<span className="h-2 w-2 rounded-full bg-primary mr-2"></span>
-									Cash payment at the cashier.
+									{t('price_list.payment_cash')}
 								</li>
 								<li className="flex items-center">
 									<span className="h-2 w-2 rounded-full bg-primary mr-2"></span>
-									Payment by credit card.
+									{t('price_list.payment_card')}
 								</li>
 								<li className="flex items-center">
 									<span className="h-2 w-2 rounded-full bg-primary mr-2"></span>
-									Payment via e-commerce applications, mobile payment services, VNPAY-QR e-wallets, Momo, etc.
+									{t('price_list.payment_ecommerce')}
 								</li>
 							</ul>
 						</CardContent>

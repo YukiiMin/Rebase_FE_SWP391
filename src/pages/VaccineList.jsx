@@ -6,8 +6,10 @@ import { Input } from "../components/ui/input";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 function VaccineList() {
+	const { t } = useTranslation();
 	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
 	const vaccineAPI = "http://localhost:8080/vaccine";
 	const [vaccinesList, setVaccinesList] = useState([]);
@@ -73,13 +75,13 @@ function VaccineList() {
 			
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 				<div className="flex flex-col md:flex-row justify-between items-center mb-8">
-					<h1 className="text-3xl font-bold text-gray-900 mb-4 md:mb-0">Vaccine List</h1>
+					<h1 className="text-3xl font-bold text-gray-900 mb-4 md:mb-0">{t('vaccines.list_title')}</h1>
 					
 					<form onSubmit={handleSearch} className="w-full md:w-96">
 						<div className="relative">
 							<Input 
 								type="text"
-								placeholder="Search vaccines..." 
+								placeholder={t('vaccines.search_placeholder')} 
 								value={search} 
 								onChange={handleChangeSearch}
 								className="pr-10"
@@ -118,12 +120,12 @@ function VaccineList() {
 											<CardTitle className="line-clamp-1">{vaccine.name}</CardTitle>
 										</CardHeader>
 										<CardContent className="pb-2 flex-grow">
-											<p className="text-gray-600 font-medium">Price: ${vaccine.salePrice}</p>
+											<p className="text-gray-600 font-medium">{t('vaccines.price')}: ${vaccine.salePrice}</p>
 											<p className="text-gray-500 text-sm line-clamp-3 mt-2">{vaccine.description}</p>
 										</CardContent>
 										<CardFooter className="pt-0">
 											<Button asChild className="w-full">
-												<Link to={`/VaccineDetail/${vaccine.id}`}>View Details</Link>
+												<Link to={`/VaccineDetail/${vaccine.id}`}>{t('vaccines.view_details')}</Link>
 											</Button>
 										</CardFooter>
 									</Card>
@@ -131,14 +133,14 @@ function VaccineList() {
 							))
 						) : (
 							<div className="col-span-full flex items-center justify-center py-12">
-								<p className="text-gray-500 text-lg">No results found for "{search}"</p>
+								<p className="text-gray-500 text-lg">{t('vaccines.no_results')} "{search}"</p>
 							</div>
 						)}
 					</motion.div>
 				) : (
 					<div className="flex flex-col items-center justify-center py-16">
-						<div className="text-red-500 font-bold text-xl mb-2">No data retrieved.</div>
-						<p className="text-gray-500">Please check your network connection.</p>
+						<div className="text-red-500 font-bold text-xl mb-2">{t('vaccines.no_data')}</div>
+						<p className="text-gray-500">{t('vaccines.check_connection')}</p>
 					</div>
 				)}
 			</div>

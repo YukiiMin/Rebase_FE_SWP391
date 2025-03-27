@@ -3,8 +3,10 @@ import MainNav from "../components/MainNav";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 function VaccineDetail() {
+	const { t } = useTranslation();
 	const [vaccineList, setVaccineList] = useState([]);
 	const [vaccine, setVaccine] = useState();
 	const [loading, setLoading] = useState(true);
@@ -68,11 +70,11 @@ function VaccineDetail() {
 										<CardTitle className="text-2xl mb-4 text-primary">{vaccine.name}</CardTitle>
 										<div className="space-y-2">
 											<p className="flex justify-between border-b pb-2">
-												<span className="font-semibold">Manufacturer:</span> 
+												<span className="font-semibold">{t('vaccine_detail.manufacturer')}:</span> 
 												<span>{vaccine.manufacturer}</span>
 											</p>
 											<p className="flex justify-between border-b pb-2">
-												<span className="font-semibold">Price:</span> 
+												<span className="font-semibold">{t('vaccine_detail.price')}:</span> 
 												<span className="font-semibold text-primary">${vaccine.salePrice}</span>
 											</p>
 										</div>
@@ -82,21 +84,21 @@ function VaccineDetail() {
 							<CardContent className="pt-6">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 									<div>
-										<h3 className="text-lg font-semibold mb-2">Description</h3>
+										<h3 className="text-lg font-semibold mb-2">{t('vaccine_detail.description')}</h3>
 										<p className="text-gray-700 mb-4">{vaccine.description}</p>
 										
-										<InfoItem label="Category" value={vaccine.category} />
-										<InfoItem label="Dosage" value={vaccine.dosage} />
-										<InfoItem label="Contraindications" value={vaccine.contraindications} />
-										<InfoItem label="Precautions" value={vaccine.precautions} />
-										<InfoItem label="Interactions" value={vaccine.interactions} />
+										<InfoItem label={t('vaccine_detail.category')} value={vaccine.category} />
+										<InfoItem label={t('vaccine_detail.dosage')} value={vaccine.dosage} />
+										<InfoItem label={t('vaccine_detail.contraindications')} value={vaccine.contraindications} />
+										<InfoItem label={t('vaccine_detail.precautions')} value={vaccine.precautions} />
+										<InfoItem label={t('vaccine_detail.interactions')} value={vaccine.interactions} />
 									</div>
 									<div>
-										<InfoItem label="Adverse Reactions" value={vaccine.adverseReaction} />
-										<InfoItem label="Storage Conditions" value={vaccine.storageConditions} />
-										<InfoItem label="Recommended For" value={vaccine.recommended} />
-										<InfoItem label="Pre-Vaccination Information" value={vaccine.preVaccination} />
-										<InfoItem label="Compatibility" value={vaccine.compatibility} />
+										<InfoItem label={t('vaccine_detail.adverse_reactions')} value={vaccine.adverseReaction} />
+										<InfoItem label={t('vaccine_detail.storage_conditions')} value={vaccine.storageConditions} />
+										<InfoItem label={t('vaccine_detail.recommended_for')} value={vaccine.recommended} />
+										<InfoItem label={t('vaccine_detail.pre_vaccination')} value={vaccine.preVaccination} />
+										<InfoItem label={t('vaccine_detail.compatibility')} value={vaccine.compatibility} />
 									</div>
 								</div>
 							</CardContent>
@@ -104,8 +106,8 @@ function VaccineDetail() {
 					</motion.div>
 				) : (
 					<div className="text-center py-12">
-						<h2 className="text-2xl font-bold text-gray-700">Vaccine not found</h2>
-						<p className="mt-2 text-gray-500">The requested vaccine information could not be found.</p>
+						<h2 className="text-2xl font-bold text-gray-700">{t('vaccine_detail.not_found')}</h2>
+						<p className="mt-2 text-gray-500">{t('vaccine_detail.not_found_message')}</p>
 					</div>
 				)}
 			</div>

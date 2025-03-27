@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
 
 function UpdateRole({ setIsOpen, open, userId }) {
 	const navigate = useNavigate();
@@ -85,58 +89,60 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		setIsOpen(false);
 	};
 
-	const handleRoleChange = (e) => {
-		setRole(e.target.value);
+	const handleRoleChange = (value) => {
+		setRole(value);
 	};
 
-	const handleStatusChange = (e) => {
-		setStatus(e.target.checked);
+	const handleStatusChange = (checked) => {
+		setStatus(checked);
 	};
 
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose}>
-				{console.log(role, status)}
-				<Form method="PATCH" onSubmit={(e) => {
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[425px]">
+				<DialogHeader>
+					<DialogTitle>Update Role</DialogTitle>
+				</DialogHeader>
+				<form onSubmit={(e) => {
 					e.preventDefault();
 					handleSubmit();
-				}}>
-					<Modal.Header closeButton>
-						<Modal.Title>Update Role</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Form.Group className="mb-3">
-							<Form.Label>Role</Form.Label>
-							<Form.Select value={role} onChange={handleRoleChange}>
+				}} className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="role">Role</Label>
+						<Select value={role} onValueChange={handleRoleChange}>
+							<SelectTrigger id="role">
+								<SelectValue placeholder="Select a role" />
+							</SelectTrigger>
+							<SelectContent>
 								{validRoles.map((roleOption) => (
-									<option key={roleOption.value} value={roleOption.value}>
+									<SelectItem key={roleOption.value} value={roleOption.value}>
 										{roleOption.label}
-									</option>
+									</SelectItem>
 								))}
-							</Form.Select>
-						</Form.Group>
-						
-						<Form.Group className="mb-3">
-							<Form.Check 
-								type="switch" 
-								id="status" 
-								label={status ? "Active" : "Inactive"} 
-								checked={status} 
-								onChange={handleStatusChange} 
-							/>
-						</Form.Group>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+							</SelectContent>
+						</Select>
+					</div>
+					
+					<div className="flex items-center justify-between space-y-2">
+						<Label htmlFor="status">Status: {status ? "Active" : "Inactive"}</Label>
+						<Switch 
+							id="status" 
+							checked={status} 
+							onCheckedChange={handleStatusChange} 
+						/>
+					</div>
+					
+					<DialogFooter className="mt-6">
+						<Button variant="outline" type="button" onClick={handleClose}>
+							Cancel
 						</Button>
-						<Button variant="primary" type="submit">
+						<Button type="submit">
 							Update
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

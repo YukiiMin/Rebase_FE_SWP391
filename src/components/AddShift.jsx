@@ -1,9 +1,17 @@
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
-import { Button, Col, Form, Modal, Row, Table, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { TokenUtils } from "../utils/TokenUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Alert, AlertTitle, AlertDescription } from "../components/ui/alert";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../components/ui/table";
+import { Checkbox } from "../components/ui/checkbox";
+import { Switch } from "../components/ui/switch";
 
 function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const navigate = useNavigate();
@@ -16,33 +24,6 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const [apiError, setApiError] = useState("");
 
 	const [repeat, setRepeat] = useState(false);
-
-	// const validation = Yup.object({
-	// 	scheduleName: Yup.string().required("Schedule name is required"),
-	// 	shiftType: Yup.string().required("Choose a shift type"),
-	// 	startDate: Yup.date()
-	// 		.transform((currentValue, originalValue) => {
-	// 			return originalValue ? new Date(originalValue) : null;
-	// 		})
-	// 		.nullable()
-	// 		.required("Start date is required")
-	// 		.min(new Date(new Date().setDate(new Date().getDate())), "Start date cannot be today or before"),
-	// 	endDate: Yup.date()
-	// 		.transform((currentValue, originalValue) => {
-	// 			return originalValue ? new Date(originalValue) : null;
-	// 		})
-	// 		.nullable()
-	// 		.required("End date is required")
-	// 		.when("startDate", (startDate, schema) => {
-	// 			return schema.test("endDate-after-startDate", "End date cannot be sooner than start date", function (endDate) {
-	// 				const { startDate: startDateValue } = this.parent; // Access startDate from form values
-	// 				if (!startDateValue || !endDate) {
-	// 					return true; // Skip validation if either date is empty
-	// 				}
-	// 				return new Date(endDate) >= new Date(startDateValue);
-	// 			});
-	// 		}),
-	// });
 
 	const validation = Yup.object({
 		scheduleName: Yup.string().required("Schedule name is required"),
@@ -107,9 +88,9 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 
 	const handleClose = () => setIsOpen(false); //Close modal
 
-	const handleRepeat = (e) => {
-		setRepeat(e.target.checked);
-		formik.setFieldValue("repeat", e.target.checked);
+	const handleRepeat = (checked) => {
+		setRepeat(checked);
+		formik.setFieldValue("repeat", checked);
 	};
 
 	//Handle format date error
@@ -121,12 +102,12 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	};
 
 	//Function handle changing repeat day for formik
-	const handleDayChange = (day) => {
+	const handleDayChange = (day, checked) => {
 		const repeatDays = [...formik.values.repeatDays];
 		const index = repeatDays.indexOf(day);
-		if (index === -1) {
+		if (checked && index === -1) {
 			repeatDays.push(day);
-		} else {
+		} else if (!checked && index !== -1) {
 			repeatDays.splice(index, 1);
 		}
 		formik.setFieldValue("repeatDays", repeatDays);
@@ -248,173 +229,215 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 				setApiError("Failed to fetch staff list");
 			}
 		} catch (err) {
-			console.error("Something went wrong while fetching accounts: ", err);
-			setApiError("Error loading staff list");
+			console.error("Something went wrong when fetching:", err);
+			setApiError(`Error fetching staff list: ${err.message || "Unknown error"}`);
 		}
 	};
 
-	//Get the chosen staffs
+	//Xử lý check/uncheck nhân viên
 	const handleStaffSelection = (staff) => {
-		const isSelected = chosenStaff.some((s) => s.accountId === staff.accountId);
+		const isSelected = chosenStaff.find(s => s.accountId === staff.accountId);
+		
 		if (isSelected) {
-			setChosenStaff(chosenStaff.filter((s) => s.accountId !== staff.accountId));
+			setChosenStaff(chosenStaff.filter(s => s.accountId !== staff.accountId));
 		} else {
 			setChosenStaff([...chosenStaff, staff]);
 		}
+		
+		// Clear staff error when a staff is selected
+		if (staffError && !isSelected) {
+			setStaffError("");
+		}
 	};
 
+	//On load component
 	useEffect(() => {
 		fetchStaff();
 	}, []);
 
+	//For debug
+	useEffect(() => {
+		console.log("Selected staff:", chosenStaff);
+	}, [chosenStaff]);
+
+	const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+
 	return (
-		<div>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form method="POST" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Add Schedule</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						{apiError && (
-							<Alert variant="danger" className="mb-3">
-								{apiError}
-							</Alert>
-						)}
-						
-						<Form.Group className="mb-3" controlId="Shift name">
-							<Form.Label>Schedule name</Form.Label>
-							<Form.Control
-								type="text"
-								placeholder="Enter shift name"
+		<Dialog open={open} onOpenChange={handleClose}>
+			<DialogContent className="max-w-4xl">
+				<DialogHeader>
+					<DialogTitle>Add Work Schedule</DialogTitle>
+				</DialogHeader>
+				
+				{apiError && (
+					<Alert variant="destructive" className="mb-4">
+						<AlertTitle>Error</AlertTitle>
+						<AlertDescription>{apiError}</AlertDescription>
+					</Alert>
+				)}
+				
+				<form onSubmit={formik.handleSubmit} className="space-y-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div className="space-y-2">
+							<Label htmlFor="scheduleName">Schedule Name</Label>
+							<Input
+								id="scheduleName"
 								name="scheduleName"
 								value={formik.values.scheduleName}
 								onChange={formik.handleChange}
-								isInvalid={formik.touched.scheduleName && formik.errors.scheduleName}
+								onBlur={formik.handleBlur}
+								placeholder="Enter schedule name"
 							/>
-							<Form.Control.Feedback type="invalid">{formik.errors.scheduleName}</Form.Control.Feedback>
-						</Form.Group>
-						<Row>
-							<Col>
-								<Form.Group className="mb-3" controlId="startDate">
-									<Form.Label>Start</Form.Label>
-									<Form.Control type="date" name="startDate" value={formik.values.startDate} onChange={handleStartDateChange} isInvalid={formik.touched.startDate && formik.errors.startDate} />
-									<Form.Control.Feedback type="invalid">{formik.errors.startDate}</Form.Control.Feedback>
-								</Form.Group>
-							</Col>
-							<Col>
-								<Form.Group className="mb-3" controlId="endDate">
-									<Form.Label>End</Form.Label>
-									<Form.Control type="date" name="endDate" value={formik.values.endDate} onChange={handleEndDateChange} isInvalid={formik.touched.endDate && formik.errors.endDate} />
-									<Form.Control.Feedback type="invalid">{formik.errors.endDate}</Form.Control.Feedback>
-									<Form.Text className="text-muted">
-										End date must be within one year of start date.
-									</Form.Text>
-								</Form.Group>
-							</Col>
-							{/* <Col>
-								<Form.Group className="mb-3" controlId="endDate">
-									<Form.Label>Start time</Form.Label>
-									<Form.Control type="time" />
-								</Form.Group>
-							</Col>
-							<Col>
-								<Form.Group className="mb-3" controlId="endDate">
-									<Form.Label>End time</Form.Label>
-									<Form.Control type="time" />
-								</Form.Group>
-							</Col> */}
-							<Col>
-								<Form.Group className="mb-3">
-									<Form.Label>Shift type</Form.Label>
-									<Form.Select aria-label="Type" name="shiftType" value={formik.values.shiftType} onChange={formik.handleChange} isInvalid={formik.touched.shiftType && formik.errors.shiftType}>
-										<option>---Select---</option>
-										<option value="HC">Hanh Chinh</option>
-									</Form.Select>
-									<Form.Control.Feedback type="invalid">{formik.errors.shiftType}</Form.Control.Feedback>
-								</Form.Group>
-							</Col>
-						</Row>
-
-						<Form.Check type="switch" id="custom-switch" label="Repeat" checked={repeat} onChange={handleRepeat} />
+							{formik.touched.scheduleName && formik.errors.scheduleName && (
+								<p className="text-sm text-red-500">{formik.errors.scheduleName}</p>
+							)}
+						</div>
+						
+						<div className="space-y-2">
+							<Label htmlFor="shiftType">Shift Type</Label>
+							<Select 
+								name="shiftType" 
+								onValueChange={(value) => formik.setFieldValue("shiftType", value)}
+								value={formik.values.shiftType}
+							>
+								<SelectTrigger id="shiftType">
+									<SelectValue placeholder="Select shift type" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="MORNING">Morning Shift (7:00 - 12:00)</SelectItem>
+									<SelectItem value="AFTERNOON">Afternoon Shift (13:00 - 17:00)</SelectItem>
+									<SelectItem value="EVENING">Evening Shift (18:00 - 23:00)</SelectItem>
+								</SelectContent>
+							</Select>
+							{formik.touched.shiftType && formik.errors.shiftType && (
+								<p className="text-sm text-red-500">{formik.errors.shiftType}</p>
+							)}
+						</div>
+					</div>
+					
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div className="space-y-2">
+							<Label htmlFor="startDate">Start Date</Label>
+							<Input
+								id="startDate"
+								name="startDate"
+								type="date"
+								value={formik.values.startDate}
+								onChange={handleStartDateChange}
+								onBlur={formik.handleBlur}
+							/>
+							{formik.touched.startDate && formik.errors.startDate && (
+								<p className="text-sm text-red-500">{formik.errors.startDate}</p>
+							)}
+						</div>
+						
+						<div className="space-y-2">
+							<Label htmlFor="endDate">End Date</Label>
+							<Input
+								id="endDate"
+								name="endDate"
+								type="date"
+								value={formik.values.endDate}
+								onChange={handleEndDateChange}
+								onBlur={formik.handleBlur}
+							/>
+							{formik.touched.endDate && formik.errors.endDate && (
+								<p className="text-sm text-red-500">{formik.errors.endDate}</p>
+							)}
+						</div>
+					</div>
+					
+					<div className="space-y-2">
+						<div className="flex items-center space-x-2">
+							<Switch
+								id="repeat"
+								checked={repeat}
+								onCheckedChange={handleRepeat}
+							/>
+							<Label htmlFor="repeat">Repeat on specific days of the week</Label>
+						</div>
+						
 						{repeat && (
-							<>
-								<Form.Group className="mb-3">
-									<Form.Label>Repeat every</Form.Label>
-									<Form.Select>
-										<option value="week">Week</option>
-									</Form.Select>
-								</Form.Group>
-								<Form.Group className="mb-3">
-									<Form.Label>Repeat on</Form.Label>
-									<Row>
-										{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-											<Col key={day}>
-												<Form.Check type="checkbox" label={day} checked={formik.values.repeatDays.includes(day)} onChange={() => handleDayChange(day)} />
-											</Col>
-										))}
-									</Row>
-									{formik.touched.repeatDays && formik.errors.repeatDays && <div className="text-danger">{formik.errors.repeatDays}</div>}
-								</Form.Group>
-							</>
+							<div className="mt-4 grid grid-cols-3 md:grid-cols-7 gap-2">
+								{days.map((day) => (
+									<div key={day} className="flex items-center space-x-2">
+										<Checkbox
+											id={day}
+											checked={formik.values.repeatDays.includes(day)}
+											onCheckedChange={(checked) => handleDayChange(day, checked)}
+										/>
+										<Label htmlFor={day}>{day.charAt(0) + day.slice(1).toLowerCase()}</Label>
+									</div>
+								))}
+							</div>
 						)}
-						<hr />
-
-						<Row>
-							<Col>
-								<h3>Choose Staff</h3>
-								<Table striped bordered hover responsive>
-									<thead>
-										<tr>
-											<th>#</th>
-											<th>Staff ID</th>
-											<th>Staff name</th>
-											<th>Role</th>
-										</tr>
-									</thead>
-									<tbody>
-										{staffs.length > 0 ? (
-											staffs.map((staff) => (
-												<tr key={staff.accountId}>
-													<td>
-														<Form.Check checked={chosenStaff.some((s) => s.accountId === staff.accountId)} onChange={() => handleStaffSelection(staff)} />
-													</td>
-													<td>{staff.accountId}</td>
-													<td>{`${staff.firstName} ${staff.lastName}`}</td>
-													<td>{staff.roleName}</td>
-												</tr>
-											))
-										) : (
-											<tr>
-												<td colSpan={4} className="text-center">
-													No staff available
-												</td>
-											</tr>
-										)}
-									</tbody>
-								</Table>
-							</Col>
-							<Col>
-								<h3>Chosen Staff:</h3>
-								{chosenStaff.length === 0 && staffError && <p className="text-danger">{staffError}</p>}
-								<ul>
-									{chosenStaff.map((staff) => (
-										<li key={staff.accountId}>{`${staff.firstName} ${staff.lastName} (${staff.roleName})`}</li>
+					</div>
+					
+					<div className="space-y-4">
+						<div className="flex justify-between items-center">
+							<h3 className="text-lg font-medium">Select Staff for Schedule</h3>
+							{staffError && <p className="text-sm text-red-500">{staffError}</p>}
+						</div>
+						
+						<div className="border rounded-lg">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-12">
+											<span className="sr-only">Select</span>
+										</TableHead>
+										<TableHead>Staff ID</TableHead>
+										<TableHead>Name</TableHead>
+										<TableHead>Email</TableHead>
+										<TableHead>Phone</TableHead>
+										<TableHead>Role</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{staffs.map((staff) => (
+										<TableRow key={staff.accountId} className="cursor-pointer hover:bg-gray-50" onClick={() => handleStaffSelection(staff)}>
+											<TableCell>
+												<Checkbox
+													checked={chosenStaff.some(s => s.accountId === staff.accountId)}
+													onCheckedChange={(checked) => {
+														if (checked) {
+															handleStaffSelection(staff);
+														} else {
+															handleStaffSelection(staff);
+														}
+													}}
+												/>
+											</TableCell>
+											<TableCell>{staff.accountId}</TableCell>
+											<TableCell>{staff.firstName} {staff.lastName}</TableCell>
+											<TableCell>{staff.email}</TableCell>
+											<TableCell>{staff.phone}</TableCell>
+											<TableCell>{staff.roleName}</TableCell>
+										</TableRow>
 									))}
-								</ul>
-							</Col>
-						</Row>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
-							Close
+									{staffs.length === 0 && (
+										<TableRow>
+											<TableCell colSpan={6} className="text-center py-4 text-gray-500">
+												No staff available or failed to load staff list
+											</TableCell>
+										</TableRow>
+									)}
+								</TableBody>
+							</Table>
+						</div>
+					</div>
+					
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={handleClose} className="mr-2">
+							Cancel
 						</Button>
-						<Button type="submit" variant="primary">
-							Add
+						<Button type="submit">
+							Create Schedule
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

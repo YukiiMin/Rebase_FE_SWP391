@@ -1,44 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
+import { Globe } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
-export default function LanguageSwitcher() {
-  const { i18n } = useTranslation();
-  const [currentLanguage, setCurrentLanguage] = useState(
-    localStorage.getItem('language') || 'vi'
-  );
+const LanguageSwitcher = () => {
+  const { i18n, t } = useTranslation();
+  const [language, setLanguage] = useState('vi');
 
   useEffect(() => {
-    // Update localStorage when language changes
-    localStorage.setItem('language', currentLanguage);
-    i18n.changeLanguage(currentLanguage);
-  }, [currentLanguage, i18n]);
+    const savedLanguage = localStorage.getItem('language') || 'vi';
+    setLanguage(savedLanguage);
+    i18n.changeLanguage(savedLanguage);
+  }, [i18n]);
 
-  const toggleLanguage = () => {
-    const newLanguage = currentLanguage === 'vi' ? 'en' : 'vi';
-    setCurrentLanguage(newLanguage);
+  const handleLanguageChange = (lang) => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+    localStorage.setItem('language', lang);
   };
 
   return (
-    <div className="relative">
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="flex items-center gap-1 px-2 text-sm"
-        onClick={toggleLanguage}
-      >
-        <div className="w-5 h-3 overflow-hidden">
-          <img
-            src={currentLanguage === 'vi' 
-              ? "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Flag_of_Vietnam.svg/1200px-Flag_of_Vietnam.svg.png"
-              : "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Flag_of_the_United_Kingdom_%281-2%29.svg/1200px-Flag_of_the_United_Kingdom_%281-2%29.svg.png"
-            }
-            alt={currentLanguage === 'vi' ? 'Tiếng Việt' : 'English'}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <span className="hidden sm:inline">{currentLanguage === 'vi' ? 'VI' : 'EN'}</span>
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+          <Globe className="h-4 w-4" />
+          <span className="sr-only">Toggle language</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem 
+          onClick={() => handleLanguageChange('en')}
+          className={`${language === 'en' ? 'bg-blue-50 text-blue-600 font-medium' : ''} cursor-pointer`}
+        >
+          🇺🇸 English
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => handleLanguageChange('vi')}
+          className={`${language === 'vi' ? 'bg-blue-50 text-blue-600 font-medium' : ''} cursor-pointer`}
+        >
+          🇻🇳 Tiếng Việt
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
-} 
+};
+
+export default LanguageSwitcher; 

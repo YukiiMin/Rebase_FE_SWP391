@@ -1,19 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"],
-  content: ["./index.html",
-  "./src/**/*.{js,ts,jsx,tsx}",
-  "./node_modules/@shadcn/ui/dist/**/*.{js,ts,jsx,tsx}",
-  "./node_modules/@heroicons/react/24/{outline,solid}/*.{js,ts,jsx,tsx}",
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -51,33 +42,36 @@ export default {
         },
       },
       borderRadius: {
+        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        DEFAULT: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        xl: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "2xl": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        inner: "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)",
+        none: "none",
+      },
       keyframes: {
-        "accordion-down": {
+        accordionDown: {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
         },
-        "accordion-up": {
+        accordionUp: {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        accordionDown: "accordionDown 0.2s ease-out",
+        accordionUp: "accordionUp 0.2s ease-out",
       },
     },
   },
-  plugins:  [
-    require("@tailwindcss/aspect-ratio"),
-    require("@tailwindcss/line-clamp"),
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/typography"),
-    require("@tailwindcss/aspect-ratio"),
-    require("@tailwindcss/line-clamp"),
-    require("@tailwindcss/forms"),
-  ],
+  plugins: [],
 } 

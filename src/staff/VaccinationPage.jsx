@@ -1,555 +1,571 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Col, Container, Form, Table, Row, Alert, Spinner } from 'react-bootstrap';
-import StaffMenu from "../components/StaffMenu";
-import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Navigation from "../components/Navbar";
+import StaffMenu from "../components/StaffMenu";
+import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Separator } from "../components/ui/separator";
+import { User, Calendar, Clock, ShieldCheck, CheckCircle, AlertCircle, Loader2, Syringe, FileText } from "lucide-react";
 
 function VaccinationPage() {
+    const { t } = useTranslation();
     const { bookingId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [booking, setBooking] = useState(null);
     const [diagnosis, setDiagnosis] = useState(null);
-    const [vaccines, setVaccines] = useState([]);
-    const [vaccinationNotes, setVaccinationNotes] = useState({});
-    const [success, setSuccess] = useState("");
+    const [vaccineResults, setVaccineResults] = useState([]);
+    const [vaccineNotes, setVaccineNotes] = useState({});
+    const [confirmModal, setConfirmModal] = useState(false);
+    const [generalNotes, setGeneralNotes] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [success, setSuccess] = useState(false);
     const [token, setToken] = useState(localStorage.getItem("token"));
-    const [testMode, setTestMode] = useState(false);
-    const [nurseId, setNurseId] = useState(null);
-
-    // Theo dõi thay đổi của localStorage
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const currentToken = localStorage.getItem('token');
-            setToken(currentToken);
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, []);
 
     useEffect(() => {
-        // Kiểm tra token
         if (!token) {
-            console.warn("No token found, redirecting to login");
-            navigate('/Login');
+            navigate("/Login");
             return;
         }
+        
+        fetchBookingAndDiagnosis();
+    }, [bookingId, token, navigate]);
 
-        // Lấy thông tin người dùng từ token
+    const fetchBookingAndDiagnosis = async () => {
         try {
-            const decoded = jwtDecode(token);
-            console.log("Decoded token:", decoded);
-            // Lấy userId từ token (tùy thuộc vào cấu trúc token của bạn)
-            setNurseId(decoded.sub || "test_nurse_id");
-        } catch (error) {
-            console.error("Error decoding token:", error);
-            if (!testMode) {
-                setNurseId("test_nurse_id");
-                setTestMode(true);
-            }
-        }
-
-        // Fetch booking details and diagnosis when component mounts
-        if (bookingId) {
-            fetchBookingDetails();
-            fetchDiagnosisDetails();
-        }
-    }, [bookingId, token, navigate, testMode]);
-
-    const createDummyData = () => {
-        console.log("Creating dummy data for testing");
-        
-        // Create dummy booking
-        const dummyBooking = {
-            bookingId: bookingId || 1,
-            appointmentDate: "2025-03-21",
-            status: "DIAGNOSED",
-            child: {
-                name: "Yukii Meo",
-                account: {
-                    firstName: "Hoang",
-                    lastName: "Minh"
-                }
-            }
-        };
-        
-        // Create dummy diagnosis
-        const dummyDiagnosis = {
-            diagnosisId: 1,
-            doctorName: "Dr. Test Doctor",
-            diagnosisDate: "2025-03-21",
-            recommendedVaccines: "Patient should get additional vaccines in 3 months.",
-            diagnosisResults: [
-                {
-                    vaccineOrderId: 1,
-                    vaccineName: "Covid-19 Vaccine",
-                    doseNumber: 1,
-                    result: "NORMAL",
-                    note: "Patient is healthy and ready for vaccination"
+            setLoading(true);
+            setError("");
+            
+            // Fetch booking details
+            const bookingResponse = await fetch(`http://localhost:8080/booking/${bookingId}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
                 },
-                {
-                    vaccineOrderId: 2,
-                    vaccineName: "Influenza Vaccine",
-                    doseNumber: 1,
-                    result: "CAUTION",
-                    note: "Patient has mild allergies, monitor after vaccination"
-                }
-            ]
-        };
-        
-        setBooking(dummyBooking);
-        setDiagnosis(dummyDiagnosis);
-        
-        // Set vaccines from diagnosis
-        const eligibleVaccines = dummyDiagnosis.diagnosisResults.filter(
-            result => result.result === "NORMAL" || result.result === "CAUTION"
-        );
-        
-        setVaccines(eligibleVaccines);
-        
-        // Initialize notes
-        const notes = {};
-        eligibleVaccines.forEach(vaccine => {
-            notes[vaccine.vaccineOrderId] = "";
-        });
-        setVaccinationNotes(notes);
-        
-        setLoading(false);
-    };
-
-    const fetchBookingDetails = async () => {
-        try {
-            const response = await fetch(`http://localhost:8080/booking/${bookingId}`, {
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Booking data:", data);
-                setBooking(data.result);
-            } else {
-                console.error("Failed to load booking details, status:", response.status);
-                setError("Failed to load booking details");
-                
-                // If in test mode, create dummy data
-                if (testMode) {
-                    createDummyData();
+            if (!bookingResponse.ok) {
+                if (bookingResponse.status === 401 || bookingResponse.status === 403) {
+                    localStorage.removeItem("token");
+                    navigate("/Login");
+                    return;
                 }
+                throw new Error(`HTTP error! status: ${bookingResponse.status}`);
             }
-        } catch (error) {
-            console.error("Error fetching booking:", error);
-            setError("An error occurred while fetching booking data");
-            
-            // If in test mode, create dummy data
-            if (testMode) {
-                createDummyData();
-            }
-        } finally {
-            if (!testMode) {
-                setLoading(false);
-            }
-        }
-    };
 
-    const fetchDiagnosisDetails = async () => {
-        try {
-            const response = await fetch(`http://localhost:8080/diagnosis/${bookingId}`, {
+            const bookingData = await bookingResponse.json();
+            
+            if (bookingData.status !== 200) {
+                throw new Error(bookingData.message || "Failed to fetch booking details");
+            }
+            
+            const bookingDetails = bookingData.result;
+            
+            // Validate booking status
+            if (bookingDetails.status !== "DIAGNOSED") {
+                throw new Error("This booking is not ready for vaccination");
+            }
+            
+            setBooking(bookingDetails);
+            
+            // Fetch diagnosis details
+            const diagnosisResponse = await fetch(`http://localhost:8080/diagnosis/${bookingId}`, {
+                method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`,
-                }
+                    "Content-Type": "application/json",
+                },
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Diagnosis data:", data);
-                setDiagnosis(data.result);
-                
-                // Initialize vaccines from diagnosis results
-                if (data.result && data.result.diagnosisResults) {
-                    const eligibleVaccines = data.result.diagnosisResults.filter(
-                        result => result.result === "NORMAL" || result.result === "CAUTION"
-                    );
-                    
-                    setVaccines(eligibleVaccines);
-                    
-                    // Initialize notes object
-                    const notes = {};
-                    eligibleVaccines.forEach(vaccine => {
-                        notes[vaccine.vaccineOrderId] = "";
-                    });
-                    setVaccinationNotes(notes);
-                }
-            } else {
-                console.error("Failed to load diagnosis details, status:", response.status);
-                setError("Failed to load diagnosis details");
-                
-                // In test mode, we already created dummy data in fetchBookingDetails
+            if (!diagnosisResponse.ok) {
+                throw new Error(`HTTP error! status: ${diagnosisResponse.status}`);
             }
-        } catch (error) {
-            console.error("Error fetching diagnosis:", error);
-            setError("An error occurred while fetching diagnosis data");
+
+            const diagnosisData = await diagnosisResponse.json();
             
-            // In test mode, we already created dummy data in fetchBookingDetails
-        }
-    };
-
-    const handleNoteChange = (vaccineOrderId, note) => {
-        setVaccinationNotes({
-            ...vaccinationNotes,
-            [vaccineOrderId]: note
-        });
-    };
-
-    const handleSubmitVaccination = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-        setSuccess("");
-
-        try {
-            // Lấy dữ liệu các vaccine cần tiêm
-            const vaccinationData = vaccines.map(vaccine => ({
-                vaccineOrderId: vaccine.vaccineOrderId,
-                notes: vaccinationNotes[vaccine.vaccineOrderId] || ""
-            }));
-
-            // For testing mode, just simulate a successful response
-            if (testMode) {
-                console.log("Test mode: Simulating successful vaccination", vaccinationData);
-                setTimeout(() => {
-                    setSuccess("Vaccination records successfully created! (TEST MODE)");
-                    setTimeout(() => {
-                        navigate("/Staff/Vaccination");
-                    }, 2000);
-                }, 1000);
-            } else {
-                // Gọi API để ghi nhận tiêm chủng
-                console.log(`Sending vaccination request for booking ${bookingId} with nurse ${nurseId}`);
+            if (diagnosisData.status !== 200) {
+                throw new Error(diagnosisData.message || "Failed to fetch diagnosis details");
+            }
+            
+            const diagnosisDetails = diagnosisData.result;
+            setDiagnosis(diagnosisDetails);
+            
+            // Initialize vaccine results based on diagnosis
+            if (diagnosisDetails && diagnosisDetails.diagnosisResults) {
+                const initialResults = {};
+                const initialNotes = {};
                 
-                const response = await fetch(`http://localhost:8080/vaccination/${bookingId}/injection/${nurseId}`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        vaccinations: vaccinationData
-                    })
+                diagnosisDetails.diagnosisResults.forEach(result => {
+                    // For each vaccine that can be injected, mark as not injected by default
+                    if (result.result === "CAN_INJECT") {
+                        initialResults[result.vaccineOrderId] = false;
+                        initialNotes[result.vaccineOrderId] = "";
+                    }
                 });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log("Vaccination response:", data);
-                    setSuccess("Vaccination records successfully created!");
-                    setTimeout(() => {
-                        navigate("/Staff/Vaccination");
-                    }, 2000);
-                } else {
-                    const errorData = await response.json();
-                    console.error("Error response:", errorData);
-                    setError(errorData.message || "Failed to record vaccinations");
-                }
+                
+                setVaccineResults(initialResults);
+                setVaccineNotes(initialNotes);
             }
-        } catch (error) {
-            console.error("Error recording vaccinations:", error);
-            setError("An error occurred while submitting vaccination data");
+            
+        } catch (err) {
+            console.error("Error fetching booking or diagnosis:", err);
+            setError(err.message || "Failed to fetch data. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
+    const handleVaccineToggle = (vaccineOrderId) => {
+        setVaccineResults(prev => ({
+            ...prev,
+            [vaccineOrderId]: !prev[vaccineOrderId]
+        }));
+    };
+
+    const handleNoteChange = (vaccineOrderId, note) => {
+        setVaccineNotes(prev => ({
+            ...prev,
+            [vaccineOrderId]: note
+        }));
+    };
+
+    const validateForm = () => {
+        // Check if at least one vaccine is marked as injected
+        const hasInjected = Object.values(vaccineResults).some(value => value === true);
+        
+        if (!hasInjected) {
+            setError("Please mark at least one vaccine as injected");
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleSubmit = () => {
+        if (validateForm()) {
+            setConfirmModal(true);
+        }
+    };
+
+    const submitVaccinationResults = async () => {
+        try {
+            setSubmitting(true);
+            setError("");
+            
+            // Prepare the data for submission
+            const vaccinationData = {
+                bookingId: parseInt(bookingId),
+                vaccineResults: Object.entries(vaccineResults).map(([vaccineOrderId, isInjected]) => ({
+                    vaccineOrderId: parseInt(vaccineOrderId),
+                    injected: isInjected,
+                    note: vaccineNotes[vaccineOrderId] || ""
+                })),
+                generalNotes: generalNotes
+            };
+            
+            console.log("Submitting vaccination data:", vaccinationData);
+            
+            const response = await fetch(`http://localhost:8080/vaccination/${bookingId}/record`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(vaccinationData),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to submit vaccination results");
+            }
+            
+            setSuccess(true);
+            setConfirmModal(false);
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                navigate("/Staff/VaccinationManagement");
+            }, 2000);
+            
+        } catch (err) {
+            console.error("Error submitting vaccination results:", err);
+            setError(err.message || "Failed to submit vaccination results. Please try again.");
+            setConfirmModal(false);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Helper function to get diagnosis result text
+    const getDiagnosisResultText = (result) => {
+        switch(result) {
+            case "CAN_INJECT": return "Can Inject";
+            case "CANNOT_INJECT": return "Cannot Inject";
+            case "DELAY_INJECTION": return "Delay Injection";
+            default: return result;
+        }
+    };
+
+    // Helper function to render the badge for diagnosis result
+    const renderDiagnosisBadge = (result) => {
+        const variantMap = {
+            "CAN_INJECT": "bg-green-100 text-green-800",
+            "CANNOT_INJECT": "bg-red-100 text-red-800",
+            "DELAY_INJECTION": "bg-yellow-100 text-yellow-800"
+        };
+        
+        const className = variantMap[result] || "bg-gray-100 text-gray-800";
+        
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+                {getDiagnosisResultText(result)}
+            </span>
+        );
+    };
+
     if (loading) {
         return (
-            <div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-                <Row lg={10}>
+            <div className="min-h-screen bg-gray-50">
+                <Navigation />
+                <div className="flex">
                     <StaffMenu />
-                    <Col>
-                        <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
-                            <Spinner animation="border" variant="primary" />
-                            <span className="ms-2">Loading vaccination data...</span>
-                        </Container>
-                    </Col>
-                </Row>
+                    <main className="flex-grow p-6">
+                        <div className="flex justify-center items-center min-h-[80vh]">
+                            <div className="flex flex-col items-center">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="mt-4 text-lg">Loading booking and diagnosis details...</p>
+                            </div>
+                        </div>
+                    </main>
+                </div>
             </div>
         );
     }
 
-    // Verify booking status is DIAGNOSED
-    if (booking && booking.status !== "DIAGNOSED") {
-        // FOR TESTING: Comment out the redirect for now to allow viewing the page
-        console.log("Warning: Booking is not in DIAGNOSED state. Current status:", booking.status);
-        
-        // Instead of redirecting, show a warning but continue rendering the page
+    if (error && !booking) {
         return (
-            <div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-                <Row lg={10}>
+            <div className="min-h-screen bg-gray-50">
+                <Navigation />
+                <div className="flex">
                     <StaffMenu />
-                    <Col>
-                        <Container className="py-4">
-                            <Alert variant="warning">
-                                <Alert.Heading>Testing Mode - Invalid Booking Status</Alert.Heading>
-                                <p>This booking is not ready for vaccination. Current status: {booking.status || "n/a"}</p>
-                                <p>In production, you would be redirected to the check-in page.</p>
-                                <hr />
-                                <div className="d-flex justify-content-between">
-                                    <Button variant="primary" onClick={() => navigate("/Staff/Vaccination")}>
-                                        Return to Vaccination Management
-                                    </Button>
-                                    <Button variant="danger" onClick={() => setError("")}>
-                                        Continue anyway (Testing)
-                                    </Button>
-                                </div>
-                            </Alert>
-                            
-                            {/* Continue rendering the page normally below this alert */}
-                            <h1 className="text-primary mb-4">Administer Vaccination (TEST MODE)</h1>
-                            <hr className="mb-4" />
-
-                            {error && <Alert variant="danger">{error}</Alert>}
-                            {success && <Alert variant="success">{success}</Alert>}
-                            
-                            <Card className="mb-4">
-                                <Card.Header as="h5">Patient Information</Card.Header>
-                                <Card.Body>
-                                    <Row>
-                                        <Col md={6}>
-                                            <p><strong>Child Name:</strong> {booking?.child?.name || "N/A"}</p>
-                                            <p><strong>Booking ID:</strong> {booking?.bookingId || "N/A"}</p>
-                                            <p><strong>Appointment Date:</strong> {booking?.appointmentDate || "N/A"}</p>
-                                        </Col>
-                                        <Col md={6}>
-                                            <p><strong>Parent:</strong> {booking?.child?.account ? 
-                                                `${booking.child.account.firstName} ${booking.child.account.lastName}` : 
-                                                "N/A"}</p>
-                                            <p><strong>Status:</strong> {booking?.status || "N/A"}</p>
-                                        </Col>
-                                    </Row>
-                                </Card.Body>
-                            </Card>
-
-                            <Card className="mb-4">
-                                <Card.Header as="h5">Doctor's Diagnosis</Card.Header>
-                                <Card.Body>
-                                    {diagnosis ? (
-                                        <>
-                                            <p><strong>Diagnosed by:</strong> {diagnosis.doctorName || "N/A"}</p>
-                                            <p><strong>Diagnosis Date:</strong> {diagnosis.diagnosisDate || "N/A"}</p>
-                                            
-                                            {diagnosis.recommendedVaccines && (
-                                                <div className="mb-3">
-                                                    <p><strong>Doctor's Recommendations:</strong></p>
-                                                    <Alert variant="info">
-                                                        {diagnosis.recommendedVaccines}
-                                                    </Alert>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <p>No diagnosis information available</p>
-                                    )}
-                                </Card.Body>
-                            </Card>
-
-                            <h4 className="mt-4 mb-3">Vaccine Administration</h4>
-                            <Form onSubmit={handleSubmitVaccination}>
-                                {vaccines.length > 0 ? (
-                                    <Table striped bordered hover>
-                                        <thead>
-                                            <tr>
-                                                <th>Vaccine</th>
-                                                <th>Dose</th>
-                                                <th>Doctor's Assessment</th>
-                                                <th>Admin Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {vaccines.map((vaccine, index) => (
-                                                <tr key={index}>
-                                                    <td>{vaccine.vaccineName}</td>
-                                                    <td>{vaccine.doseNumber}</td>
-                                                    <td>
-                                                        {vaccine.result} 
-                                                        {vaccine.note && <div className="text-muted small">{vaccine.note}</div>}
-                                                    </td>
-                                                    <td>
-                                                        <Form.Control 
-                                                            as="textarea" 
-                                                            rows={2}
-                                                            placeholder="Enter notes about administration"
-                                                            value={vaccinationNotes[vaccine.vaccineOrderId] || ""}
-                                                            onChange={(e) => handleNoteChange(vaccine.vaccineOrderId, e.target.value)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </Table>
-                                ) : (
-                                    <Alert variant="warning">
-                                        No vaccines eligible for administration based on doctor's diagnosis
-                                    </Alert>
-                                )}
-
-                                <div className="d-flex justify-content-end mt-4">
-                                    <Button 
-                                        variant="secondary" 
-                                        onClick={() => navigate("/Staff/Vaccination")}
-                                        className="me-2"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button 
-                                        variant="primary" 
-                                        type="submit"
-                                        disabled={loading || vaccines.length === 0}
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-                                                <span className="ms-2">Processing...</span>
-                                            </>
-                                        ) : "Record Vaccinations"}
-                                    </Button>
-                                </div>
-                            </Form>
-                        </Container>
-                    </Col>
-                </Row>
+                    <main className="flex-grow p-6">
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                        <Button variant="outline" onClick={() => navigate("/Staff/VaccinationManagement")}>
+                            Return to Vaccination Management
+                        </Button>
+                    </main>
+                </div>
             </div>
         );
     }
+
+    // Filter only vaccines that can be injected based on diagnosis
+    const injectableVaccines = diagnosis?.diagnosisResults?.filter(item => item.result === "CAN_INJECT") || [];
+    const nonInjectableVaccines = diagnosis?.diagnosisResults?.filter(item => item.result !== "CAN_INJECT") || [];
 
     return (
-        <>
+        <div className="min-h-screen bg-gray-50">
             <Navigation />
-            <div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-                <Row lg={10}>
-                    <StaffMenu />
-                    <Col>
-                        <Container className="py-4">
-                            <h1 className="text-primary mb-4">Administer Vaccination</h1>
-                            <hr className="mb-4" />
-
-                            {error && <Alert variant="danger">{error}</Alert>}
-                            {success && <Alert variant="success">{success}</Alert>}
-
-                            <Card className="mb-4">
-                                <Card.Header as="h5">Patient Information</Card.Header>
-                                <Card.Body>
-                                    <Row>
-                                        <Col md={6}>
-                                            <p><strong>Child Name:</strong> {booking?.child?.name || "N/A"}</p>
-                                            <p><strong>Booking ID:</strong> {booking?.bookingId || "N/A"}</p>
-                                            <p><strong>Appointment Date:</strong> {booking?.appointmentDate || "N/A"}</p>
-                                        </Col>
-                                        <Col md={6}>
-                                            <p><strong>Parent:</strong> {booking?.child?.account ? 
-                                                `${booking.child.account.firstName} ${booking.child.account.lastName}` : 
-                                                "N/A"}</p>
-                                            <p><strong>Status:</strong> {booking?.status || "N/A"}</p>
-                                            <p><strong>Nurse ID:</strong> {nurseId || "N/A"}</p>
-                                        </Col>
-                                    </Row>
-                                </Card.Body>
-                            </Card>
-
-                            <Card className="mb-4">
-                                <Card.Header as="h5">Doctor's Diagnosis</Card.Header>
-                                <Card.Body>
-                                    {diagnosis ? (
-                                        <>
-                                            <p><strong>Diagnosed by:</strong> {diagnosis.doctorName || "N/A"}</p>
-                                            <p><strong>Diagnosis Date:</strong> {diagnosis.diagnosisDate || "N/A"}</p>
-                                            
-                                            {diagnosis.recommendedVaccines && (
-                                                <div className="mb-3">
-                                                    <p><strong>Doctor's Recommendations:</strong></p>
-                                                    <Alert variant="info">
-                                                        {diagnosis.recommendedVaccines}
-                                                    </Alert>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <p>No diagnosis information available</p>
-                                    )}
-                                </Card.Body>
-                            </Card>
-
-                            <h4 className="mt-4 mb-3">Vaccine Administration</h4>
-                            <Form onSubmit={handleSubmitVaccination}>
-                                {vaccines.length > 0 ? (
-                                    <Table striped bordered hover>
-                                        <thead>
-                                            <tr>
-                                                <th>Vaccine</th>
-                                                <th>Dose</th>
-                                                <th>Doctor's Assessment</th>
-                                                <th>Admin Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {vaccines.map((vaccine, index) => (
-                                                <tr key={index}>
-                                                    <td>{vaccine.vaccineName}</td>
-                                                    <td>{vaccine.doseNumber}</td>
-                                                    <td>
-                                                        {vaccine.result} 
-                                                        {vaccine.note && <div className="text-muted small">{vaccine.note}</div>}
-                                                    </td>
-                                                    <td>
-                                                        <Form.Control 
-                                                            as="textarea" 
-                                                            rows={2}
-                                                            placeholder="Enter notes about administration"
-                                                            value={vaccinationNotes[vaccine.vaccineOrderId] || ""}
-                                                            onChange={(e) => handleNoteChange(vaccine.vaccineOrderId, e.target.value)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </Table>
-                                ) : (
-                                    <Alert variant="warning">
-                                        No vaccines eligible for administration based on doctor's diagnosis
-                                    </Alert>
-                                )}
-
-                                <div className="d-flex justify-content-end mt-4">
-                                    <Button 
-                                        variant="secondary" 
-                                        onClick={() => navigate("/Staff/Vaccination")}
-                                        className="me-2"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button 
-                                        variant="primary" 
-                                        type="submit"
-                                        disabled={loading || vaccines.length === 0}
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-                                                <span className="ms-2">Processing...</span>
-                                            </>
-                                        ) : "Record Vaccinations"}
-                                    </Button>
+            <div className="flex">
+                <StaffMenu />
+                <main className="flex-grow p-6">
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-bold text-gray-800">Vaccination Administration</h1>
+                        <p className="text-gray-600">
+                            Record vaccine administration results for the patient
+                        </p>
+                    </div>
+                    
+                    {error && (
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+                    
+                    {success && (
+                        <Alert className="mb-6">
+                            <CheckCircle className="h-4 w-4" />
+                            <AlertTitle>Success</AlertTitle>
+                            <AlertDescription>
+                                Vaccination results have been successfully recorded. Redirecting...
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        {/* Patient Information Card */}
+                        <Card className="md:col-span-5">
+                            <CardHeader>
+                                <CardTitle>Patient Information</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-start space-x-3">
+                                    <User className="h-5 w-5 text-gray-500 mt-0.5" />
+                                    <div>
+                                        <Label className="text-sm text-gray-500">Child Name</Label>
+                                        <p className="font-medium">{booking?.child?.name || "N/A"}</p>
+                                    </div>
                                 </div>
-                            </Form>
-                        </Container>
-                    </Col>
-                </Row>
+                                
+                                <div className="flex items-start space-x-3">
+                                    <User className="h-5 w-5 text-gray-500 mt-0.5" />
+                                    <div>
+                                        <Label className="text-sm text-gray-500">Parent Name</Label>
+                                        <p className="font-medium">
+                                            {booking?.child?.account 
+                                                ? `${booking.child.account.firstName} ${booking.child.account.lastName}`
+                                                : "N/A"}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-start space-x-3">
+                                    <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                                    <div>
+                                        <Label className="text-sm text-gray-500">Appointment Date</Label>
+                                        <p className="font-medium">{booking?.appointmentDate || "N/A"}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-start space-x-3">
+                                    <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
+                                    <div>
+                                        <Label className="text-sm text-gray-500">Appointment Time</Label>
+                                        <p className="font-medium">{booking?.appointmentTime || "N/A"}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-start space-x-3">
+                                    <ShieldCheck className="h-5 w-5 text-gray-500 mt-0.5" />
+                                    <div>
+                                        <Label className="text-sm text-gray-500">Booking Status</Label>
+                                        <p className="font-medium">{booking?.status || "N/A"}</p>
+                                    </div>
+                                </div>
+                                
+                                <Separator />
+                                
+                                <div>
+                                    <h3 className="text-sm font-medium mb-2">Diagnosis Summary</h3>
+                                    <p className="text-sm">{diagnosis?.generalComment || "No general comments provided."}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        
+                        {/* Vaccination Form */}
+                        <Card className="md:col-span-7">
+                            <CardHeader>
+                                <CardTitle>Vaccination Record</CardTitle>
+                            </CardHeader>
+                            
+                            <CardContent className="space-y-6">
+                                {injectableVaccines.length > 0 ? (
+                                    <div>
+                                        <h3 className="font-medium mb-3">Vaccines to Administer</h3>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Vaccine</TableHead>
+                                                    <TableHead>Diagnosis</TableHead>
+                                                    <TableHead>Administered</TableHead>
+                                                    <TableHead>Notes</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {injectableVaccines.map((item) => (
+                                                    <TableRow key={item.vaccineOrderId}>
+                                                        <TableCell className="font-medium">
+                                                            {item.vaccineName}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {renderDiagnosisBadge(item.result)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={`vaccine-${item.vaccineOrderId}`}
+                                                                    checked={vaccineResults[item.vaccineOrderId] || false}
+                                                                    onCheckedChange={() => handleVaccineToggle(item.vaccineOrderId)}
+                                                                />
+                                                                <label 
+                                                                    htmlFor={`vaccine-${item.vaccineOrderId}`}
+                                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                                                >
+                                                                    Injected
+                                                                </label>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Textarea
+                                                                placeholder="Administration notes..."
+                                                                value={vaccineNotes[item.vaccineOrderId] || ""}
+                                                                onChange={(e) => handleNoteChange(item.vaccineOrderId, e.target.value)}
+                                                                className="min-h-[80px]"
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6">
+                                        <p className="text-gray-500">No vaccines approved for injection in the diagnosis.</p>
+                                    </div>
+                                )}
+                                
+                                {nonInjectableVaccines.length > 0 && (
+                                    <div>
+                                        <h3 className="font-medium mb-3">Vaccines Not Approved for Injection</h3>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Vaccine</TableHead>
+                                                    <TableHead>Diagnosis</TableHead>
+                                                    <TableHead>Diagnosis Notes</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {nonInjectableVaccines.map((item) => (
+                                                    <TableRow key={item.vaccineOrderId}>
+                                                        <TableCell className="font-medium">
+                                                            {item.vaccineName}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {renderDiagnosisBadge(item.result)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.note || "No notes provided."}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                                
+                                <Separator />
+                                
+                                <div>
+                                    <Label htmlFor="generalNotes" className="block mb-2">General Notes</Label>
+                                    <Textarea
+                                        id="generalNotes"
+                                        placeholder="Enter any general notes about the vaccination session..."
+                                        value={generalNotes}
+                                        onChange={(e) => setGeneralNotes(e.target.value)}
+                                        className="min-h-[120px]"
+                                    />
+                                </div>
+                            </CardContent>
+                            
+                            <CardFooter className="flex justify-between">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => navigate("/Staff/VaccinationManagement")}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    type="button" 
+                                    onClick={handleSubmit}
+                                    disabled={injectableVaccines.length === 0 || submitting || success}
+                                >
+                                    <Syringe className="mr-2 h-4 w-4" />
+                                    Record Vaccination
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </main>
             </div>
-        </>
+            
+            {/* Confirmation Modal */}
+            <Dialog open={confirmModal} onOpenChange={setConfirmModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Vaccination Record</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="py-4">
+                        <p>Are you sure you want to submit the vaccination record?</p>
+                        <p className="text-gray-500 mt-2">
+                            This will mark the following vaccines as administered:
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                            {injectableVaccines
+                                .filter(item => vaccineResults[item.vaccineOrderId])
+                                .map(item => (
+                                    <li key={item.vaccineOrderId} className="flex items-center">
+                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                        {item.vaccineName}
+                                    </li>
+                                ))}
+                        </ul>
+                        
+                        {injectableVaccines
+                            .filter(item => !vaccineResults[item.vaccineOrderId])
+                            .length > 0 && (
+                                <>
+                                    <p className="text-gray-500 mt-4">
+                                        The following vaccines will be marked as NOT administered:
+                                    </p>
+                                    <ul className="mt-2 space-y-1">
+                                        {injectableVaccines
+                                            .filter(item => !vaccineResults[item.vaccineOrderId])
+                                            .map(item => (
+                                                <li key={item.vaccineOrderId} className="flex items-center">
+                                                    <FileText className="h-4 w-4 text-gray-500 mr-2" />
+                                                    {item.vaccineName}
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </>
+                            )}
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={submitVaccinationResults}
+                            disabled={submitting}
+                        >
+                            {submitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Confirm
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
 

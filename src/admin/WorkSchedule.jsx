@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Button, Col, Container, Form, Pagination, Row, Table, Badge, Alert } from "react-bootstrap";
 import Sidebar from "../components/Sidebar";
 import AddShift from "../components/AddShift";
 import Navigation from "../components/Navbar";
 import { TokenUtils } from "../utils/TokenUtils";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
+import { Select } from "../components/ui/select";
+import { Button } from "../components/ui/button";
+import { Calendar, Plus, RefreshCw } from "lucide-react";
+import { Input } from "../components/ui/input";
+import { Alert, AlertDescription } from "../components/ui/alert";
 
 function WorkSchedule() {
 	const api = "http://localhost:8080";
@@ -15,13 +20,6 @@ function WorkSchedule() {
 	const [daysInMonth, setDaysInMonth] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
-
-	// const staffData = [
-	// 	{ id: 1, name: "Staff1" },
-	// 	{ id: 2, name: "Staff2" },
-	// 	// Add more staff members as needed
-	// 	// Need to fetch list of staff from API
-	// ];
 
 	const [schedules, setSchedules] = useState([]);
 	const [staffList, setStaffList] = useState([]);
@@ -183,25 +181,6 @@ function WorkSchedule() {
 		setCurrentPage(pageNumber);
 	};
 
-	let items = [];
-	for (let number = 1; number <= totalPages; number++) {
-		items.push(
-			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
-				{number}
-			</Pagination.Item>
-		);
-	}
-
-	const pagination = (
-		<Pagination>
-			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
-			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
-			{items}
-			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
-			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
-		</Pagination>
-	);
-
 	const renderShiftForDay = (staff, day) => {
 		// Kiểm tra xem nhân viên có lịch làm việc không
 		if (!staffSchedules[staff.accountId]) return null;
@@ -220,12 +199,14 @@ function WorkSchedule() {
 		// Nếu có lịch làm việc cho ngày đó, hiển thị badge với loại ca
 		if (daySchedule) {
 			return (
-				<Badge 
-					bg={daySchedule.status === "Active" ? "success" : "secondary"}
-					className="w-100"
-				>
+				<span className={`
+					inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium w-full text-center
+					${daySchedule.status === "Active" 
+						? "bg-green-100 text-green-800" 
+						: "bg-gray-100 text-gray-800"}
+				`}>
 					{daySchedule.date.shiftType}
-				</Badge>
+				</span>
 			);
 		}
 		return null;
@@ -234,103 +215,194 @@ function WorkSchedule() {
 	return (
 		<>
 			<Navigation />
-			<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-				<Row>
-					<Sidebar />
-					<Col lg={10}>
-						<Container className="py-4">
-							<Row className="mb-4 align-items-center">
-								<Col>
-									<h1 className="text-primary">Shift Management</h1>
-								</Col>
-								<Col className="text-end">
-									<Button variant="primary" onClick={() => setIsOpen(true)}>
-										Add Work
-									</Button>
-								</Col>
-								{isOpen && <AddShift 
-									setIsOpen={setIsOpen} 
-									open={isOpen} 
-									onScheduleAdded={() => {
-										fetchAllSchedules();
-									}} 
-								/>}
-							</Row>
-							<hr className="mb-4"></hr>
+			<div className="admin-layout">
+				<Sidebar />
+				<main className="admin-content">
+					<div className="admin-header flex justify-between items-center">
+						<h1 className="admin-title flex items-center gap-2">
+							<Calendar size={24} className="text-blue-600" />
+							Staff Work Schedule
+						</h1>
+						<Button 
+							onClick={() => setIsOpen(true)}
+							className="flex items-center gap-2"
+						>
+							<Plus size={16} />
+							Add Work Schedule
+						</Button>
+					</div>
+					
+					{isOpen && <AddShift 
+						setIsOpen={setIsOpen} 
+						open={isOpen} 
+						onScheduleAdded={() => {
+							fetchAllSchedules();
+						}} 
+					/>}
+					
+					{error && (
+						<Alert variant="destructive" className="mb-4">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-6">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">Select Month:</label>
+								<select 
+									value={selectedMonth} 
+									onChange={handleMonthChange}
+									className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+								>
+									{Array.from({ length: 12 }, (_, i) => (
+										<option key={i} value={i}>
+											{new Date(0, i).toLocaleString("default", { month: "long" })}
+										</option>
+									))}
+								</select>
+							</div>
 							
-							{error && <Alert variant="danger">{error}</Alert>}
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">Select Year:</label>
+								<select 
+									value={selectedYear} 
+									onChange={handleYearChange}
+									className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+								>
+									{generateYearOptions()}
+								</select>
+							</div>
 							
-							<Row className="mb-3">
-								<Col xs={12} md={6} lg={4}>
-									<Form.Label>Select Month:</Form.Label>
-									<Form.Select value={selectedMonth} onChange={handleMonthChange}>
-										{Array.from({ length: 12 }, (_, i) => (
-											<option key={i} value={i}>
-												{new Date(0, i).toLocaleString("default", { month: "long" })}
-											</option>
-										))}
-									</Form.Select>
-								</Col>
-								<Col xs={12} md={6} lg={4}>
-									<Form.Label>Select Year:</Form.Label>
-									<Form.Select value={selectedYear} onChange={handleYearChange}>
-										{generateYearOptions()}
-									</Form.Select>
-								</Col>
-								<Col xs={12} md={6} lg={4} className="d-flex align-items-end">
-									<Button 
-										variant="outline-primary" 
-										onClick={fetchAllSchedules}
-										disabled={loading}
-									>
-										{loading ? "Loading..." : "Refresh Schedule"}
-									</Button>
-								</Col>
-							</Row>
+							<div>
+								<Button 
+									variant="outline"
+									onClick={fetchAllSchedules}
+									disabled={loading}
+									className="w-full flex items-center justify-center gap-2"
+								>
+									<RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+									{loading ? "Loading..." : "Refresh Schedule"}
+								</Button>
+							</div>
+						</div>
+					</div>
 
-							{loading ? (
-								<div className="text-center p-4">
-									<div className="spinner-border text-primary" role="status">
-										<span className="visually-hidden">Loading...</span>
-									</div>
-									<p className="mt-2">Loading schedules...</p>
+					{loading ? (
+						<div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+							<div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+							<p className="mt-4 text-gray-600">Loading schedules...</p>
+						</div>
+					) : (
+						<div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+							{Object.keys(staffSchedules).length === 0 ? (
+								<div className="bg-blue-50 text-blue-700 p-4 rounded-md">
+									No schedules found for {new Date(0, selectedMonth).toLocaleString("default", { month: "long" })} {selectedYear}
 								</div>
 							) : (
-								<>
-									{Object.keys(staffSchedules).length === 0 ? (
-										<Alert variant="info">
-											No schedules found for {new Date(0, selectedMonth).toLocaleString("default", { month: "long" })} {selectedYear}
-										</Alert>
-									) : (
-										<Table striped bordered hover responsive>
-											<thead>
-												<tr>
-													<th>Staff</th>
-													{daysInMonth.map((day) => (
-														<th key={day}>{day}</th>
-													))}
-												</tr>
-											</thead>
-											<tbody>
-												{currentStaffs.map((staff) => (
-													<tr key={staff.accountId}>
-														<td>{`${staff.firstName} ${staff.lastName}`}</td>
-														{daysInMonth.map((day) => (
-															<td key={`${staff.accountId}-${day}`}>
-																{renderShiftForDay(staff, day)}
-															</td>
-														))}
-													</tr>
+								<div className="overflow-auto">
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead className="bg-gray-50 sticky left-0 z-10">Staff</TableHead>
+												{daysInMonth.map((day) => (
+													<TableHead key={day} className="text-center">{day}</TableHead>
 												))}
-											</tbody>
-										</Table>
-									)}
-									{pagination}
-								</>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{currentStaffs.map((staff) => (
+												<TableRow key={staff.accountId}>
+													<TableCell className="font-medium sticky left-0 bg-white z-10">{`${staff.firstName} ${staff.lastName}`}</TableCell>
+													{daysInMonth.map((day) => (
+														<TableCell key={`${staff.accountId}-${day}`} className="p-1 text-center">
+															{renderShiftForDay(staff, day)}
+														</TableCell>
+													))}
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</div>
 							)}
-						</Container>
-					</Col>
-				</Row>
+							
+							{/* Custom Pagination */}
+							{totalPages > 0 && (
+								<div className="flex items-center justify-center mt-6">
+									<nav className="flex items-center space-x-2">
+										<Button 
+											variant="outline"
+											size="sm"
+											disabled={currentPage === 1}
+											onClick={() => handlePageChange(1)}
+											className="px-3 py-1"
+										>
+											First
+										</Button>
+										<Button 
+											variant="outline"
+											size="sm"
+											disabled={currentPage === 1}
+											onClick={() => handlePageChange(currentPage - 1)}
+											className="px-3 py-1"
+										>
+											&laquo; Prev
+										</Button>
+										
+										<div className="flex items-center space-x-1">
+											{[...Array(totalPages)].map((_, index) => {
+												const pageNum = index + 1;
+												// Show limited page numbers
+												if (
+													pageNum === 1 ||
+													pageNum === totalPages ||
+													(pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+												) {
+													return (
+														<Button
+															key={pageNum}
+															variant={pageNum === currentPage ? "default" : "outline"}
+															size="sm"
+															onClick={() => handlePageChange(pageNum)}
+															className="px-3 py-1"
+														>
+															{pageNum}
+														</Button>
+													);
+												} else if (
+													pageNum === currentPage - 2 ||
+													pageNum === currentPage + 2
+												) {
+													return <span key={pageNum}>...</span>;
+												}
+												return null;
+											})}
+										</div>
+										
+										<Button 
+											variant="outline"
+											size="sm"
+											disabled={currentPage === totalPages}
+											onClick={() => handlePageChange(currentPage + 1)}
+											className="px-3 py-1"
+										>
+											Next &raquo;
+										</Button>
+										<Button 
+											variant="outline"
+											size="sm"
+											disabled={currentPage === totalPages}
+											onClick={() => handlePageChange(totalPages)}
+											className="px-3 py-1"
+										>
+											Last
+										</Button>
+									</nav>
+								</div>
+							)}
+						</div>
+					)}
+				</main>
 			</div>
 		</>
 	);

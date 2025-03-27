@@ -1,7 +1,12 @@
 import { useFormik } from "formik";
 import React from "react";
-import { Button, Col, Form, Modal, Row } from "react-bootstrap";
 import * as Yup from "yup";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { FormItem, FormLabel, FormControl, FormMessage, FormField, Form } from "./ui/form";
 
 function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 	const token = localStorage.getItem("token");
@@ -38,7 +43,6 @@ function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 	};
 
 	const handleSubmit = async (values) => {
-		// console.log(values);
 		try {
 			const response = await fetch(`${childAPI}/${child.id}`, {
 				method: "PATCH",
@@ -49,13 +53,10 @@ function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 				body: JSON.stringify(values),
 			});
 			if (response.ok) {
-				console.log("Update child sucessfull");
+				console.log("Update child successful");
 				const data = await response.json();
-				// console.log(data);
-				const newChild = data;
-				// console.log(newChild);
 				handleClose();
-				onUpdate(newChild);
+				onUpdate(data);
 			} else {
 				console.error("Updating child failed: ", response.status);
 			}
@@ -63,85 +64,137 @@ function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 			console.error("Something went wrong when updating child: ", err);
 		}
 	};
+
 	return (
-		<div>
-			{/* {console.log(child)} */}
-			<Modal show={open} onHide={handleClose}>
-				<Form method="PATCH" onSubmit={formik.handleSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Update child</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="fisrtName">
-								<Form.Label>First name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter first name"
-									name="firstName"
-									value={formik.values.firstName}
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[600px]">
+				<DialogHeader>
+					<DialogTitle>Update Child</DialogTitle>
+				</DialogHeader>
+				<form onSubmit={formik.handleSubmit} className="space-y-4">
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="firstName">First Name</Label>
+							<Input
+								id="firstName"
+								name="firstName"
+								placeholder="Enter first name"
+								value={formik.values.firstName}
+								onChange={formik.handleChange}
+								className={formik.touched.firstName && formik.errors.firstName ? "border-red-500" : ""}
+							/>
+							{formik.touched.firstName && formik.errors.firstName && (
+								<p className="text-sm text-red-500">{formik.errors.firstName}</p>
+							)}
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="lastName">Last Name</Label>
+							<Input
+								id="lastName"
+								name="lastName"
+								placeholder="Enter last name"
+								value={formik.values.lastName}
+								onChange={formik.handleChange}
+								className={formik.touched.lastName && formik.errors.lastName ? "border-red-500" : ""}
+							/>
+							{formik.touched.lastName && formik.errors.lastName && (
+								<p className="text-sm text-red-500">{formik.errors.lastName}</p>
+							)}
+						</div>
+					</div>
+
+					<div className="space-y-2">
+						<Label>Gender</Label>
+						<div className="flex items-center space-x-4">
+							<label className="flex items-center space-x-2 cursor-pointer">
+								<input 
+									type="radio" 
+									name="gender" 
+									value="MALE" 
+									checked={formik.values.gender === "MALE"}
 									onChange={formik.handleChange}
-									isInvalid={formik.touched.firstName && formik.errors.firstName}
+									className="h-4 w-4 text-primary"
 								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.firstName}</Form.Control.Feedback>
-							</Form.Group>
-
-							<Form.Group as={Col} controlId="lastName">
-								<Form.Label>Last name</Form.Label>
-								<Form.Control
-									type="text"
-									placeholder="Enter last name"
-									name="lastName"
-									value={formik.values.lastName}
+								<span>Male</span>
+							</label>
+							<label className="flex items-center space-x-2 cursor-pointer">
+								<input 
+									type="radio" 
+									name="gender" 
+									value="FEMALE" 
+									checked={formik.values.gender === "FEMALE"}
 									onChange={formik.handleChange}
-									isInvalid={formik.touched.lastName && formik.errors.lastName}
+									className="h-4 w-4 text-primary"
 								/>
-								<Form.Control.Feedback type="invalid">{formik.errors.lastName}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
+								<span>Female</span>
+							</label>
+						</div>
+						{formik.touched.gender && formik.errors.gender && (
+							<p className="text-sm text-red-500">{formik.errors.gender}</p>
+						)}
+					</div>
 
-						<Form.Group className="mb-3">
-							<Form.Check inline defaultChecked label="Male" name="gender" type="radio" id="Male" value="MALE" onChange={formik.handleChange} isInvalid={formik.touched.gender && formik.errors.gender} />
-							<Form.Check inline label="Female" name="gender" type="radio" id="Female" value="FEMALE" onChange={formik.handleChange} isInvalid={formik.touched.gender && formik.errors.gender} />
-							{formik.touched.gender && formik.errors.gender && <div className="invalid-feedback d-block">{formik.errors.gender}</div>}
-						</Form.Group>
+					<div className="space-y-2">
+						<Label htmlFor="dob">Date of Birth</Label>
+						<Input
+							id="dob"
+							name="dob"
+							type="date"
+							value={formik.values.dob}
+							onChange={formik.handleChange}
+							className={formik.touched.dob && formik.errors.dob ? "border-red-500" : ""}
+						/>
+						{formik.touched.dob && formik.errors.dob && (
+							<p className="text-sm text-red-500">{formik.errors.dob}</p>
+						)}
+					</div>
 
-						<Form.Group className="mb-3" controlId="dateOfBirth">
-							<Form.Label>Date of Birth</Form.Label>
-							<Form.Control type="date" name="dob" value={formik.values.dob} onChange={formik.handleChange} isInvalid={formik.touched.dob && formik.errors.dob} />
-							<Form.Control.Feedback type="invalid">{formik.errors.dob}</Form.Control.Feedback>
-						</Form.Group>
+					<div className="grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="weight">Weight (kg)</Label>
+							<Input
+								id="weight"
+								name="weight"
+								type="number"
+								placeholder="Weight"
+								value={formik.values.weight}
+								onChange={formik.handleChange}
+								className={formik.touched.weight && formik.errors.weight ? "border-red-500" : ""}
+							/>
+							{formik.touched.weight && formik.errors.weight && (
+								<p className="text-sm text-red-500">{formik.errors.weight}</p>
+							)}
+						</div>
 
-						<Row className="mb-3">
-							<Form.Group as={Col} controlId="weight">
-								<Form.Label>Weight (kg)</Form.Label>
-								<Form.Control type="number" placeholder="Weight" name="weight" value={formik.values.weight} onChange={formik.handleChange} isInvalid={formik.touched.weight && formik.errors.weight} />
-								<Form.Control.Feedback type="invalid">{formik.errors.weight}</Form.Control.Feedback>
-							</Form.Group>
+						<div className="space-y-2">
+							<Label htmlFor="height">Height (cm)</Label>
+							<Input
+								id="height"
+								name="height"
+								type="number"
+								placeholder="Height"
+								value={formik.values.height}
+								onChange={formik.handleChange}
+								className={formik.touched.height && formik.errors.height ? "border-red-500" : ""}
+							/>
+							{formik.touched.height && formik.errors.height && (
+								<p className="text-sm text-red-500">{formik.errors.height}</p>
+							)}
+						</div>
+					</div>
 
-							<Form.Group as={Col} controlId="lastName">
-								<Form.Label>Height (cm)</Form.Label>
-								<Form.Control type="number" placeholder="Height" name="height" value={formik.values.height} onChange={formik.handleChange} isInvalid={formik.touched.height && formik.errors.height} />
-								<Form.Control.Feedback type="invalid">{formik.errors.height}</Form.Control.Feedback>
-							</Form.Group>
-						</Row>
-
-						{/* <Form.Group controlId="formFile" className="mb-3">
-                    <Form.Label>Child Image</Form.Label>
-                    <Form.Control type="file" name="imageUrl" onChange={handleFileChange} />
-                </Form.Group> */}
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={handleClose}>
 							Close
 						</Button>
-						<Button type="submit" variant="primary">
+						<Button type="submit">
 							Update
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</div>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

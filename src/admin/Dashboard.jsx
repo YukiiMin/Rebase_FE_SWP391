@@ -1,7 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import Navigation from "../components/Navbar";
+import { 
+	Users, 
+	Syringe, 
+	Calendar, 
+	DollarSign,
+	Table as TableIcon, 
+	Package,
+	User,
+	ArrowRight,
+	LayoutDashboard
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 function Dashboard() {
 	const api = "http://localhost:8080";
@@ -13,6 +29,7 @@ function Dashboard() {
 	const [vaccineList, setVaccineList] = useState([]);
 	const [comboError, setComboError] = useState("");
 	const [comboList, setComboList] = useState([]);
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		getAccount();
@@ -124,217 +141,259 @@ function Dashboard() {
 	const randomCombo = getRandomCombos(comboList, 3);
 
 	return (
-		<div className="bg-gray-100 min-h-screen">
-			{/* {console.log(accountList, vaccineList, comboList)} */}
-			<Row>
+		<>
+			<Navigation />
+			<div className="admin-layout">
 				<Sidebar />
-				<Col>
-					<Container className="py-4">
-						<h1 className="mb-4 text-primary">Dashboard</h1>
-						<hr className="mb-4" />
+				<main className="admin-content">
+					<div className="admin-header flex items-center gap-2">
+						<LayoutDashboard size={28} className="text-blue-600" />
+						<h1 className="admin-title">{t('admin.dashboard.title')}</h1>
+					</div>
 
-						{/* Statistic cards */}
-						<Row className="mb-4">
-							{[
-								{ title: "Total Accounts", value: userList.length + staffList.length + 1, color: "bg-blue-200" },
-								{ title: "Total Vaccines", value: vaccineList.length, color: "bg-green-200" },
-								{ title: "Total Bookings", value: 520, color: "bg-yellow-200" },
-								{ title: "Total Sales ($)", value: "$50,000", color: "bg-red-200" },
-							].map((stat, index) => (
-								<Col md={3} key={index}>
-									<Card className="shadow-md rounded-lg border-0">
-										<div className={`p-3 text-center ${stat.color} rounded-lg`}>
-											<h5 className="text-lg font-bold text-gray-700">{stat.title}</h5>
-											<p className="text-2xl font-semibold text-blue-600">{stat.value}</p>
-										</div>
-									</Card>
-								</Col>
-							))}
-						</Row>
+					{/* Statistics Cards */}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+						<StatCard 
+							title={t('admin.dashboard.totalAccounts')} 
+							value={userList.length + staffList.length + 1} 
+							icon={<Users className="h-8 w-8 text-blue-500" />}
+							color="bg-blue-50"
+						/>
+						<StatCard 
+							title={t('admin.dashboard.totalVaccines')} 
+							value={vaccineList.length}
+							icon={<Syringe className="h-8 w-8 text-green-500" />}
+							color="bg-green-50"
+						/>
+						<StatCard 
+							title={t('admin.dashboard.totalBookings')} 
+							value={520}
+							icon={<Calendar className="h-8 w-8 text-amber-500" />}
+							color="bg-amber-50"
+						/>
+						<StatCard 
+							title={t('admin.dashboard.totalSales')} 
+							value="$50,000"
+							icon={<DollarSign className="h-8 w-8 text-red-500" />}
+							color="bg-red-50"
+						/>
+					</div>
 
-						{/* Users & Staff Tables */}
-						<Row className="mb-4">
-							<Col md={6}>
-								<Card className="shadow-md p-3">
-									<div className="flex justify-between items-center mb-3">
-										<h5 className="text-lg font-bold">Registered Account</h5>
-										<Link to="/Admin/ManageAccount" className="text-blue-600 hover:underline">
-											Manage Accounts
-										</Link>
-									</div>
-									<Table hover className="w-full border border-gray-200 rounded-lg overflow-hidden">
-										<thead className="bg-gray-100 text-gray-600 text-sm uppercase">
-											<tr>
-												<th className="px-2 py-2 text-left">#</th>
-												<th className="px-2 py-2 text-left">Fullname</th>
-												<th className="px-2 py-2 text-left">Username</th>
-												<th className="px-2 py-2 text-left">Email</th>
-											</tr>
-										</thead>
-										<tbody className="text-gray-700">
-											{userList.length > 0 ? (
-												randomUser.map((user, index) => (
-													<tr key={user.accountId}>
-														<td className="px-2 py-2 text-left">{index + 1}</td>
-														<td className="px-2 py-2 text-left">{`${user.firstName} ${user.lastName}`}</td>
-														<td className="px-2 py-2 text-left">{user.username}</td>
-														<td className="px-2 py-2 text-left">{user.email}</td>
-													</tr>
-												))
-											) : (
-												<tr>
-													<td colSpan={4}>
-														<p className="text-red-500 text-center">{accountError}</p>
-													</td>
-												</tr>
-											)}
-										</tbody>
-									</Table>
-								</Card>
-							</Col>
-							<Col md={6}>
-								<Card className="shadow-md p-3">
-									<div className="flex justify-between items-center mb-3">
-										<h5 className="text-lg font-bold">Staff Table</h5>
-										<Link to="/Admin/WorkSchedule" className="text-blue-600 hover:underline">
-											Scheduling
-										</Link>
-									</div>
-									<Table hover className="w-full border border-gray-200 rounded-lg overflow-hidden">
-										<thead className="bg-gray-100 text-gray-600 text-sm uppercase">
-											<tr>
-												<th className="px-2 py-2 text-left">ID</th>
-												<th className="px-2 py-2 text-left">Fullname</th>
-												<th className="px-2 py-2 text-left">Email</th>
-											</tr>
-										</thead>
-										<tbody className="text-gray-700">
-											{staffList.length > 0 ? (
-												randomStaff.map((user, index) => (
-													<tr key={user.accountId}>
-														<td className="px-2 py-2 text-left">{user.accountId}</td>
-														<td className="px-2 py-2 text-left">{`${user.firstName} ${user.lastName}`}</td>
-														<td className="px-2 py-2 text-left">{user.email}</td>
-													</tr>
-												))
-											) : (
-												<tr>
-													<td colSpan={4}>
-														<p className="text-red-500 text-center">No data</p>
-													</td>
-												</tr>
-											)}
-										</tbody>
-									</Table>
-									{accountError && <p className="text-red-500 text-center">{accountError}</p>}
-								</Card>
-							</Col>
-						</Row>
+					{/* Users & Staff Tables */}
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+						<Card>
+							<CardHeader className="pb-3">
+								<div className="flex justify-between items-center">
+									<CardTitle className="text-lg font-semibold text-gray-700">{t('admin.dashboard.registeredAccounts')}</CardTitle>
+									<Link to="/Admin/ManageAccount" className="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+										{t('admin.dashboard.manageAccounts')}
+										<ArrowRight className="ml-1 h-4 w-4" />
+									</Link>
+								</div>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>#</TableHead>
+											<TableHead>{t('admin.account.fullName')}</TableHead>
+											<TableHead>{t('admin.account.username')}</TableHead>
+											<TableHead>{t('admin.account.email')}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{userList.length > 0 ? (
+											randomUser.map((user, index) => (
+												<TableRow key={user.accountId}>
+													<TableCell>{index + 1}</TableCell>
+													<TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
+													<TableCell>{user.username}</TableCell>
+													<TableCell>{user.email}</TableCell>
+												</TableRow>
+											))
+										) : (
+											<TableRow>
+												<TableCell colSpan={4} className="text-center text-red-500">
+													{accountError || t('admin.dashboard.noData')}
+												</TableCell>
+											</TableRow>
+										)}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
 
-						{/* Vaccine Table */}
-						<Row>
-							<Col md={9}>
-								<Card className="shadow-md p-3 mb-4">
-									<div className="flex justify-between items-center mb-3">
-										<h5 className="text-lg font-bold">Vaccine Inventory</h5>
-										<Link to="/Admin/ManageVaccine" className="text-blue-600 hover:underline">
-											Manage Vaccines
-										</Link>
-									</div>
-									<Table hover className="w-full border border-gray-200 rounded-lg overflow-hidden">
-										<thead className="bg-gray-100 text-gray-600 text-sm uppercase">
-											<tr>
-												<th className="px-4 py-2 text-left">ID</th>
-												<th className="px-4 py-2 text-left">Vaccine Name</th>
-												<th className="px-4 py-2 text-left">Quantity</th>
-												<th className="px-4 py-2 text-left">Unit Price ($)</th>
-												<th className="px-4 py-2 text-left">Sale Price ($)</th>
-											</tr>
-										</thead>
-										<tbody className="text-gray-700">
-											{vaccineList.length > 0 ? (
-												randomVaccine.map((vaccine) => (
-													<tr key={vaccine.id}>
-														<td className="px-4 py-2 text-left">{vaccine.id}</td>
-														<td className="px-4 py-2 text-left">{vaccine.name}</td>
-														<td className="px-4 py-2 text-left">{vaccine.quantity}</td>
-														<td className="px-4 py-2 text-left">{vaccine.unitPrice}</td>
-														<td className="px-4 py-2 text-left">{vaccine.salePrice}</td>
-													</tr>
-												))
-											) : (
-												<tr>
-													<td colSpan={5}>
-														<p className="text-red-500 text-center">{vaccineError}</p>
-													</td>
-												</tr>
-											)}
-										</tbody>
-									</Table>
-								</Card>
-							</Col>
-							<Col md={3}>
-								<Card className="shadow-md p-3 mb-4 items-center">
-									<div className="flex justify-between items-center mb-3">
-										<h5 className="text-lg font-bold">Top Vaccine</h5>
-									</div>
-									<p className="text-red-500">No data</p>
-								</Card>
-							</Col>
-						</Row>
+						<Card>
+							<CardHeader className="pb-3">
+								<div className="flex justify-between items-center">
+									<CardTitle className="text-lg font-semibold text-gray-700">{t('admin.dashboard.staffTable')}</CardTitle>
+									<Link to="/Admin/WorkSchedule" className="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+										{t('admin.dashboard.scheduling')}
+										<ArrowRight className="ml-1 h-4 w-4" />
+									</Link>
+								</div>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>{t('admin.vaccine.id')}</TableHead>
+											<TableHead>{t('admin.account.fullName')}</TableHead>
+											<TableHead>{t('admin.account.email')}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{staffList.length > 0 ? (
+											randomStaff.map((user) => (
+												<TableRow key={user.accountId}>
+													<TableCell>{user.accountId}</TableCell>
+													<TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
+													<TableCell>{user.email}</TableCell>
+												</TableRow>
+											))
+										) : (
+											<TableRow>
+												<TableCell colSpan={3} className="text-center text-red-500">
+													{accountError || t('admin.dashboard.noData')}
+												</TableCell>
+											</TableRow>
+										)}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					</div>
 
-						{/* Combo Table */}
-						{/* {console.log(randomCombo)} */}
-						<Card className="shadow-md p-3">
-							<div className="flex justify-between items-center mb-3">
-								<h5 className="text-lg font-bold">Combo Table</h5>
-								<Link to="/Admin/ManageCombo" className="text-blue-600 hover:underline">
-									Manage Combos
+					{/* Vaccine Table */}
+					<div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+						<Card className="md:col-span-3">
+							<CardHeader className="pb-3">
+								<div className="flex justify-between items-center">
+									<CardTitle className="text-lg font-semibold text-gray-700">{t('admin.dashboard.vaccineInventory')}</CardTitle>
+									<Link to="/Admin/ManageVaccine" className="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+										{t('admin.dashboard.manageVaccines')}
+										<ArrowRight className="ml-1 h-4 w-4" />
+									</Link>
+								</div>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>{t('admin.vaccine.id')}</TableHead>
+											<TableHead>{t('admin.vaccine.vaccineName')}</TableHead>
+											<TableHead>{t('admin.vaccine.quantity')}</TableHead>
+											<TableHead>{t('admin.vaccine.unitPrice')}</TableHead>
+											<TableHead>{t('admin.vaccine.salePrice')}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{vaccineList.length > 0 ? (
+											randomVaccine.map((vaccine) => (
+												<TableRow key={vaccine.id}>
+													<TableCell>{vaccine.id}</TableCell>
+													<TableCell>{vaccine.name}</TableCell>
+													<TableCell>{vaccine.quantity}</TableCell>
+													<TableCell>{vaccine.unitPrice}</TableCell>
+													<TableCell>{vaccine.salePrice}</TableCell>
+												</TableRow>
+											))
+										) : (
+											<TableRow>
+												<TableCell colSpan={5} className="text-center text-red-500">
+													{vaccineError || t('admin.dashboard.noData')}
+												</TableCell>
+											</TableRow>
+										)}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+
+						<Card className="flex flex-col items-center justify-center p-6">
+							<CardTitle className="text-lg font-semibold text-gray-700 mb-4">{t('admin.dashboard.topVaccine')}</CardTitle>
+							<p className="text-red-500">{t('admin.dashboard.noData')}</p>
+						</Card>
+					</div>
+
+					{/* Combo Table */}
+					<Card>
+						<CardHeader className="pb-3">
+							<div className="flex justify-between items-center">
+								<CardTitle className="text-lg font-semibold text-gray-700">{t('admin.dashboard.comboTable')}</CardTitle>
+								<Link to="/Admin/ManageCombo" className="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+									{t('admin.dashboard.manageCombos')}
+									<ArrowRight className="ml-1 h-4 w-4" />
 								</Link>
 							</div>
-							<Table hover className="w-full border border-gray-200 rounded-lg overflow-hidden">
-								<thead className="bg-gray-100 text-gray-600 text-sm uppercase">
-									<tr>
-										<th className="px-4 py-2 text-left">ID</th>
-										<th className="px-4 py-2 text-left">Combo Name</th>
-										<th className="px-4 py-2 text-left">Included Vaccine</th>
-										<th className="px-4 py-2 text-left">Sale Off</th>
-										<th className="px-4 py-2 text-left">Price</th>
-									</tr>
-								</thead>
-								<tbody className="text-gray-700">
+						</CardHeader>
+						<CardContent>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>{t('admin.combo.id')}</TableHead>
+										<TableHead>{t('admin.combo.comboName')}</TableHead>
+										<TableHead>{t('admin.combo.includedVaccine')}</TableHead>
+										<TableHead>{t('admin.combo.saleOff')}</TableHead>
+										<TableHead>{t('admin.combo.totalPrice')}</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{comboList.length > 0 ? (
 										randomCombo.map((combo) => (
-											<tr key={combo.comboId}>
-												<td className="px-4 py-2 text-left">{combo.comboId}</td>
-												<td className="px-4 py-2 text-left">{combo.comboName}</td>
-												<td className="px-4 py-2 text-left">
-													{combo.vaccines.map((vaccine) => (
-														<>
+											<TableRow key={combo.comboId}>
+												<TableCell>{combo.comboId}</TableCell>
+												<TableCell>{combo.comboName}</TableCell>
+												<TableCell>
+													{combo.vaccines.map((vaccine, idx) => (
+														<div key={idx}>
 															{vaccine.name}
-															<br />
-														</>
+														</div>
 													))}
-												</td>
-												<td className="px-4 py-2 text-left">{`${combo.saleOff}%`}</td>
-												<td className="px-4 py-2 text-left">{`${combo.total}$`}</td>
-											</tr>
+												</TableCell>
+												<TableCell>
+													<Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
+														{combo.saleOff}%
+													</Badge>
+												</TableCell>
+												<TableCell>
+													<span className="font-semibold text-blue-600">${combo.total}</span>
+												</TableCell>
+											</TableRow>
 										))
 									) : (
-										<tr>
-											<td colSpan={5}>
-												<p className="text-red-500 text-center">{comboError}</p>
-											</td>
-										</tr>
+										<TableRow>
+											<TableCell colSpan={5} className="text-center text-red-500">
+												{comboError || t('admin.dashboard.noData')}
+											</TableCell>
+										</TableRow>
 									)}
-								</tbody>
+								</TableBody>
 							</Table>
-						</Card>
-					</Container>
-				</Col>
-			</Row>
-		</div>
+						</CardContent>
+					</Card>
+				</main>
+			</div>
+		</>
 	);
 }
+
+const StatCard = ({ title, value, icon, color }) => {
+	return (
+		<Card className={`${color} border-none shadow-sm`}>
+			<CardContent className="p-6">
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="text-3xl font-bold">{value}</p>
+						<p className="text-sm text-gray-600 mt-1">{title}</p>
+					</div>
+					<div className="rounded-full p-3 bg-white/80 shadow-sm">
+						{icon}
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	);
+};
 
 export default Dashboard;

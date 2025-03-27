@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Alert, Badge, Button, Col, Form, Modal, Row, Table, Spinner } from "react-bootstrap";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "./ui/table";
+import { Badge } from "./ui/badge";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Loader2 } from "lucide-react";
 
 function DetailReaction({ open, setIsOpen, booking }) {
 	const [loading, setLoading] = useState(false);
@@ -93,104 +101,108 @@ function DetailReaction({ open, setIsOpen, booking }) {
 	const canRecordReaction = booking.status === "VACCINE_INJECTED" && !hasReaction;
 
 	return (
-		<>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form onSubmit={handleReactionSubmit}>
-					<Modal.Header closeButton>
-						<Modal.Title>Vaccination Details - Enroll #{booking.bookingId}</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						{error && <Alert variant="danger">{error}</Alert>}
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-[90%] max-h-[90vh] overflow-y-auto">
+				<DialogHeader>
+					<DialogTitle>Vaccination Details - Enroll #{booking.bookingId}</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={handleReactionSubmit} className="space-y-6">
+					{error && (
+						<Alert variant="destructive" className="mb-4">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
 
-						<Form.Group className="mb-3" controlId="childName">
-							<Form.Label>Child Name</Form.Label>
-							<Form.Control type="text" value={booking.child?.name || "N/A"} readOnly />
-						</Form.Group>
-						<Row className="mb-3">
-							<Col md={4}>
-								<Form.Group controlId="appointmentDate">
-									<Form.Label>Appointment Date</Form.Label>
-									<Form.Control type="text" value={booking.appointmentDate || "N/A"} readOnly />
-								</Form.Group>
-							</Col>
-							<Col md={4}>
-								<Form.Group controlId="bookingStatus">
-									<Form.Label>Booking Status</Form.Label>
-									<Form.Control type="text" value={booking.status || "N/A"} readOnly />
-								</Form.Group>
-							</Col>
-							<Col md={4}>
-								<Form.Group controlId="parentName">
-									<Form.Label>Parent Name</Form.Label>
-									<Form.Control 
-										type="text" 
-										value={booking.child?.account ? 
-											`${booking.child.account.firstName} ${booking.child.account.lastName}` : 
-											"N/A"} 
-										readOnly 
-									/>
-								</Form.Group>
-							</Col>
-						</Row>
+					<div className="space-y-2">
+						<Label htmlFor="childName">Child Name</Label>
+						<Input id="childName" value={booking.child?.name || "N/A"} readOnly />
+					</div>
+					
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="appointmentDate">Appointment Date</Label>
+							<Input id="appointmentDate" value={booking.appointmentDate || "N/A"} readOnly />
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="bookingStatus">Booking Status</Label>
+							<Input id="bookingStatus" value={booking.status || "N/A"} readOnly />
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="parentName">Parent Name</Label>
+							<Input 
+								id="parentName" 
+								value={booking.child?.account ? 
+									`${booking.child.account.firstName} ${booking.child.account.lastName}` : 
+									"N/A"} 
+								readOnly 
+							/>
+						</div>
+					</div>
+					
+					<div className="space-y-2">
+						<h3 className="text-lg font-medium">Vaccination Records</h3>
 						
-						<h5 className="mt-4">Vaccination Records</h5>
 						{loading ? (
-							<div className="text-center my-4">
-								<Spinner animation="border" variant="primary" />
-								<p className="mt-2">Loading vaccination records...</p>
+							<div className="flex flex-col items-center justify-center py-6">
+								<Loader2 className="h-8 w-8 animate-spin text-primary" />
+								<p className="mt-2 text-sm text-muted-foreground">Loading vaccination records...</p>
 							</div>
 						) : (
-							<Table striped bordered hover responsive>
-								<thead>
-									<tr>
-										<th>#</th>
-										<th>Vaccine Name</th>
-										<th>Dose</th>
-										<th>Date Administered</th>
-										<th>Status</th>
-										<th>Notes</th>
-									</tr>
-								</thead>
-								<tbody>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>#</TableHead>
+										<TableHead>Vaccine Name</TableHead>
+										<TableHead>Dose</TableHead>
+										<TableHead>Date Administered</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Notes</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{vaccineRecords.length > 0 ? (
 										vaccineRecords.map((record, index) => (
-											<tr key={index}>
-												<td>{index + 1}</td>
-												<td>{record.vaccineName || "N/A"}</td>
-												<td>{record.doseNumber || "1"}</td>
-												<td>{record.administeredDate || "N/A"}</td>
-												<td>
-													<Badge bg={record.status === "COMPLETED" ? "success" : "warning"}>
+											<TableRow key={index}>
+												<TableCell>{index + 1}</TableCell>
+												<TableCell>{record.vaccineName || "N/A"}</TableCell>
+												<TableCell>{record.doseNumber || "1"}</TableCell>
+												<TableCell>{record.administeredDate || "N/A"}</TableCell>
+												<TableCell>
+													<Badge className={record.status === "COMPLETED" ? "bg-green-500" : "bg-yellow-500"}>
 														{record.status || "PENDING"}
 													</Badge>
-												</td>
-												<td>{record.notes || "No notes"}</td>
-											</tr>
+												</TableCell>
+												<TableCell>{record.notes || "No notes"}</TableCell>
+											</TableRow>
 										))
 									) : (
-										<tr>
-											<td colSpan={6} className="text-center">
+										<TableRow>
+											<TableCell colSpan={6} className="text-center">
 												No vaccination records found
-											</td>
-										</tr>
+											</TableCell>
+										</TableRow>
 									)}
-								</tbody>
+								</TableBody>
 							</Table>
 						)}
+					</div>
+					
+					<div className="space-y-2">
+						<h3 className="text-lg font-medium">Post-Vaccination Reaction</h3>
 						
-						<h5 className="mt-4">Post-Vaccination Reaction</h5>
 						{hasReaction ? (
-							<>
-								<Alert variant="info">
-									<p><strong>Recorded Reaction:</strong></p>
+							<Alert className="mt-2 border-blue-200 bg-blue-50">
+								<div className="space-y-2">
+									<p className="font-medium">Recorded Reaction:</p>
 									<p>{booking.reaction}</p>
-								</Alert>
-							</>
+								</div>
+							</Alert>
 						) : (
-							<Form.Group className="mb-3" controlId="reaction">
-								<Form.Label>Reaction Details</Form.Label>
-								<Form.Control 
-									as="textarea" 
+							<div className="space-y-2">
+								<Label htmlFor="reaction">Reaction Details</Label>
+								<Textarea 
+									id="reaction" 
 									rows={3} 
 									placeholder={canRecordReaction ? 
 										"Enter any reaction details observed after vaccination" : 
@@ -198,33 +210,35 @@ function DetailReaction({ open, setIsOpen, booking }) {
 									value={reactionData.reaction}
 									onChange={(e) => setReactionData({...reactionData, reaction: e.target.value})}
 									disabled={!canRecordReaction}
+									className="resize-none"
 								/>
 								{!canRecordReaction && booking.status !== "VACCINE_INJECTED" && (
-									<Form.Text className="text-muted">
+									<p className="text-sm text-muted-foreground">
 										Reactions can only be recorded for completed vaccinations.
-									</Form.Text>
+									</p>
 								)}
-							</Form.Group>
+							</div>
 						)}
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose}>
+					</div>
+
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={handleClose}>
 							Close
 						</Button>
 						{canRecordReaction && (
-							<Button variant="primary" type="submit" disabled={loading}>
+							<Button type="submit" disabled={loading}>
 								{loading ? (
 									<>
-										<Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-										<span className="ms-2">Processing...</span>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										<span>Processing...</span>
 									</>
 								) : "Record Reaction"}
 							</Button>
 						)}
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

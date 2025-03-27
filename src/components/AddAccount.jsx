@@ -70,7 +70,7 @@ function AddAccount({ setIsOpen, open, onAccountAdded }) {
 		initialValues: {
 			firstName: "",
 			lastName: "",
-			gender: "MALE",
+			gender: "",
 			username: "",
 			password: "123456", // Default password of any accounts added by ADMIN
 			email: "",

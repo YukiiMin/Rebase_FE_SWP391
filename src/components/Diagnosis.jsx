@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Button, Col, Form, Modal, Row, Table, Alert, Spinner } from "react-bootstrap";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 function Diagnosis({ open, setIsOpen, booking, onDiagnosisComplete }) {
 	const [loading, setLoading] = useState(false);
@@ -99,127 +107,158 @@ function Diagnosis({ open, setIsOpen, booking, onDiagnosisComplete }) {
 	if (!booking) return null;
 
 	return (
-		<>
-			<Modal show={open} onHide={handleClose} size="xl">
-				<Form onSubmit={handleSubmitDiagnosis}>
-					<Modal.Header closeButton>
-						<Modal.Title>Medical Diagnosis - Enroll #{booking.bookingId}</Modal.Title>
-					</Modal.Header>
-					<Modal.Body>
-						{error && <Alert variant="danger">{error}</Alert>}
-						{success && <Alert variant="success">{success}</Alert>}
-
-						<Form.Group className="mb-3" controlId="childName">
-							<Form.Label>Child Name</Form.Label>
-							<Form.Control type="text" value={booking.child?.name || "N/A"} readOnly />
-						</Form.Group>
-						<Row className="mb-3">
-							<Col xl={8}>
-								<Row>
-									<Form.Group as={Col} controlId="parentName">
-										<Form.Label>Parent Name</Form.Label>
-										<Form.Control 
-											type="text" 
-											value={booking.child?.account ? 
-												`${booking.child.account.firstName} ${booking.child.account.lastName}` : 
-												"N/A"} 
-											readOnly 
-										/>
-									</Form.Group>
-									<Form.Group as={Col} controlId="appointmentDate">
-										<Form.Label>Appointment Date</Form.Label>
-										<Form.Control type="text" value={booking.appointmentDate || "N/A"} readOnly />
-									</Form.Group>
-								</Row>
-							</Col>
-							<Col xl={4}>
-								<Form.Group controlId="bookingStatus">
-									<Form.Label>Booking Status</Form.Label>
-									<Form.Control type="text" value={booking.status || "N/A"} readOnly />
-								</Form.Group>
-							</Col>
-						</Row>
-						
-						<h5 className="mt-4">Diagnosis Details</h5>
-						<Table striped bordered hover responsive>
-							<thead>
-								<tr>
-									<th>#</th>
-									<th>Vaccine name</th>
-									<th>Dose No.</th>
-									<th>Diagnosis Result</th>
-									<th>Note</th>
-								</tr>
-							</thead>
-							<tbody>
+		<Dialog open={open} onOpenChange={setIsOpen}>
+			<DialogContent className="sm:max-w-4xl">
+				<DialogHeader>
+					<DialogTitle>Medical Diagnosis - Enroll #{booking.bookingId}</DialogTitle>
+				</DialogHeader>
+				
+				<form onSubmit={handleSubmitDiagnosis} className="space-y-4">
+					{error && (
+						<Alert variant="destructive">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Error</AlertTitle>
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					)}
+					
+					{success && (
+						<Alert>
+							<CheckCircle className="h-4 w-4" />
+							<AlertTitle>Success</AlertTitle>
+							<AlertDescription>{success}</AlertDescription>
+						</Alert>
+					)}
+					
+					<div>
+						<Label htmlFor="childName">Child Name</Label>
+						<Input 
+							id="childName" 
+							value={booking.child?.name || "N/A"} 
+							readOnly 
+						/>
+					</div>
+					
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<Label htmlFor="parentName">Parent Name</Label>
+							<Input 
+								id="parentName" 
+								value={booking.child?.account ? 
+									`${booking.child.account.firstName} ${booking.child.account.lastName}` : 
+									"N/A"} 
+								readOnly 
+							/>
+						</div>
+						<div>
+							<Label htmlFor="appointmentDate">Appointment Date</Label>
+							<Input 
+								id="appointmentDate" 
+								value={booking.appointmentDate || "N/A"} 
+								readOnly 
+							/>
+						</div>
+					</div>
+					
+					<div>
+						<Label htmlFor="bookingStatus">Booking Status</Label>
+						<Input 
+							id="bookingStatus" 
+							value={booking.status || "N/A"} 
+							readOnly 
+						/>
+					</div>
+					
+					<div className="mt-4">
+						<h3 className="text-lg font-medium mb-2">Diagnosis Details</h3>
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>#</TableHead>
+									<TableHead>Vaccine name</TableHead>
+									<TableHead>Dose No.</TableHead>
+									<TableHead>Diagnosis Result</TableHead>
+									<TableHead>Note</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{diagnosisData.diagnosisResults.length > 0 ? (
 									diagnosisData.diagnosisResults.map((vaccine, index) => (
-										<tr key={index}>
-											<td>{index + 1}</td>
-											<td>{vaccine.vaccineName}</td>
-											<td>{vaccine.doseNumber}</td>
-											<td>
-												<Form.Group className="mb-0">
-													<Form.Select 
-														value={vaccine.result}
-														onChange={(e) => handleDiagnosisChange(index, "result", e.target.value)}
-														required
-													>
-														<option value="">Select result</option>
-														<option value="NORMAL">Normal - Can proceed with vaccination</option>
-														<option value="CAUTION">Caution - Proceed with extra monitoring</option>
-														<option value="POSTPONE">Postpone - Minor issues require delay</option>
-														<option value="CONTRAINDICATED">Contraindicated - Cannot vaccinate</option>
-													</Form.Select>
-												</Form.Group>
-											</td>
-											<td>
-												<Form.Group className="mb-0">
-													<Form.Control 
-														as="textarea" 
-														rows={1} 
-														placeholder="Additional notes" 
-														value={vaccine.note}
-														onChange={(e) => handleDiagnosisChange(index, "note", e.target.value)}
-													/>
-												</Form.Group>
-											</td>
-										</tr>
+										<TableRow key={index}>
+											<TableCell>{index + 1}</TableCell>
+											<TableCell className="font-medium">{vaccine.vaccineName}</TableCell>
+											<TableCell>{vaccine.doseNumber}</TableCell>
+											<TableCell>
+												<Select
+													value={vaccine.result}
+													onValueChange={(value) => handleDiagnosisChange(index, "result", value)}
+													required
+												>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Select result" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="NORMAL">Normal - Can proceed with vaccination</SelectItem>
+														<SelectItem value="CAUTION">Caution - Proceed with extra monitoring</SelectItem>
+														<SelectItem value="POSTPONE">Postpone - Minor issues require delay</SelectItem>
+														<SelectItem value="CONTRAINDICATED">Contraindicated - Cannot vaccinate</SelectItem>
+													</SelectContent>
+												</Select>
+											</TableCell>
+											<TableCell>
+												<Textarea 
+													placeholder="Additional notes" 
+													value={vaccine.note}
+													onChange={(e) => handleDiagnosisChange(index, "note", e.target.value)}
+													className="min-h-[60px]"
+												/>
+											</TableCell>
+										</TableRow>
 									))
 								) : (
-									<tr>
-										<td colSpan={5} className="text-center">No vaccines found in this booking</td>
-									</tr>
+									<TableRow>
+										<TableCell colSpan={5} className="text-center">No vaccines found in this booking</TableCell>
+									</TableRow>
 								)}
-							</tbody>
+							</TableBody>
 						</Table>
-						<Form.Group className="mb-3" controlId="recommendedVaccines">
-							<Form.Label>Recommended Future Vaccines</Form.Label>
-							<Form.Control 
-								as="textarea" 
-								rows={3} 
-								placeholder="Enter recommended vaccines for future appointments" 
-								value={diagnosisData.recommendedVaccines}
-								onChange={(e) => setDiagnosisData({...diagnosisData, recommendedVaccines: e.target.value})}
-							/>
-						</Form.Group>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant="secondary" onClick={handleClose} disabled={loading}>
+					</div>
+					
+					<div>
+						<Label htmlFor="recommendedVaccines">Recommended Future Vaccines</Label>
+						<Textarea 
+							id="recommendedVaccines"
+							placeholder="Enter recommended vaccines for future appointments" 
+							value={diagnosisData.recommendedVaccines}
+							onChange={(e) => setDiagnosisData({...diagnosisData, recommendedVaccines: e.target.value})}
+							className="min-h-[100px]"
+						/>
+					</div>
+					
+					<DialogFooter>
+						<Button 
+							type="button" 
+							variant="outline" 
+							onClick={handleClose}
+							disabled={loading}
+						>
 							Close
 						</Button>
-						<Button variant="primary" type="submit" disabled={loading}>
+						<Button 
+							type="submit" 
+							disabled={loading}
+						>
 							{loading ? (
 								<>
-									<Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-									<span className="ms-2">Processing...</span>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Processing...
 								</>
 							) : "Submit Diagnosis"}
 						</Button>
-					</Modal.Footer>
-				</Form>
-			</Modal>
-		</>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 

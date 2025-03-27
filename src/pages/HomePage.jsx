@@ -118,26 +118,26 @@ export default function HomePage() {
 	const bannerSlides = [
 		{
 			id: 1,
-			title: "Tiêm chủng an toàn cho trẻ em",
-			description: "Bảo vệ sức khỏe trẻ em từ những ngày đầu đời",
+			title: t('home.banner1.title'),
+			description: t('home.banner1.description'),
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2023/11/Banner-Hexa-1920x700-1.jpg",
-			cta: "Đặt lịch tiêm ngay",
+			cta: t('home.banner1.cta'),
 			link: "/Booking"
 		},
 		{
 			id: 2,
-			title: "Phòng ngừa bệnh sốt xuất huyết",
-			description: "Tiêm vắc xin Qdenga ngừa sốt xuất huyết hiệu quả đến 80%",
+			title: t('home.banner2.title'),
+			description: t('home.banner2.description'),
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2023/08/banner-web-VNVC-1920x700-2-1.webp",
-			cta: "Tìm hiểu thêm",
+			cta: t('home.banner2.cta'),
 			link: "/VaccineList"
 		},
 		{
 			id: 3,
-			title: "Gói vắc xin tiết kiệm",
-			description: "Tiết kiệm đến 25% với các gói vắc xin combo",
+			title: t('home.banner3.title'),
+			description: t('home.banner3.description'),
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2018/06/banner-vnvc.jpg",
-			cta: "Xem gói vắc xin",
+			cta: t('home.banner3.cta'),
 			link: "/ComboList"
 		}
 	];
@@ -275,11 +275,10 @@ export default function HomePage() {
 					<div className="flex flex-col md:flex-row items-center justify-between gap-6">
 						<div className="md:w-1/2">
 							<h2 className="text-xl md:text-2xl font-bold text-blue-900 mb-3">
-								Hệ Thống Tiêm Chủng An Toàn
+								{t('home.about.title')}
 							</h2>
 							<p className="text-sm text-gray-700 mb-4">
-								Chúng tôi cung cấp dịch vụ tiêm chủng chất lượng cao với đội ngũ y bác sĩ chuyên nghiệp và 
-								hệ thống bảo quản vắc xin hiện đại đạt chuẩn của Bộ Y tế.
+								{t('home.about.description')}
 							</p>
 							<div className="flex flex-wrap gap-4">
 								<div className="flex items-start">
@@ -287,8 +286,8 @@ export default function HomePage() {
 										<Syringe className="h-5 w-5 text-blue-700" />
 									</div>
 									<div>
-										<h3 className="text-sm font-semibold text-gray-900">Vắc xin chính hãng</h3>
-										<p className="text-xs text-gray-600">100% vắc xin nhập khẩu chính hãng</p>
+										<h3 className="text-sm font-semibold text-gray-900">{t('home.about.feature1.title')}</h3>
+										<p className="text-xs text-gray-600">{t('home.about.feature1.description')}</p>
 									</div>
 								</div>
 								<div className="flex items-start">
@@ -296,8 +295,8 @@ export default function HomePage() {
 										<BadgeCheck className="h-5 w-5 text-green-700" />
 									</div>
 									<div>
-										<h3 className="text-sm font-semibold text-gray-900">Đạt chuẩn quốc tế</h3>
-										<p className="text-xs text-gray-600">Quy trình tiêm chủng WHO</p>
+										<h3 className="text-sm font-semibold text-gray-900">{t('home.about.feature2.title')}</h3>
+										<p className="text-xs text-gray-600">{t('home.about.feature2.description')}</p>
 									</div>
 								</div>
 							</div>
@@ -305,7 +304,7 @@ export default function HomePage() {
 						<div className="md:w-1/2 flex justify-end">
 							<img 
 								src="https://vnvc.vn/wp-content/uploads/2020/10/VNVC_co-so-tiem-chung.jpg" 
-								alt="Trung tâm tiêm chủng" 
+								alt={t('home.about.image_alt')} 
 								className="rounded-lg w-full max-w-md h-52 object-cover shadow-md"
 							/>
 						</div>
@@ -317,7 +316,7 @@ export default function HomePage() {
 			<section className="w-full py-16 bg-white">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
 					<div className="text-center mb-12">
-						<h2 className="text-2xl md:text-3xl font-bold mb-4 text-blue-900">Dịch Vụ Của Chúng Tôi</h2>
+						<h2 className="text-2xl md:text-3xl font-bold mb-4 text-blue-900">{t('home.services.title')}</h2>
 						<div className="w-20 h-1 bg-orange-500 mx-auto rounded-full"></div>
 					</div>
 					
@@ -326,13 +325,13 @@ export default function HomePage() {
 							<div className="mx-auto w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-6 shadow-md group-hover:bg-blue-600 transition-colors">
 								<Calendar className="h-8 w-8 text-white" />
 							</div>
-							<h3 className="text-lg font-semibold mb-3 text-blue-900 group-hover:text-blue-700">Đặt Lịch Tiêm Chủng</h3>
+							<h3 className="text-lg font-semibold mb-3 text-blue-900 group-hover:text-blue-700">{t('home.services.booking.title')}</h3>
 							<p className="text-gray-600 text-sm mb-5 group-hover:text-gray-700">
-								Đặt lịch tiêm chủng dễ dàng, nhanh chóng và thuận tiện
+								{t('home.services.booking.description')}
 							</p>
 							<Button asChild size="sm" className="w-full bg-blue-500 hover:bg-blue-600 text-white">
 								<Link to="/Booking" className="flex justify-center items-center">
-									Đặt lịch ngay
+									{t('home.services.booking.button')}
 									<ChevronRight className="ml-1 h-4 w-4" />
 								</Link>
 							</Button>
@@ -342,13 +341,13 @@ export default function HomePage() {
 							<div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-6 shadow-md group-hover:bg-green-600 transition-colors">
 								<Shield className="h-8 w-8 text-white" />
 							</div>
-							<h3 className="text-lg font-semibold mb-3 text-green-900 group-hover:text-green-700">Gói Vắc Xin</h3>
+							<h3 className="text-lg font-semibold mb-3 text-green-900 group-hover:text-green-700">{t('home.services.combos.title')}</h3>
 							<p className="text-gray-600 text-sm mb-5 group-hover:text-gray-700">
-								Tiết kiệm chi phí với các gói vắc xin phòng ngừa bệnh đa dạng
+								{t('home.services.combos.description')}
 							</p>
 							<Button asChild size="sm" className="w-full bg-green-500 hover:bg-green-600 text-white">
 								<Link to="/ComboList" className="flex justify-center items-center">
-									Xem gói vắc xin
+									{t('home.services.combos.button')}
 									<ChevronRight className="ml-1 h-4 w-4" />
 								</Link>
 							</Button>
@@ -358,13 +357,13 @@ export default function HomePage() {
 							<div className="mx-auto w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mb-6 shadow-md group-hover:bg-purple-600 transition-colors">
 								<Bell className="h-8 w-8 text-white" />
 							</div>
-							<h3 className="text-lg font-semibold mb-3 text-purple-900 group-hover:text-purple-700">Nhắc Lịch Tiêm</h3>
+							<h3 className="text-lg font-semibold mb-3 text-purple-900 group-hover:text-purple-700">{t('home.services.reminders.title')}</h3>
 							<p className="text-gray-600 text-sm mb-5 group-hover:text-gray-700">
-								Nhận thông báo nhắc lịch tiêm chủng cho bạn và gia đình
+								{t('home.services.reminders.description')}
 							</p>
 							<Button asChild size="sm" className="w-full bg-purple-500 hover:bg-purple-600 text-white">
 								<Link to="/Register" className="flex justify-center items-center">
-									Đăng ký nhận
+									{t('home.services.reminders.button')}
 									<ChevronRight className="ml-1 h-4 w-4" />
 								</Link>
 							</Button>
@@ -374,13 +373,13 @@ export default function HomePage() {
 							<div className="mx-auto w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center mb-6 shadow-md group-hover:bg-amber-600 transition-colors">
 								<Clock className="h-8 w-8 text-white" />
 							</div>
-							<h3 className="text-lg font-semibold mb-3 text-amber-900 group-hover:text-amber-700">Lịch Sử Tiêm Chủng</h3>
+							<h3 className="text-lg font-semibold mb-3 text-amber-900 group-hover:text-amber-700">{t('home.services.history.title')}</h3>
 							<p className="text-gray-600 text-sm mb-5 group-hover:text-gray-700">
-								Theo dõi lịch sử tiêm chủng của trẻ dễ dàng và thuận tiện
+								{t('home.services.history.description')}
 							</p>
 							<Button asChild size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
 								<Link to="/Login" className="flex justify-center items-center">
-									Xem lịch sử
+									{t('home.services.history.button')}
 									<ChevronRight className="ml-1 h-4 w-4" />
 								</Link>
 							</Button>
@@ -393,7 +392,7 @@ export default function HomePage() {
 			<section className="w-full py-16 bg-gray-50">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
 					<div className="text-center mb-12">
-						<h2 className="text-2xl md:text-3xl font-bold mb-4 text-blue-900">Vắc Xin & Gói Tiêm Nổi Bật</h2>
+						<h2 className="text-2xl md:text-3xl font-bold mb-4 text-blue-900">{t('home.featured.title')}</h2>
 						<div className="w-20 h-1 bg-orange-500 mx-auto rounded-full"></div>
 					</div>
 					
@@ -403,22 +402,22 @@ export default function HomePage() {
 								<AlertTriangle className="h-4 w-4 text-amber-600" />
 							</div>
 							<AlertDescription>
-								{error} Hiển thị dữ liệu demo cho mục đích trình bày.
+								{error} {t('home.featured.error_message')}
 							</AlertDescription>
 						</Alert>
 					)}
 					
 					<Tabs defaultValue="vaccines" className="w-full">
 						<TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-gray-100 p-1 rounded-lg">
-							<TabsTrigger value="vaccines" className="text-base rounded-md data-[state=active]:bg-blue-600 data-[state=active]:text-white">Vắc Xin Đơn Lẻ</TabsTrigger>
-							<TabsTrigger value="combos" className="text-base rounded-md data-[state=active]:bg-green-600 data-[state=active]:text-white">Gói Vắc Xin</TabsTrigger>
+							<TabsTrigger value="vaccines" className="text-base rounded-md data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('home.featured.single_vaccines')}</TabsTrigger>
+							<TabsTrigger value="combos" className="text-base rounded-md data-[state=active]:bg-green-600 data-[state=active]:text-white">{t('home.featured.combo_packages')}</TabsTrigger>
 						</TabsList>
 						
 						<TabsContent value="vaccines">
 							{loading ? (
 								<div className="text-center py-12 bg-white rounded-xl shadow-sm">
 									<Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-blue-600" />
-									<p className="text-gray-500">Đang tải dữ liệu vắc xin...</p>
+									<p className="text-gray-500">{t('home.featured.loading_vaccines')}</p>
 								</div>
 							) : (
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -443,7 +442,7 @@ export default function HomePage() {
 												<div className="pt-2 border-t border-blue-100">
 													<Button asChild size="sm" className="w-full bg-blue-600 hover:bg-blue-700 shadow group-hover:shadow-md transition-all">
 														<Link to={`/VaccineDetail/${vaccine.id}`} className="flex justify-center items-center">
-															Xem Chi Tiết
+															{t('home.featured.view_details')}
 															<ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
 														</Link>
 													</Button>
@@ -453,30 +452,19 @@ export default function HomePage() {
 									))}
 								</div>
 							)}
-							<div className="text-center mt-10">
-								<Button asChild variant="outline" size="lg" className="px-8 border-blue-300 text-blue-700 hover:bg-blue-50">
-									<Link to="/VaccineList" className="flex items-center">
-										Xem Tất Cả Vắc Xin
-										<ChevronRight className="ml-1 h-4 w-4" />
-									</Link>
-								</Button>
-							</div>
 						</TabsContent>
 						
 						<TabsContent value="combos">
 							{loading ? (
 								<div className="text-center py-12 bg-white rounded-xl shadow-sm">
 									<Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-green-600" />
-									<p className="text-gray-500">Đang tải dữ liệu gói vắc xin...</p>
+									<p className="text-gray-500">{t('home.featured.loading_combos')}</p>
 								</div>
 							) : (
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 									{displayCombos.map((combo) => (
 										<Card key={combo.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-green-100">
 											<div className="relative h-52 overflow-hidden">
-												<div className="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">
-													TIẾT KIỆM 25%
-												</div>
 												<div className="absolute inset-0 bg-gradient-to-t from-green-900/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 												<img 
 													src={combo.imageUrl || "https://placehold.co/300x150/e2e8f0/1e293b?text=Combo"}
@@ -486,7 +474,7 @@ export default function HomePage() {
 											</div>
 											<CardContent className="p-6">
 												<div className="flex justify-between items-start mb-3">
-													<h3 className="text-xl font-semibold text-green-900 group-hover:text-green-700 transition-colors">{combo.name}</h3>
+													<h3 className="text-xl font-semibold text-green-900 group-hover:text-green-700 transition-colors line-clamp-2">{combo.name}</h3>
 													<div className="bg-green-100 p-1.5 rounded-full">
 														<ClipboardList className="h-5 w-5 text-green-600" />
 													</div>
@@ -495,7 +483,7 @@ export default function HomePage() {
 												<div className="pt-2 border-t border-green-100">
 													<Button asChild size="sm" className="w-full bg-green-600 hover:bg-green-700 shadow group-hover:shadow-md transition-all">
 														<Link to={`/ComboDetail/${combo.id}`} className="flex justify-center items-center">
-															Xem Chi Tiết
+															{t('home.featured.view_package')}
 															<ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
 														</Link>
 													</Button>
@@ -505,16 +493,17 @@ export default function HomePage() {
 									))}
 								</div>
 							)}
-							<div className="text-center mt-10">
-								<Button asChild variant="outline" size="lg" className="px-8 border-green-300 text-green-700 hover:bg-green-50">
-									<Link to="/ComboList" className="flex items-center">
-										Xem Tất Cả Gói Vắc Xin
-										<ChevronRight className="ml-1 h-4 w-4" />
-									</Link>
-								</Button>
-							</div>
 						</TabsContent>
 					</Tabs>
+					
+					<div className="text-center mt-16">
+						<Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
+							<Link to="/VaccineList" className="flex items-center">
+								{t('home.featured.view_all_vaccines')}
+								<ChevronRight className="ml-1 h-5 w-5" />
+							</Link>
+						</Button>
+					</div>
 				</div>
 			</section>
 			

@@ -1,555 +1,627 @@
 import React, { useEffect, useState } from "react";
-import { Badge, Button, Col, Container, Form, Pagination, Row, Table, Alert } from "react-bootstrap";
-import StaffMenu from "../components/StaffMenu";
-import DetailReaction from "../components/DetailReaction";
-import Diagnosis from "../components/Diagnosis";
 import { useNavigate } from "react-router-dom";
 import Navigation from "../components/Navbar";
+import StaffMenu from "../components/StaffMenu";
+import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "../components/ui/dialog";
+import { Calendar } from "../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Search, CalendarIcon, RefreshCw, CheckCircle, X, ClipboardCheck, AlertCircle, Loader2 } from "lucide-react";
+import { cn } from "../lib/utils";
+import { format } from "date-fns";
 
 function CheckIn() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const bookingAPI = "http://localhost:8080/booking";
-	
-	// Check for token, set a dummy one for testing if not available
-	const [token, setToken] = useState(localStorage.getItem("token"));
-	
-	const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
-	const [isRecordOpen, setIsRecordOpen] = useState(false);
-	const [searchName, setSearchName] = useState("");
+	const token = localStorage.getItem("token");
 	const [bookingList, setBookingList] = useState([]);
 	const [filteredList, setFilteredList] = useState([]);
-	const [statusFilter, setStatusFilter] = useState("ALL");
-	const [messageAlert, setMessageAlert] = useState({ show: false, type: "", message: "" });
-	const [loadingAction, setLoadingAction] = useState(false);
+	const [activeTab, setActiveTab] = useState("upcoming");
+	const [loading, setLoading] = useState(true);
+	const [errorMessage, setErrorMessage] = useState(null);
+	const [successMessage, setSuccessMessage] = useState(null);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [selectedDate, setSelectedDate] = useState(null);
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 10;
+	
+	// Check-in modal state
+	const [showCheckInModal, setShowCheckInModal] = useState(false);
 	const [selectedBooking, setSelectedBooking] = useState(null);
+	const [temperature, setTemperature] = useState("");
+	const [weight, setWeight] = useState("");
+	const [height, setHeight] = useState("");
+	const [note, setNote] = useState("");
+	const [submitting, setSubmitting] = useState(false);
 
 	useEffect(() => {
-		getBooking();
-	}, []);
-
-	useEffect(() => {
-		handleSearch();
-	}, [bookingList, searchName, statusFilter]);
-
-	//Get all bookings
-	const getBooking = async () => {
-		try {
-			// Kiểm tra token một cách chi tiết hơn
-			if (!token) {
-				console.error("No token found. Redirecting to login.");
-				navigate('/Login'); // Chuyển hướng đến trang đăng nhập nếu không có token
-				return;
-			}
-
-			console.log("Fetching bookings with token:", token);
-			const response = await fetch(`${bookingAPI}/all`, {
-				method: 'GET', // Thêm method rõ ràng
-				headers: {
-					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json',
-				},
-			});
-
-			console.log("Response status:", response.status);
-
-			if (!response.ok) {
-				// Xử lý các mã lỗi khác nhau
-				if (response.status === 401 || response.status === 403) {
-					console.error("Unauthorized. Redirecting to login.");
-					localStorage.removeItem('token'); // Xóa token không hợp lệ
-					navigate('/Login');
-					return;
-				}
-
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			// Clone response để có thể log nguyên văn response
-			const responseClone = response.clone();
-			const rawResponse = await responseClone.text();
-			console.log("Raw API response:", rawResponse);
-			
-			// Parse response bình thường
-			const data = await response.json();
-			console.log("Booking data received (parsed):", data);
-			
-			// Chi tiết hơn về cấu trúc dữ liệu
-			if (data && data.result) {
-				console.log("Result array length:", Array.isArray(data.result) ? data.result.length : "Not an array");
-				if (Array.isArray(data.result) && data.result.length > 0) {
-					console.log("First booking sample:", JSON.stringify(data.result[0], null, 2));
-					console.log("First booking child object:", data.result[0].child);
-					if (data.result[0].child) {
-						console.log("First booking child account:", data.result[0].child.account);
-					}
-				}
-			}
-			
-			// Kiểm tra xem data có phải là mảng không
-			const bookingData = Array.isArray(data.result) ? data.result : 
-								(Array.isArray(data) ? data : []);
-			
-			if (bookingData.length === 0) {
-				console.log("No bookings found in the response");
-				setMessageAlert({
-					show: true,
-					type: "info",
-					message: "No bookings found."
-				});
-			}
-			
-			setBookingList(bookingData);
-		} catch (err) {
-			console.error("Error fetching bookings:", err);
-			setMessageAlert({
-				show: true,
-				type: "danger",
-				message: `Failed to load bookings: ${err.message}`
-			});
-			// Đặt một mảng rỗng để tránh lỗi
-			setBookingList([]);
-		}
-	};
-
-	// Function to handle check-in process
-	const handleCheckIn = async (bookingId) => {
-		try {
-			setLoadingAction(true);
-			const response = await fetch(`${bookingAPI}/${bookingId}/checkin`, {
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			});
-
-			const data = await response.json();
-			
-			if (response.ok) {
-				// Update local booking status
-				setBookingList(bookingList.map(booking => 
-					booking.bookingId === bookingId 
-					? {...booking, status: "CHECKED_IN"} 
-					: booking
-				));
-				
-				setMessageAlert({
-					show: true,
-					type: "success",
-					message: "Check-in completed successfully!"
-				});
-				
-				// Auto refresh the list
-				getBooking();
-			} else {
-				setMessageAlert({
-					show: true,
-					type: "danger",
-					message: data.message || "Failed to check-in. Please try again."
-				});
-			}
-		} catch (error) {
-			console.error("Error during check-in:", error);
-			setMessageAlert({
-				show: true,
-				type: "danger",
-				message: "An error occurred during check-in."
-			});
-		} finally {
-			setLoadingAction(false);
-		}
-	};
-
-	// Function to handle staff assignment
-	const handleAssignStaff = async (bookingId) => {
-		try {
-			setLoadingAction(true);
-			const response = await fetch(`${bookingAPI}/${bookingId}/assign`, {
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			});
-
-			const data = await response.json();
-			
-			if (response.ok) {
-				// Update local booking status
-				setBookingList(bookingList.map(booking => 
-					booking.bookingId === bookingId 
-					? {...booking, status: "ASSIGNED"} 
-					: booking
-				));
-				
-				setMessageAlert({
-					show: true,
-					type: "success",
-					message: `Staff assigned successfully! Doctor: ${data.result?.assignedDoctor || "N/A"}`
-				});
-				
-				// Auto refresh the list
-				getBooking();
-			} else {
-				setMessageAlert({
-					show: true,
-					type: "danger",
-					message: data.message || "Failed to assign staff. Please try again."
-				});
-			}
-		} catch (error) {
-			console.error("Error during staff assignment:", error);
-			setMessageAlert({
-				show: true,
-				type: "danger",
-				message: "An error occurred during staff assignment."
-			});
-		} finally {
-			setLoadingAction(false);
-		}
-	};
-
-	// Function to display booking status with appropriate badge
-	const renderStatusBadge = (status) => {
-		if (!status || status === "n/a") return <Badge bg="light" text="dark">Pending</Badge>;
-		
-		const statusColors = {
-			"PENDING": { bg: "warning", text: "dark" },
-			"PAID": { bg: "info", text: "dark" },
-			"CHECKED_IN": { bg: "primary", text: "white" },
-			"ASSIGNED": { bg: "success", text: "white" },
-			"DIAGNOSED": { bg: "info", text: "white" },
-			"VACCINE_INJECTED": { bg: "primary", text: "white" },
-			"COMPLETED": { bg: "success", text: "white" },
-			"CANCELLED": { bg: "danger", text: "white" }
-		};
-		
-		const style = statusColors[status] || { bg: "secondary", text: "white" };
-		return <Badge bg={style.bg} text={style.text}>{status}</Badge>;
-	};
-
-	//Sort the booking by vaccination date. The upcoming vaccination date with go first, any past vaccination date will go last
-	const sortBookings = (bookings) => {
-		// Kiểm tra nếu bookings không phải mảng hoặc rỗng
-		if (!Array.isArray(bookings) || bookings.length === 0) {
-			return [];
-		}
-
-		const today = new Date();
-		today.setHours(0, 0, 0, 0); // Normalize to midnight
-
-		const futureBookings = [];
-		const pastBookings = [];
-
-		bookings.forEach((booking) => {
-			if (!booking || !booking.appointmentDate) {
-				console.warn("Invalid booking found:", booking);
-				return; // Skip this booking
-			}
-
-			try {
-				const bookingDate = new Date(booking.appointmentDate);
-				bookingDate.setHours(0, 0, 0, 0); // Normalize
-
-				if (bookingDate >= today) {
-					futureBookings.push(booking);
-				} else {
-					pastBookings.push(booking);
-				}
-			} catch (error) {
-				console.error("Error processing booking date:", error, booking);
-			}
-		});
-
-		futureBookings.sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
-		pastBookings.sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate));
-
-		return [...futureBookings, ...pastBookings];
-	};
-
-	//Function to search by children name and filter by status
-	const handleSearch = () => {
-		// Đảm bảo bookingList là một mảng
-		const safeBookingList = Array.isArray(bookingList) ? bookingList : [];
-		
-		// Nếu mảng rỗng, hiển thị thông báo và thoát sớm
-		if (safeBookingList.length === 0) {
-			setFilteredList([]);
-			setCurrentPage(1);
+		if (!token) {
+			navigate('/Login');
 			return;
 		}
 		
-		let filtered = [...safeBookingList];
+		fetchBookings();
+	}, [navigate, token]);
+
+	useEffect(() => {
+		filterBookings();
+	}, [bookingList, searchTerm, selectedDate, activeTab]);
+
+	const fetchBookings = async () => {
+		try {
+			setLoading(true);
+			setErrorMessage(null);
+			
+			const response = await fetch("http://localhost:8080/booking/all", {
+				method: "GET",
+				headers: {
+					"Authorization": `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			});
+
+			if (!response.ok) {
+				if (response.status === 401 || response.status === 403) {
+					localStorage.removeItem("token");
+					navigate("/Login");
+					return;
+				}
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const data = await response.json();
+			
+			// Assuming data.result contains the bookings array
+			const bookings = Array.isArray(data.result) ? data.result : [];
+			console.log("Fetched bookings:", bookings);
+			setBookingList(bookings);
+			
+		} catch (error) {
+			console.error("Error fetching bookings:", error);
+			setErrorMessage(error.message || "Failed to fetch bookings");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const filterBookings = () => {
+		// Start with the entire booking list
+		let filtered = [...bookingList];
 		
-		// Kiểm tra toàn bộ mảng tìm phần tử lỗi
-		filtered = filtered.filter(booking => {
-			if (!booking) return false;
-			return true;
-		});
-		
-		// Filter by child name
-		if (searchName) {
-			filtered = filtered.filter((booking) => 
-				// Thêm kiểm tra an toàn cho booking.child
-				booking.child && 
-				booking.child.name && 
-				booking.child.name.toLowerCase().includes(searchName.toLowerCase())
+		// Filter by tab
+		if (activeTab === "upcoming") {
+			filtered = filtered.filter(booking => 
+				booking.status === "APPROVED" || booking.status === "PENDING"
+			);
+		} else if (activeTab === "checkedin") {
+			filtered = filtered.filter(booking => 
+				booking.status === "CHECKED_IN" || booking.status === "ASSIGNED" || 
+				booking.status === "DIAGNOSED" || booking.status === "VACCINATING"
+			);
+		} else if (activeTab === "completed") {
+			filtered = filtered.filter(booking => 
+				booking.status === "COMPLETED" || booking.status === "CANCELLED" || 
+				booking.status === "VACCINE_INJECTED"
 			);
 		}
 		
-		// Filter by status
-		if (statusFilter !== "ALL") {
-			filtered = filtered.filter((booking) => booking.status === statusFilter);
+		// Filter by search term (child or parent name)
+		if (searchTerm) {
+			const term = searchTerm.toLowerCase();
+			filtered = filtered.filter(booking => {
+				const childName = (booking.child?.name || "").toLowerCase();
+				const parentFirstName = (booking.child?.account?.firstName || "").toLowerCase();
+				const parentLastName = (booking.child?.account?.lastName || "").toLowerCase();
+				
+				return childName.includes(term) || 
+					   parentFirstName.includes(term) || 
+					   parentLastName.includes(term);
+			});
 		}
 		
-		setFilteredList(sortBookings(filtered));
-		setCurrentPage(1);
+		// Filter by selected date
+		if (selectedDate) {
+			const dateStr = format(selectedDate, "yyyy-MM-dd");
+			filtered = filtered.filter(booking => booking.appointmentDate === dateStr);
+		}
+		
+		// Sort by appointment date, recent first
+		filtered.sort((a, b) => {
+			const dateA = new Date(a.appointmentDate);
+			const dateB = new Date(b.appointmentDate);
+			return dateB - dateA;
+		});
+		
+		setFilteredList(filtered);
+		setCurrentPage(1); // Reset to first page when filter changes
 	};
 
-	//Pagination
-	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10; // Number of items per page
-	const indexOfLastItems = currentPage * itemsPerPage;
-	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentBookings = filteredList && filteredList.length > 0 ? filteredList.slice(indexOfFirstItems, indexOfLastItems) : []; //Ensure list not empty
+	const handleCheckIn = async (e) => {
+		e.preventDefault();
+		
+		if (!selectedBooking) return;
+		
+		const checkInData = {
+			bookingId: selectedBooking.bookingId,
+			temperature: parseFloat(temperature),
+			weight: parseFloat(weight),
+			height: parseFloat(height),
+			note: note
+		};
+		
+		try {
+			setSubmitting(true);
+			setErrorMessage(null);
+			
+			console.log("Submitting check-in data:", checkInData);
+			
+			const response = await fetch(`http://localhost:8080/booking/${selectedBooking.bookingId}/checkin`, {
+				method: "PUT",
+				headers: {
+					"Authorization": `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(checkInData),
+			});
+			
+			const data = await response.json();
+			
+			if (!response.ok) {
+				throw new Error(data.message || "Failed to check in patient");
+			}
+			
+			// Update the booking status in the list
+			const updatedBookings = bookingList.map(booking => 
+				booking.bookingId === selectedBooking.bookingId 
+				? { ...booking, status: "CHECKED_IN" } 
+				: booking
+			);
+			
+			setBookingList(updatedBookings);
+			setSuccessMessage(`Patient ${selectedBooking.child?.name} has been checked in successfully!`);
+			resetCheckInForm();
+			setShowCheckInModal(false);
+			
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				setSuccessMessage(null);
+			}, 3000);
+			
+		} catch (error) {
+			console.error("Error during check-in:", error);
+			setErrorMessage(error.message || "Failed to check in patient");
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	const handleOpenCheckIn = (booking) => {
+		setSelectedBooking(booking);
+		setShowCheckInModal(true);
+	};
+
+	const resetCheckInForm = () => {
+		setTemperature("");
+		setWeight("");
+		setHeight("");
+		setNote("");
+		setSelectedBooking(null);
+	};
+
+	// Pagination calculations
+	const indexOfLastItem = currentPage * itemsPerPage;
+	const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+	const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem);
 	const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
-	const handlePageChange = (pageNumber) => {
-		setCurrentPage(pageNumber);
+	// Render status badge with appropriate styling
+	const renderStatusBadge = (status) => {
+		const statusStyles = {
+			"PENDING": "bg-yellow-100 text-yellow-800",
+			"APPROVED": "bg-green-100 text-green-800",
+			"CANCELLED": "bg-red-100 text-red-800",
+			"COMPLETED": "bg-blue-100 text-blue-800",
+			"CHECKED_IN": "bg-purple-100 text-purple-800",
+			"ASSIGNED": "bg-indigo-100 text-indigo-800",
+			"DIAGNOSED": "bg-cyan-100 text-cyan-800",
+			"VACCINATING": "bg-pink-100 text-pink-800",
+			"VACCINE_INJECTED": "bg-emerald-100 text-emerald-800"
+		};
+		
+		const style = statusStyles[status] || "bg-gray-100 text-gray-800";
+		
+		return (
+			<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style}`}>
+				{status}
+			</span>
+		);
 	};
 
-	let items = [];
-	for (let number = 1; number <= totalPages; number++) {
-		items.push(
-			<Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
-				{number}
-			</Pagination.Item>
+	// Pagination controls
+	const renderPagination = () => {
+		if (totalPages <= 1) return null;
+		
+		const pageButtons = [];
+		
+		// Add first page
+		pageButtons.push(
+			<Button
+				key="first"
+				variant={currentPage === 1 ? "default" : "outline"}
+				size="sm"
+				className="h-8 w-8 p-0"
+				onClick={() => setCurrentPage(1)}
+			>
+				1
+			</Button>
 		);
-	}
-
-	const pagination = (
-		<Pagination>
-			<Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
-			<Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
-			{items}
-			<Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
-			<Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
-		</Pagination>
-	);
-
-	// Function to generate patient enroll number (for display purposes)
-	const generateEnrollNumber = (bookingId, appointmentDate) => {
-		const date = new Date(appointmentDate);
-		const dateStr = date.toISOString().split('T')[0].replace(/-/g, '');
-		return `ENR-${dateStr}-${bookingId.toString().padStart(3, '0')}`;
+		
+		// Add ellipsis if needed
+		if (currentPage > 3) {
+			pageButtons.push(
+				<span key="ellipsis1" className="px-2">...</span>
+			);
+		}
+		
+		// Add pages around current page
+		for (let i = Math.max(2, currentPage - 1); i <= Math.min(currentPage + 1, totalPages - 1); i++) {
+			pageButtons.push(
+				<Button
+					key={i}
+					variant={currentPage === i ? "default" : "outline"}
+					size="sm"
+					className="h-8 w-8 p-0"
+					onClick={() => setCurrentPage(i)}
+				>
+					{i}
+				</Button>
+			);
+		}
+		
+		// Add ellipsis if needed
+		if (currentPage < totalPages - 2) {
+			pageButtons.push(
+				<span key="ellipsis2" className="px-2">...</span>
+			);
+		}
+		
+		// Add last page if there are more than 1 page
+		if (totalPages > 1) {
+			pageButtons.push(
+				<Button
+					key="last"
+					variant={currentPage === totalPages ? "default" : "outline"}
+					size="sm"
+					className="h-8 w-8 p-0"
+					onClick={() => setCurrentPage(totalPages)}
+				>
+					{totalPages}
+				</Button>
+			);
+		}
+		
+		return (
+			<div className="flex justify-center space-x-2 mt-4">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+					disabled={currentPage === 1}
+				>
+					Previous
+				</Button>
+				
+				<div className="flex items-center space-x-1">
+					{pageButtons}
+				</div>
+				
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+					disabled={currentPage === totalPages}
+				>
+					Next
+				</Button>
+			</div>
+		);
 	};
 
 	return (
-		<>
+		<div className="min-h-screen bg-gray-50">
 			<Navigation />
-			<div style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
-				<Row lg={10}>
-					<StaffMenu />
-					<Col>
-						<Container className="py-4">
-							<h1 className="mb-4 text-primary">Check-In & Assign Staff</h1>
-							<hr className="mb-4"></hr>
-							
-							{messageAlert.show && (
-								<Alert variant={messageAlert.type} onClose={() => setMessageAlert({...messageAlert, show: false})} dismissible>
-									{messageAlert.message}
-								</Alert>
-							)}
-							
-							<Row className="mb-3">
-								<Col md={8}>
-									<Form.Control 
-										type="text" 
-										placeholder="Search Child Name" 
-										value={searchName} 
-										onChange={(e) => setSearchName(e.target.value)} 
-									/>
-								</Col>
-								<Col md={4}>
-									<Form.Select 
-										value={statusFilter} 
-										onChange={(e) => setStatusFilter(e.target.value)}
+			<div className="flex">
+				<StaffMenu />
+				<main className="flex-grow p-6">
+					<div className="mb-6">
+						<h1 className="text-2xl font-bold text-gray-800">Patient Check-In</h1>
+						<p className="text-gray-600">
+							Process patient arrivals, check-in, and view appointment status
+						</p>
+					</div>
+					
+					{errorMessage && (
+						<Alert variant="destructive" className="mb-4">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Error</AlertTitle>
+							<AlertDescription>{errorMessage}</AlertDescription>
+						</Alert>
+					)}
+					
+					{successMessage && (
+						<Alert className="mb-4">
+							<CheckCircle className="h-4 w-4" />
+							<AlertTitle>Success</AlertTitle>
+							<AlertDescription>{successMessage}</AlertDescription>
+						</Alert>
+					)}
+					
+					{/* Filters and Search */}
+					<Card className="mb-6">
+						<CardContent className="pt-6">
+							<div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+								<div className="md:col-span-5">
+									<div className="relative">
+										<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+										<Input
+											type="text"
+											placeholder="Search by name..."
+											value={searchTerm}
+											onChange={(e) => setSearchTerm(e.target.value)}
+											className="pl-9"
+										/>
+									</div>
+								</div>
+								
+								<div className="md:col-span-4">
+									<Popover>
+										<PopoverTrigger asChild>
+											<Button
+												variant="outline"
+												className={cn(
+													"w-full justify-start text-left font-normal",
+													!selectedDate && "text-muted-foreground"
+												)}
+											>
+												<CalendarIcon className="mr-2 h-4 w-4" />
+												{selectedDate ? format(selectedDate, "PPP") : "Filter by date"}
+											</Button>
+										</PopoverTrigger>
+										<PopoverContent className="w-auto p-0">
+											<Calendar
+												mode="single"
+												selected={selectedDate}
+												onSelect={setSelectedDate}
+												initialFocus
+											/>
+										</PopoverContent>
+									</Popover>
+								</div>
+								
+								<div className="md:col-span-3 flex items-center space-x-2">
+									<Button 
+										variant="outline" 
+										className="flex-1"
+										onClick={() => {
+											setSearchTerm("");
+											setSelectedDate(null);
+										}}
 									>
-										<option value="ALL">All Statuses</option>
-										<option value="PENDING">Pending</option>
-										<option value="PAID">Paid</option>
-										<option value="CHECKED_IN">Checked In</option>
-										<option value="ASSIGNED">Assigned</option>
-										<option value="DIAGNOSED">Diagnosed</option>
-										<option value="VACCINE_INJECTED">Vaccine Injected</option>
-										<option value="COMPLETED">Completed</option>
-										<option value="CANCELLED">Cancelled</option>
-									</Form.Select>
-								</Col>
-							</Row>
-							
-							<Table striped bordered hover responsive>
-								<thead>
-									<tr>
-										<th>#</th>
-										<th>Enroll Number</th>
-										<th>Appointment Date</th>
-										<th>Child Name</th>
-										<th>Parent Name</th>
-										<th>Status</th>
-										<th>Actions</th>
-									</tr>
-								</thead>
-								<tbody>
-									{currentBookings.length > 0 ? (
-										currentBookings.map((booking) => (
-											<tr key={booking.bookingId}>
-												<td>{booking.bookingId}</td>
-												<td>{generateEnrollNumber(booking.bookingId, booking.appointmentDate)}</td>
-												<td>{booking.appointmentDate}</td>
-												<td>{booking.child?.name || "N/A"}</td>
-												<td>
-													{booking.child && booking.child.account
-														? `${booking.child.account.firstName || ""} ${booking.child.account.lastName || ""}`.trim() || "N/A"
-														: "N/A"}
-												</td>
-												<td>
-													{renderStatusBadge(booking.status)}
-												</td>
-												<td>
-													{booking.status === "PAID" && (
-														<Button 
-															size="sm" 
-															variant="primary" 
-															onClick={() => handleCheckIn(booking.bookingId)}
-															disabled={loadingAction}
-															className="me-1"
-														>
-															Check-in
-														</Button>
-													)}
-													
-													{booking.status === "CHECKED_IN" && (
-														<Button 
-															size="sm" 
-															variant="success" 
-															onClick={() => handleAssignStaff(booking.bookingId)}
-															disabled={loadingAction}
-															className="me-1"
-														>
-															Assign Staff
-														</Button>
-													)}
-													
-													{booking.status === "ASSIGNED" && (
-														<Button 
-															size="sm" 
-															variant="info" 
-															onClick={() => {
-																setSelectedBooking(booking);
-																setIsDiagnosisOpen(true);
-															}}
-															className="me-1"
-														>
-															Add Diagnosis
-														</Button>
-													)}
-													
-													{booking.status === "DIAGNOSED" && (
-														<Button 
-															size="sm" 
-															variant="warning" 
-															onClick={() => {
-																// Redirect to vaccination page using navigate
-																navigate(`/Staff/Vaccination/${booking.bookingId}`);
-															}}
-															className="me-1"
-														>
-															Administer Vaccine
-														</Button>
-													)}
-													
-													{(booking.status === "VACCINE_INJECTED" || booking.status === "COMPLETED") && (
-														<Button 
-															size="sm" 
-															variant="secondary" 
-															onClick={() => {
-																setSelectedBooking(booking);
-																setIsRecordOpen(true);
-															}}
-															className="me-1"
-														>
-															View Records
-														</Button>
-													)}
-													
-													{/* Temporary solution to see all buttons regardless of status */}
-													{(!booking.status || booking.status === "n/a") && (
-														<>
-															<Button 
-																size="sm" 
-																variant="primary" 
-																onClick={() => handleCheckIn(booking.bookingId)}
-																disabled={loadingAction}
-																className="me-1"
-															>
-																Check-in
-															</Button>
-															<Button 
-																size="sm" 
-																variant="success" 
-																onClick={() => handleAssignStaff(booking.bookingId)}
-																disabled={loadingAction}
-																className="me-1"
-															>
-																Assign Staff
-															</Button>
-															<Button 
-																size="sm" 
-																variant="warning" 
-																onClick={() => navigate(`/Staff/Vaccination/${booking.bookingId}`)}
-																className="me-1"
-															>
-																Go To Vaccination
-															</Button>
-														</>
-													)}
-												</td>
-											</tr>
-										))
-									) : (
-										<tr>
-											<td colSpan={7} className="text-center">No bookings match your criteria</td>
-										</tr>
-									)}
-								</tbody>
-							</Table>
-							{pagination}
-							
-							{isDiagnosisOpen && (
-								<Diagnosis 
-									open={isDiagnosisOpen} 
-									setIsOpen={setIsDiagnosisOpen} 
-									booking={selectedBooking}
-									onDiagnosisComplete={() => {
-										setIsDiagnosisOpen(false);
-										getBooking(); // Refresh list after diagnosis
-									}}
-								/>
-							)}
-							
-							{isRecordOpen && (
-								<DetailReaction 
-									open={isRecordOpen} 
-									setIsOpen={setIsRecordOpen} 
-									booking={selectedBooking}
-								/>
-							)}
-						</Container>
-					</Col>
-				</Row>
+										<X className="mr-2 h-4 w-4" />
+										Clear
+									</Button>
+									<Button 
+										variant="outline" 
+										className="flex-1"
+										onClick={fetchBookings}
+									>
+										<RefreshCw className="mr-2 h-4 w-4" />
+										Refresh
+									</Button>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+					
+					{/* Tabs and Content */}
+					<Card>
+						<CardContent className="p-0">
+							<Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
+								<TabsList className="grid w-full grid-cols-3">
+									<TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+									<TabsTrigger value="checkedin">Checked In</TabsTrigger>
+									<TabsTrigger value="completed">Completed</TabsTrigger>
+								</TabsList>
+								
+								{loading ? (
+									<div className="flex items-center justify-center h-64">
+										<div className="flex flex-col items-center">
+											<Loader2 className="h-8 w-8 animate-spin text-primary" />
+											<p className="mt-2 text-gray-500">Loading bookings...</p>
+										</div>
+									</div>
+								) : (
+									<>
+										{filteredList.length === 0 ? (
+											<div className="text-center py-12">
+												<p className="text-gray-500">No bookings found matching your criteria</p>
+											</div>
+										) : (
+											<TabsContent value={activeTab} className="p-1">
+												<ScrollArea className="h-[60vh]">
+													<Table>
+														<TableHeader>
+															<TableRow>
+																<TableHead>Appointment</TableHead>
+																<TableHead>Child</TableHead>
+																<TableHead>Parent</TableHead>
+																<TableHead>Status</TableHead>
+																<TableHead className="text-right">Action</TableHead>
+															</TableRow>
+														</TableHeader>
+														<TableBody>
+															{currentItems.map((booking) => (
+																<TableRow key={booking.bookingId}>
+																	<TableCell>
+																		<div className="font-medium mb-1">
+																			{booking.appointmentDate}
+																		</div>
+																		<div className="text-sm text-gray-500">
+																			{booking.appointmentTime}
+																		</div>
+																	</TableCell>
+																	<TableCell>
+																		{booking.child?.name || "N/A"}
+																	</TableCell>
+																	<TableCell>
+																		{booking.child?.account 
+																			? `${booking.child.account.firstName} ${booking.child.account.lastName}`
+																			: "N/A"}
+																	</TableCell>
+																	<TableCell>
+																		{renderStatusBadge(booking.status)}
+																	</TableCell>
+																	<TableCell className="text-right">
+																		{booking.status === "APPROVED" && (
+																			<Button
+																				onClick={() => handleOpenCheckIn(booking)}
+																				size="sm"
+																			>
+																				<ClipboardCheck className="h-4 w-4 mr-1" />
+																				Check In
+																			</Button>
+																		)}
+																	</TableCell>
+																</TableRow>
+															))}
+														</TableBody>
+													</Table>
+												</ScrollArea>
+												{renderPagination()}
+											</TabsContent>
+										)}
+									</>
+								)}
+							</Tabs>
+						</CardContent>
+					</Card>
+				</main>
 			</div>
-		</>
+			
+			{/* Check-in Modal */}
+			<Dialog open={showCheckInModal} onOpenChange={(open) => {
+				if (!open) resetCheckInForm();
+				setShowCheckInModal(open);
+			}}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Patient Check-In</DialogTitle>
+					</DialogHeader>
+					
+					<form onSubmit={handleCheckIn} className="space-y-4 mt-4">
+						<div className="grid gap-4">
+							<div className="grid grid-cols-2 gap-4">
+								<div>
+									<Label htmlFor="childName">Child Name</Label>
+									<Input 
+										id="childName" 
+										value={selectedBooking?.child?.name || ""} 
+										disabled 
+									/>
+								</div>
+								<div>
+									<Label htmlFor="appointmentDate">Appointment Date</Label>
+									<Input 
+										id="appointmentDate" 
+										value={selectedBooking?.appointmentDate || ""} 
+										disabled 
+									/>
+								</div>
+							</div>
+							
+							<div className="grid grid-cols-3 gap-4">
+								<div>
+									<Label htmlFor="temperature">Temperature (°C)</Label>
+									<Input
+										id="temperature"
+										type="number"
+										step="0.1"
+										placeholder="36.5"
+										value={temperature}
+										onChange={(e) => setTemperature(e.target.value)}
+										required
+									/>
+								</div>
+								<div>
+									<Label htmlFor="weight">Weight (kg)</Label>
+									<Input
+										id="weight"
+										type="number"
+										step="0.1"
+										placeholder="15.0"
+										value={weight}
+										onChange={(e) => setWeight(e.target.value)}
+										required
+									/>
+								</div>
+								<div>
+									<Label htmlFor="height">Height (cm)</Label>
+									<Input
+										id="height"
+										type="number"
+										step="0.1"
+										placeholder="100.0"
+										value={height}
+										onChange={(e) => setHeight(e.target.value)}
+										required
+									/>
+								</div>
+							</div>
+							
+							<div>
+								<Label htmlFor="note">Notes</Label>
+								<Textarea
+									id="note"
+									placeholder="Enter any relevant observations or notes..."
+									value={note}
+									onChange={(e) => setNote(e.target.value)}
+									className="min-h-[100px]"
+								/>
+							</div>
+						</div>
+						
+						<DialogFooter className="sm:justify-end">
+							<Button variant="outline" type="button" onClick={() => setShowCheckInModal(false)}>
+								Cancel
+							</Button>
+							<Button type="submit" disabled={submitting}>
+								{submitting ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Processing...
+									</>
+								) : (
+									<>
+										<CheckCircle className="mr-2 h-4 w-4" />
+										Complete Check-In
+									</>
+								)}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
+		</div>
 	);
 }
 

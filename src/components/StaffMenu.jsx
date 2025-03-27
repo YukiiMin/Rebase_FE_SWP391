@@ -1,98 +1,44 @@
 import React from "react";
-import { Col, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
+import { Home, UserCheck, Calendar, Syringe } from "lucide-react";
+import { cn } from "../lib/utils";
 
 function StaffMenu() {
 	return (
-		<Col lg={2} style={{ backgroundColor: "#e0e0e0", paddingTop: "20px" }}>
-			<Navbar>
-				<Nav defaultActiveKey="/Staff/StaffPage" className="flex-column">
-					<Navbar.Brand
-						href="/"
-						style={{
-							fontWeight: "bold",
-							fontSize: "1.2rem",
-							marginBottom: "20px",
-							color: "#007bff",
-						}}>
-						Vaccine Schedule
-					</Navbar.Brand>
-					<NavLink
-						to={"/Staff/StaffPage"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Staff Home
-					</NavLink>
-					<NavLink
-						to={"/Staff/CheckIn"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Customer Check-In
-					</NavLink>
-					<NavLink
-						to={"/Staff/Schedule"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Work Schedule
-					</NavLink>
-					<NavLink
-						to={"/Staff/Vaccination"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Vaccination Management
-					</NavLink>
-					{/* <NavLink
-						to={"/ManageCombo"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Vaccine Combo
-					</NavLink>
-					<NavLink
-						to={"/WorkSchedule"}
-						className={"nav-link"}
-						style={({ isActive }) => ({
-							backgroundColor: isActive ? "#e9ecef" : "transparent",
-							borderRadius: "5px",
-							padding: "10px 15px",
-							marginBottom: "5px",
-							color: "#343a40",
-						})}>
-						Work Schedule
-					</NavLink> */}
-				</Nav>
-			</Navbar>
-		</Col>
+		<div className="h-screen w-64 bg-gray-100 border-r p-4">
+			<div className="mb-8">
+				<a href="/" className="text-xl font-bold text-primary">
+					Vaccine Schedule
+				</a>
+			</div>
+			
+			<nav className="space-y-1">
+				<NavItem to="/Staff/StaffPage" icon={<Home className="w-5 h-5" />} label="Staff Home" />
+				<NavItem to="/Staff/CheckIn" icon={<UserCheck className="w-5 h-5" />} label="Customer Check-In" />
+				<NavItem to="/Staff/Schedule" icon={<Calendar className="w-5 h-5" />} label="Work Schedule" />
+				<NavItem to="/Staff/Vaccination" icon={<Syringe className="w-5 h-5" />} label="Vaccination Management" />
+			</nav>
+		</div>
 	);
 }
+
+const NavItem = ({ to, icon, label }) => {
+	return (
+		<NavLink
+			to={to}
+			className={({ isActive }) =>
+				cn(
+					"flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",
+					isActive
+						? "bg-primary/10 text-primary"
+						: "text-gray-700 hover:bg-gray-200 hover:text-gray-900"
+				)
+			}
+		>
+			<span className="mr-3">{icon}</span>
+			{label}
+		</NavLink>
+	);
+};
 
 export default StaffMenu;
