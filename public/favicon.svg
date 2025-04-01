@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circle background -->
+  <circle cx="16" cy="16" r="16" fill="#0056B3"/>
+  
+  <!-- Shield shape -->
+  <path d="M16 6C12 8.5 8.5 9.75 5 10.5V17.5C5 22.5 10 26 16 28C22 26 27 22.5 27 17.5V10.5C23.5 9.75 20 8.5 16 6Z" fill="#FFFFFF"/>
+  
+  <!-- Syringe icon -->
+  <path d="M19 11.5L20.5 13L14 19.5L12.5 18L19 11.5Z" fill="#FF7A00"/>
+  <path d="M11.5 19L13 20.5L11 21.5L11.5 19Z" fill="#FF7A00"/>
+  <path d="M20.5 10L22 11.5L20.5 13L19 11.5L20.5 10Z" fill="#FF7A00"/>
+</svg> 

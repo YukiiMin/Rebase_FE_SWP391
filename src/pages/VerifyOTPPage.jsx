@@ -1,92 +1,165 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Alert, AlertDescription } from "../components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, MailCheck, X } from "lucide-react";
-import MainNav from "../components/MainNav";
+import { AlertTriangle, Loader2, X, Phone, Shield } from "lucide-react";
+import Footer from "../components/layout/Footer";
+import { useTranslation } from "react-i18next";
 
-export default function VerifyOTPPage() {
-    const location = useLocation();
+const VerifyOtpPage = () => {
     const navigate = useNavigate();
-    const email = location.state?.email || "";
-    const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+    const location = useLocation();
     const [isLoading, setIsLoading] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
     const [error, setError] = useState("");
-    const [timer, setTimer] = useState(60);
-    const [canResend, setCanResend] = useState(false);
-    
-    // Tạo mảng refs cho 6 ô input OTP
-    const inputRefs = useRef([...Array(6)].map(() => React.createRef()));
-    
-    // Kiểm tra nếu không có email từ state, chuyển về trang quên mật khẩu
+    const [countdown, setCountdown] = useState(60);
+    const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+    const inputRefs = useRef([]);
+    const email = location.state?.email || "";
+    const { t } = useTranslation();
+
+    // Verify location state has email, otherwise redirect
     useEffect(() => {
         if (!email) {
-            navigate("/forgot-password");
+            navigate("/login");
         }
     }, [email, navigate]);
-    
-    // Đếm ngược thời gian cho phép gửi lại OTP
+
+    // Countdown timer for resend OTP
     useEffect(() => {
-        if (timer > 0) {
-            const interval = setInterval(() => {
-                setTimer((prevTimer) => prevTimer - 1);
-            }, 1000);
-            return () => clearInterval(interval);
-        } else {
-            setCanResend(true);
+        if (countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
         }
-    }, [timer]);
-    
-    // Xử lý khi người dùng nhập OTP
-    const handleOtpChange = (index, e) => {
+    }, [countdown]);
+
+    // Handle OTP input change
+    const handleChange = (e, index) => {
         const value = e.target.value;
         
-        // Chỉ cho phép nhập số
-        if (!/^\d*$/.test(value)) return;
+        // Only allow numbers
+        if (value && !/^\d+$/.test(value)) return;
         
-        // Cập nhật giá trị OTP
+        // Update OTP array
         const newOtp = [...otp];
-        newOtp[index] = value.substring(0, 1); // Chỉ lấy 1 ký tự
+        newOtp[index] = value.slice(0, 1); // Only take first character
         setOtp(newOtp);
-        
-        // Nếu đã nhập và không phải ô cuối cùng, di chuyển focus đến ô tiếp theo
+
+        // Auto focus next input
         if (value && index < 5) {
             inputRefs.current[index + 1].focus();
         }
-    };
-    
-    // Xử lý khi nhấn phím trong input OTP
-    const handleKeyDown = (index, e) => {
-        // Nếu nhấn Backspace khi ô trống, di chuyển focus đến ô trước đó
-        if (e.key === "Backspace" && !otp[index] && index > 0) {
-            inputRefs.current[index - 1].focus();
+
+        // Auto submit when all fields are filled
+        if (value && index === 5) {
+            const completeOtp = newOtp.join("");
+            if (completeOtp.length === 6) {
+                handleVerifyOtp(completeOtp);
+            }
         }
     };
-    
-    // Xử lý khi paste OTP
+
+    // Handle key down for backspace and navigation
+    const handleKeyDown = (e, index) => {
+        if (e.key === "Backspace" && !otp[index] && index > 0) {
+            // Move to previous input on backspace if current is empty
+            inputRefs.current[index - 1].focus();
+        } else if (e.key === "ArrowLeft" && index > 0) {
+            // Move to previous input on left arrow
+            inputRefs.current[index - 1].focus();
+        } else if (e.key === "ArrowRight" && index < 5) {
+            // Move to next input on right arrow
+            inputRefs.current[index + 1].focus();
+        }
+    };
+
+    // Handle paste event
     const handlePaste = (e) => {
         e.preventDefault();
         const pastedData = e.clipboardData.getData("text/plain").trim();
         
-        // Kiểm tra nếu dữ liệu dán là 6 số
-        if (/^\d{6}$/.test(pastedData)) {
-            const otpArray = pastedData.split("");
-            setOtp(otpArray);
+        if (/^\d+$/.test(pastedData)) {
+            const pastedOtp = pastedData.slice(0, 6).split("");
+            const newOtp = [...otp];
             
-            // Focus vào ô cuối cùng
-            inputRefs.current[5].focus();
+            for (let i = 0; i < pastedOtp.length; i++) {
+                if (i < 6) newOtp[i] = pastedOtp[i];
+            }
+            
+            setOtp(newOtp);
+            
+            // Focus the appropriate input
+            if (pastedOtp.length < 6) {
+                inputRefs.current[pastedOtp.length].focus();
+            } else {
+                inputRefs.current[5].focus();
+                // Auto submit when all fields are filled by paste
+                handleVerifyOtp(newOtp.join(""));
+            }
         }
     };
-    
-    // Xử lý gửi lại OTP
-    const handleResendOtp = async () => {
-        if (!canResend) return;
-        
+
+    // Handle verify OTP submission
+    const handleVerifyOtp = async (otpValue) => {
+        const otpCode = otpValue || otp.join("");
+        if (otpCode.length !== 6) {
+            setError(t('verifyOTP.errors.required'));
+            return;
+        }
+
         setIsLoading(true);
         setError("");
+
+        try {
+            const response = await fetch("http://localhost:8080/auth/verify-otp", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: email,
+                    otp: otpCode,
+                }),
+            });
+
+            const data = await response.json();
+            console.log("OTP verification response:", data);
+
+            if (response.ok) {
+                console.log("OTP verification successful");
+                // Extract token from response - could be in different formats based on your API
+                const tokenValue = data.token || data.data?.token || data.resetToken || data;
+                
+                console.log("Token extracted:", tokenValue);
+                
+                // Navigate to reset password page with token
+                navigate("/ResetPassword", { 
+                    state: { 
+                        email,
+                        token: tokenValue,
+                        from: location.state?.from
+                    } 
+                });
+            } else {
+                setError(data.message || t('verifyOTP.errors.invalidOTP'));
+            }
+        } catch (error) {
+            console.error("Error verifying OTP:", error);
+            setError(t('verifyOTP.errors.serverError'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle resend OTP
+    const handleResendOtp = async () => {
+        if (countdown > 0) return;
         
+        setResendLoading(true);
+        setError("");
+
         try {
             const response = await fetch("http://localhost:8080/auth/resend-otp", {
                 method: "POST",
@@ -95,67 +168,19 @@ export default function VerifyOTPPage() {
                 },
                 body: JSON.stringify({ email }),
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
-                // Reset timer và trạng thái gửi lại
-                setTimer(60);
-                setCanResend(false);
+                setCountdown(60);
             } else {
-                setError(data.message || "Không thể gửi lại OTP. Vui lòng thử lại sau.");
+                setError(data.message || t('verifyOTP.errors.resendFailed'));
             }
         } catch (error) {
             console.error("Error resending OTP:", error);
-            setError("Đã xảy ra lỗi khi gửi lại OTP. Vui lòng thử lại sau.");
+            setError(t('verifyOTP.errors.resendFailed'));
         } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    // Xử lý xác thực OTP
-    const handleVerify = async () => {
-        // Kiểm tra xem đã nhập đủ 6 số chưa
-        if (otp.some(digit => !digit)) {
-            setError("Vui lòng nhập đầy đủ mã OTP 6 số");
-            return;
-        }
-        
-        setIsLoading(true);
-        setError("");
-        
-        try {
-            const otpValue = otp.join("");
-            
-            const response = await fetch("http://localhost:8080/auth/verify-otp", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ 
-                    email,
-                    otp: otpValue
-                }),
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                // Chuyển đến trang đặt lại mật khẩu với token
-                navigate("/reset-password", { 
-                    state: { 
-                        email, 
-                        token: data.result?.token || data.token || "" 
-                    } 
-                });
-            } else {
-                setError(data.message || "Mã OTP không hợp lệ hoặc đã hết hạn.");
-            }
-        } catch (error) {
-            console.error("Error verifying OTP:", error);
-            setError("Đã xảy ra lỗi khi xác thực OTP. Vui lòng thử lại.");
-        } finally {
-            setIsLoading(false);
+            setResendLoading(false);
         }
     };
 
@@ -166,117 +191,118 @@ export default function VerifyOTPPage() {
             navigate("/");
         }
     };
-    
-    return (
-        <div className="min-h-screen flex flex-col relative">
-            <MainNav />
-            
-            {/* Background image */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
-                <img 
-                    src="/vaccination-background.jpg" 
-                    alt="Vaccination Background" 
-                    className="w-full h-full object-cover object-center"
-                />
-            </div>
-            
-            {/* Content */}
-            <div className="flex-1 flex justify-center items-center relative z-20 px-4">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-md relative"
-                >
-                    {/* Close button */}
-                    <button
-                        onClick={handleClose}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition-colors duration-200"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
 
-                    <div className="mb-6 text-center">
-                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                            <MailCheck className="h-8 w-8 text-blue-600" />
+    return (
+        <div className="min-h-screen flex flex-col bg-gray-50">
+            {/* Header */}
+            <header className="bg-blue-800 py-4 px-6">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <Link to="/" className="flex items-center space-x-2">
+                        <div className="bg-blue-700 p-2 rounded-full flex items-center justify-center">
+                            <Shield className="h-5 w-5 text-white" />
+                            <span className="text-lg font-bold text-white ml-2">VaccineCare</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-[#1B1B1B] mb-2">Xác nhận OTP</h2>
+                    </Link>
+                    
+                    <a href="tel:0903731347" className="flex items-center text-white hover:text-blue-200 transition-colors">
+                        <Phone className="h-5 w-5 mr-2" />
+                        <span>0903731347</span>
+                    </a>
+                </div>
+            </header>
+            
+            {/* Main content */}
+            <main className="flex-1 flex flex-col items-center justify-center py-10 px-4">
+                <h1 className="text-3xl font-bold text-blue-900 mb-8">{t('verifyOTP.title', 'Verify OTP Code')}</h1>
+                
+                {/* OTP Verification Form */}
+                <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('verifyOTP.heading', 'Enter OTP Code')}</h2>
                         <p className="text-gray-600">
-                            Chúng tôi đã gửi mã 6 số đến email <span className="text-blue-700 font-semibold">{email}</span>
+                            {t('verifyOTP.subtitle', `We've sent a verification code to ${email}`)}
                         </p>
                     </div>
                     
                     {error && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertCircle className="h-4 w-4" />
+                        <Alert variant="destructive" className="mb-6 bg-red-50 border border-red-200 text-red-900">
+                            <AlertTriangle className="h-4 w-4" />
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
                     
-                    <div className="mb-6">
-                        <div className="flex justify-center gap-2">
-                            {otp.map((digit, index) => (
-                                <Input
-                                    key={index}
-                                    type="text"
-                                    maxLength={1}
-                                    value={digit}
-                                    ref={el => inputRefs.current[index] = el}
-                                    onChange={(e) => handleOtpChange(index, e)}
-                                    onKeyDown={(e) => handleKeyDown(index, e)}
-                                    onPaste={index === 0 ? handlePaste : null}
-                                    className="w-12 h-14 text-center text-xl font-bold bg-white/80 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
-                                    disabled={isLoading}
-                                />
-                            ))}
+                    <form className="space-y-6">
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className="flex justify-center space-x-3">
+                                {[0, 1, 2, 3, 4, 5].map((index) => (
+                                    <Input
+                                        key={index}
+                                        ref={(el) => (inputRefs.current[index] = el)}
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={otp[index]}
+                                        onChange={(e) => handleChange(e, index)}
+                                        onKeyDown={(e) => handleKeyDown(e, index)}
+                                        onPaste={index === 0 ? handlePaste : undefined}
+                                        className="w-12 h-12 text-center text-xl font-bold border-2 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                                        disabled={isLoading}
+                                    />
+                                ))}
+                            </div>
+                            
+                            <Button 
+                                type="button" 
+                                onClick={() => handleVerifyOtp()}
+                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors" 
+                                disabled={isLoading || otp.join("").length !== 6}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                                        {t('verifyOTP.verifying', 'Verifying...')}
+                                    </>
+                                ) : t('verifyOTP.verifyButton', 'Verify OTP')}
+                            </Button>
+                            
+                            <div className="text-center w-full">
+                                <div className="flex justify-center items-center space-x-2">
+                                    <span className="text-sm text-gray-600">{t('verifyOTP.didntReceive', 'Didn\'t receive code?')}</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleResendOtp}
+                                        disabled={countdown > 0 || resendLoading}
+                                        className={`text-sm font-medium ${countdown > 0 || resendLoading ? 'text-gray-400' : 'text-blue-600 hover:text-blue-800'}`}
+                                    >
+                                        {resendLoading ? (
+                                            <span className="flex items-center">
+                                                <Loader2 className="animate-spin h-3 w-3 mr-1" />
+                                                {t('verifyOTP.resending', 'Resending...')}
+                                            </span>
+                                        ) : countdown > 0 ? (
+                                            `${t('verifyOTP.resendIn', 'Resend in')} ${countdown}s`
+                                        ) : (
+                                            t('verifyOTP.resend', 'Resend OTP')
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="w-full pt-4 border-t border-gray-200 mt-4">
+                                <div className="flex justify-center">
+                                    <Link to="/login" className="text-sm text-blue-600 hover:text-blue-800">
+                                        {t('verifyOTP.backToLogin', 'Back to Login')}
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <Button 
-                        type="submit" 
-                        className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base transition-all duration-200 hover:shadow-lg hover:scale-[1.02]" 
-                        disabled={isLoading || otp.some(digit => !digit)}
-                        onClick={handleVerify}
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Đang xử lý...
-                            </>
-                        ) : "Xác nhận"}
-                    </Button>
-                    
-                    <div className="text-center text-sm">
-                        <p className="text-gray-600 mb-2">
-                            Không nhận được mã? 
-                            {canResend ? (
-                                <button 
-                                    onClick={handleResendOtp}
-                                    className={`text-sm text-blue-600 hover:text-blue-700 transition-all duration-200 hover:underline ${
-                                        timer > 0 ? "text-gray-400 cursor-not-allowed" : ""
-                                    }`}
-                                    disabled={isLoading || timer > 0}
-                                >
-                                    {timer > 0 ? `Gửi lại mã sau ${timer}s` : "Gửi lại mã"}
-                                </button>
-                            ) : (
-                                <span className="ml-1 text-gray-500">
-                                    Gửi lại sau {timer}s
-                                </span>
-                            )}
-                        </p>
-                        
-                        <button 
-                            onClick={() => navigate("/forgot-password")}
-                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200"
-                            disabled={isLoading}
-                        >
-                            Quay lại
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
+                    </form>
+                </div>
+            </main>
+            
+            <Footer />
         </div>
     );
-} 
+}
+
+export default VerifyOtpPage; 

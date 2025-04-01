@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import MainNav from "../components/MainNav";
+import MainNav from "../components/layout/MainNav";
 import {
 	Table,
 	TableBody,

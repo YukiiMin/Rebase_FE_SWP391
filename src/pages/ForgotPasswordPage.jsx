@@ -1,25 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Alert, AlertDescription } from "../components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { motion } from "framer-motion";
-import { AlertCircle, Mail, Loader2, X } from "lucide-react";
-import MainNav from "../components/MainNav";
+import { AlertTriangle, Mail, Loader2, X, Phone, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import Footer from "../components/layout/Footer";
 
 export default function ForgotPasswordPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
 
     const validation = Yup.object({
         email: Yup.string()
-            .email("Email không hợp lệ")
-            .required("Email là bắt buộc"),
+            .email(t('resetPassword.errors.invalidEmail'))
+            .required(t('resetPassword.errors.required')),
     });
 
     const formik = useFormik({
@@ -50,14 +52,20 @@ export default function ForgotPasswordPage() {
             if (response.ok) {
                 setSuccess(true);
                 setTimeout(() => {
-                    navigate("/verify-otp", { state: { email: values.email } });
+                    navigate("/VerifyOTP", { 
+                        state: { 
+                            email: values.email,
+                            fromForgotPassword: true,
+                            from: location.state?.from
+                        } 
+                    });
                 }, 2000);
             } else {
-                setError(data.message || "Không tìm thấy tài khoản với email này. Vui lòng kiểm tra lại.");
+                setError(data.message || t('resetPassword.errors.emailNotFound'));
             }
         } catch (error) {
             console.error("Error requesting password reset:", error);
-            setError("Đã xảy ra lỗi khi gửi yêu cầu đặt lại mật khẩu. Vui lòng thử lại sau.");
+            setError(t('resetPassword.errors.serverError'));
         } finally {
             setIsLoading(false);
         }
@@ -72,108 +80,99 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col relative">
-            <MainNav />
-            
-            {/* Background image */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
-                <img 
-                    src="/vaccination-background.jpg" 
-                    alt="Vaccination Background" 
-                    className="w-full h-full object-cover object-center"
-                />
-            </div>
-            
-            {/* Content */}
-            <div className="flex-1 flex justify-center items-center relative z-20 px-4">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-md relative"
-                >
-                    {/* Close button */}
-                    <button
-                        onClick={handleClose}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition-colors duration-200"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-
+        <div className="min-h-screen flex flex-col bg-gray-50">
+            {/* Header */}
+            <header className="bg-blue-800 py-4 px-6">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <Link to="/" className="flex items-center space-x-2">
+                        <div className="bg-blue-700 p-2 rounded-full flex items-center justify-center">
+                            <Shield className="h-5 w-5 text-white" />
+                            <span className="text-lg font-bold text-white ml-2">VaccineCare</span>
+                        </div>
+                    </Link>
+                    
+                    <a href="tel:0903731347" className="flex items-center text-white hover:text-blue-200 transition-colors">
+                        <Phone className="h-5 w-5 mr-2" />
+                        <span>0903731347</span>
+                    </a>
+                </div>
+            </header>
+                
+            {/* Main content */}
+            <main className="flex-1 flex flex-col items-center justify-center py-10 px-4">
+                <h1 className="text-3xl font-bold text-blue-900 mb-8">{t('resetPassword.title', 'Reset your Password')}</h1>
+                
+                {/* Forgot Password Form */}
+                <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
                     <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-[#1B1B1B] mb-2">Quên mật khẩu</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('resetPassword.heading', 'Reset Password')}</h2>
                         <p className="text-gray-600">
-                            Nhập email của bạn và chúng tôi sẽ gửi mã OTP để đặt lại mật khẩu.
+                            {t('resetPassword.subtitle', 'Enter your email and we\'ll send you an OTP code to reset your password')}
                         </p>
                     </div>
                     
                     {error && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertCircle className="h-4 w-4" />
+                        <Alert variant="destructive" className="mb-6 bg-red-50 border border-red-200 text-red-900">
+                            <AlertTriangle className="h-4 w-4" />
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
                     
                     {success && (
-                        <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
+                        <Alert className="mb-6 bg-green-50 border border-green-200 text-green-800">
                             <Mail className="h-4 w-4 text-green-600" />
                             <AlertDescription>
-                                Mã OTP đã được gửi tới email của bạn. Bạn sẽ được chuyển đến trang nhập mã.
+                                {t('resetPassword.otpSent', 'OTP code sent to your email')}
                             </AlertDescription>
                         </Alert>
                     )}
                     
-                    <form onSubmit={formik.handleSubmit} className="space-y-5">
+                    <form onSubmit={formik.handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                                Email
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                {t('register.email', 'Email Address')}
                             </label>
                             <Input
                                 id="email"
                                 name="email"
                                 type="email"
-                                placeholder="Nhập email của bạn"
+                                placeholder={t('resetPassword.emailPlaceholder', 'Enter your email address')}
                                 value={formik.values.email}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
-                                className={`h-11 px-4 bg-white/80 transition-colors duration-200 ${
-                                    formik.touched.email && formik.errors.email 
-                                        ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                className={`w-full h-11 px-3 py-2 ${
+                                    formik.touched.email && formik.errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
                                 }`}
                                 disabled={isLoading || success}
                             />
                             {formik.touched.email && formik.errors.email && (
-                                <p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
+                                <p className="text-sm text-red-600">{formik.errors.email}</p>
                             )}
                         </div>
                         
                         <Button 
                             type="submit" 
-                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base transition-all duration-200 hover:shadow-lg hover:scale-[1.02]" 
+                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors" 
                             disabled={isLoading}
                         >
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Đang xử lý...
+                                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                                    {t('resetPassword.processing', 'Processing...')}
                                 </>
-                            ) : "Gửi yêu cầu"}
+                            ) : t('resetPassword.sendButton', 'Send Request')}
                         </Button>
+                        
+                        <div className="text-center mt-4">
+                            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-800">
+                                {t('resetPassword.backToLogin', 'Back to Login')}
+                            </Link>
+                        </div>
                     </form>
-                    
-                    <div className="mt-6 text-center">
-                        <button 
-                            onClick={() => navigate("/login")}
-                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 transition-all duration-200 hover:underline"
-                            disabled={isLoading}
-                        >
-                            Quay lại đăng nhập
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
+                </div>
+            </main>
+            
+            <Footer />
         </div>
     );
 } 

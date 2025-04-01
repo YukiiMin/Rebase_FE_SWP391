@@ -1,362 +1,290 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Alert, AlertDescription } from "../components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { motion } from "framer-motion";
-import { AlertCircle, Eye, EyeOff, Loader2, LockKeyhole, CheckCircle2, X } from "lucide-react";
-import MainNav from "../components/MainNav";
+import { AlertTriangle, Eye, EyeOff, Loader2, Shield, Phone } from "lucide-react";
+import Footer from "../components/layout/Footer";
+import { useTranslation } from "react-i18next";
 
-export default function ResetPasswordPage() {
-    const location = useLocation();
+const ResetPasswordPage = () => {
     const navigate = useNavigate();
-    const { email, token } = location.state || {};
+    const location = useLocation();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [passwordStrength, setPasswordStrength] = useState("weak");
+    const { t } = useTranslation();
     
-    // Kiểm tra nếu không có email hoặc token, chuyển về trang quên mật khẩu
+    const email = location.state?.email || "";
+    const token = location.state?.token || "";
+
+    // Verify location state has email and token, otherwise redirect
     useEffect(() => {
-        if (!email || !token) {
+        console.log("ResetPasswordPage - location state:", location.state);
+        console.log("ResetPasswordPage - email:", email);
+        console.log("ResetPasswordPage - token:", token);
+        console.log("ResetPasswordPage - token type:", typeof token);
+        
+        if (!email) {
+            console.log("Missing email, redirecting to forgot-password");
+            navigate("/forgot-password");
+            return;
+        }
+        
+        // More permissive check for token existence
+        if (!token && token !== 0 && token !== "" && token !== false) {
+            console.log("Missing token, redirecting to forgot-password");
             navigate("/forgot-password");
         }
-    }, [email, token, navigate]);
-    
-    const validation = Yup.object({
+    }, [email, token, navigate, location]);
+
+    const validationSchema = Yup.object({
         password: Yup.string()
-            .required("Mật khẩu là bắt buộc")
-            .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
-            .matches(/(?=.*[a-z])/, "Mật khẩu phải có ít nhất 1 chữ thường")
-            .matches(/(?=.*[A-Z])/, "Mật khẩu phải có ít nhất 1 chữ hoa")
-            .matches(/(?=.*\d)/, "Mật khẩu phải có ít nhất 1 số")
-            .matches(/(?=.*[!@#$%^&*(),.?":{}|<>])/, "Mật khẩu phải có ít nhất 1 ký tự đặc biệt"),
+            .required(t('resetPassword.errors.required'))
+            .min(8, t('resetPassword.errors.passwordLength'))
+            .matches(
+                /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])/,
+                t('resetPassword.errors.passwordRequirements')
+            ),
         confirmPassword: Yup.string()
-            .required("Vui lòng xác nhận mật khẩu")
-            .oneOf([Yup.ref("password"), null], "Mật khẩu xác nhận không khớp"),
+            .required(t('resetPassword.errors.required'))
+            .oneOf([Yup.ref("password"), null], t('resetPassword.errors.passwordMatch')),
     });
-    
+
     const formik = useFormik({
         initialValues: {
             password: "",
             confirmPassword: "",
         },
-        validationSchema: validation,
+        validationSchema,
         onSubmit: (values) => {
-            if (passwordStrength === "weak") {
-                setError("Vui lòng tạo mật khẩu mạnh hơn");
-                return;
-            }
             handleResetPassword(values);
         },
     });
-    
-    // Đánh giá độ mạnh của mật khẩu
-    useEffect(() => {
-        const password = formik.values.password;
-        if (!password) {
-            setPasswordStrength("weak");
-            return;
-        }
-        
-        let score = 0;
-        if (password.length >= 8) score++;
-        if (/[a-z]/.test(password)) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/\d/.test(password)) score++;
-        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-        
-        if (score <= 2) setPasswordStrength("weak");
-        else if (score <= 4) setPasswordStrength("medium");
-        else setPasswordStrength("strong");
-    }, [formik.values.password]);
-    
+
     const handleResetPassword = async (values) => {
         setIsLoading(true);
         setError("");
-        
+
+        // Safety check to ensure we have a token
+        if (!token) {
+            setError(t('resetPassword.errors.tokenMissing') || "Reset token is missing. Please try again.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch("http://localhost:8080/auth/reset-password", {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: values.password
-                }),
+            console.log("Sending reset password request with:", {
+                email,
+                password: "********"
             });
             
-            const data = await response.json();
+            const response = await fetch("http://localhost:8080/auth/reset-password", {
+                method: "POST", // Use POST instead of PATCH
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    password: values.password,
+                }),
+            });
+
+            console.log("Response status:", response.status, response.statusText);
             
+            let data;
+            try {
+                const textResponse = await response.text();
+                console.log("Raw response:", textResponse);
+                
+                if (textResponse) {
+                    data = JSON.parse(textResponse);
+                } else {
+                    data = {};
+                }
+            } catch (parseError) {
+                console.error("Error parsing response:", parseError);
+                data = { message: "Error parsing server response" };
+            }
+            
+            console.log("Reset password response data:", data);
+
             if (response.ok) {
                 setSuccess(true);
                 setTimeout(() => {
-                    navigate("/login");
-                }, 3000);
+                    navigate("/login", { 
+                        state: { 
+                            passwordResetSuccess: true,
+                            from: location.state?.from
+                        } 
+                    });
+                }, 2000);
             } else {
-                setError(data.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+                setError(data.message || t('resetPassword.errors.resetFailed'));
             }
         } catch (error) {
             console.error("Error resetting password:", error);
-            setError("Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng thử lại sau.");
+            setError(t('resetPassword.errors.serverError'));
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleClose = () => {
-        if (location.state?.from) {
-            navigate(location.state.from);
-        } else {
-            navigate("/");
-        }
-    };
-    
-    // Render progress bar dựa trên độ mạnh của mật khẩu
-    const renderPasswordStrength = () => {
-        let width = "0%";
-        let color = "bg-gray-200";
-        let text = "";
-        
-        if (passwordStrength === "weak") {
-            width = "33%";
-            color = "bg-red-500";
-            text = "Yếu";
-        } else if (passwordStrength === "medium") {
-            width = "66%";
-            color = "bg-yellow-500";
-            text = "Trung bình";
-        } else if (passwordStrength === "strong") {
-            width = "100%";
-            color = "bg-green-500";
-            text = "Mạnh";
-        }
-        
-        return (
-            <div className="mt-2">
-                <div className="flex justify-between text-sm mb-1">
-                    <span>Độ mạnh mật khẩu:</span>
-                    <span className={`font-medium ${
-                        passwordStrength === "weak" ? "text-red-500" : 
-                        passwordStrength === "medium" ? "text-yellow-500" : "text-green-500"
-                    }`}>{text}</span>
-                </div>
-                <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                    <div className={`h-full ${color} transition-all duration-300`} style={{ width }} />
-                </div>
-                
-                {formik.values.password && (
-                    <div className="mt-3 text-sm">
-                        <p className="font-medium mb-1">Mật khẩu phải có:</p>
-                        <ul className="space-y-1">
-                            <li className={`flex items-center ${formik.values.password.length >= 8 ? "text-green-500" : "text-gray-500"}`}>
-                                <CheckCircle2 className={`h-4 w-4 mr-2 ${formik.values.password.length >= 8 ? "text-green-500" : "text-gray-300"}`} />
-                                Ít nhất 8 ký tự
-                            </li>
-                            <li className={`flex items-center ${/[a-z]/.test(formik.values.password) ? "text-green-500" : "text-gray-500"}`}>
-                                <CheckCircle2 className={`h-4 w-4 mr-2 ${/[a-z]/.test(formik.values.password) ? "text-green-500" : "text-gray-300"}`} />
-                                Ít nhất 1 chữ thường
-                            </li>
-                            <li className={`flex items-center ${/[A-Z]/.test(formik.values.password) ? "text-green-500" : "text-gray-500"}`}>
-                                <CheckCircle2 className={`h-4 w-4 mr-2 ${/[A-Z]/.test(formik.values.password) ? "text-green-500" : "text-gray-300"}`} />
-                                Ít nhất 1 chữ hoa
-                            </li>
-                            <li className={`flex items-center ${/\d/.test(formik.values.password) ? "text-green-500" : "text-gray-500"}`}>
-                                <CheckCircle2 className={`h-4 w-4 mr-2 ${/\d/.test(formik.values.password) ? "text-green-500" : "text-gray-300"}`} />
-                                Ít nhất 1 số
-                            </li>
-                            <li className={`flex items-center ${/[!@#$%^&*(),.?":{}|<>]/.test(formik.values.password) ? "text-green-500" : "text-gray-500"}`}>
-                                <CheckCircle2 className={`h-4 w-4 mr-2 ${/[!@#$%^&*(),.?":{}|<>]/.test(formik.values.password) ? "text-green-500" : "text-gray-300"}`} />
-                                Ít nhất 1 ký tự đặc biệt
-                            </li>
-                        </ul>
-                    </div>
-                )}
-            </div>
-        );
-    };
-    
     return (
-        <div className="min-h-screen flex flex-col relative">
-            <MainNav />
-            
-            {/* Background image */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
-                <img 
-                    src="/vaccination-background.jpg" 
-                    alt="Vaccination Background" 
-                    className="w-full h-full object-cover object-center"
-                />
-            </div>
-            
-            {/* Content */}
-            <div className="flex-1 flex justify-center items-center relative z-20 px-4">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-xl relative"
-                >
-                    {/* Close button */}
-                    <button
-                        onClick={handleClose}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition-colors duration-200"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-
-                    {success ? (
-                        <div className="text-center py-6">
-                            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                                <CheckCircle2 className="h-8 w-8 text-green-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-green-700 mb-2">Mật khẩu đã được đặt lại!</h2>
-                            <p className="text-gray-600 mb-6">
-                                Mật khẩu của bạn đã được cập nhật thành công. Bạn sẽ được chuyển đến trang đăng nhập trong giây lát.
-                            </p>
-                            <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-                                <motion.div 
-                                    className="h-full bg-green-500"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: "100%" }}
-                                    transition={{ duration: 3 }}
-                                />
-                            </div>
+        <div className="min-h-screen flex flex-col bg-gray-50">
+            {/* Header */}
+            <header className="bg-blue-800 py-4 px-6">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <Link to="/" className="flex items-center space-x-2">
+                        <div className="bg-blue-700 p-2 rounded-full flex items-center justify-center">
+                            <Shield className="h-5 w-5 text-white" />
+                            <span className="text-lg font-bold text-white ml-2">VaccineCare</span>
                         </div>
-                    ) : (
-                        <>
-                            <div className="mb-6 text-center">
-                                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                                    <LockKeyhole className="h-8 w-8 text-blue-600" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-[#1B1B1B] mb-2">Đặt lại mật khẩu</h2>
-                                <p className="text-gray-600">
-                                    Tạo mật khẩu mới cho tài khoản <span className="text-blue-700 font-semibold">{email}</span>
-                                </p>
-                            </div>
-                            
-                            {error && (
-                                <Alert variant="destructive" className="mb-4">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertDescription>{error}</AlertDescription>
-                                </Alert>
-                            )}
-                            
-                            <form onSubmit={formik.handleSubmit} className="space-y-5">
-                                <div className="space-y-2">
-                                    <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                                        Mật khẩu mới
-                                    </label>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            name="password"
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="Nhập mật khẩu mới"
-                                            value={formik.values.password}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            className={`h-11 px-4 bg-white/80 pr-10 transition-colors duration-200 ${
-                                                formik.touched.password && formik.errors.password 
-                                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                                                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                                            }`}
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
-                                            tabIndex="-1"
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-5 w-5" />
-                                            ) : (
-                                                <Eye className="h-5 w-5" />
-                                            )}
-                                        </button>
-                                    </div>
-                                    {formik.touched.password && formik.errors.password && (
-                                        <p className="text-red-500 text-sm mt-1">{formik.errors.password}</p>
-                                    )}
-                                    
-                                    {renderPasswordStrength()}
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                                        Xác nhận mật khẩu
-                                    </label>
-                                    <div className="relative">
-                                        <Input
-                                            id="confirmPassword"
-                                            name="confirmPassword"
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            placeholder="Xác nhận mật khẩu mới"
-                                            value={formik.values.confirmPassword}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            className={`h-11 px-4 bg-white/80 pr-10 transition-colors duration-200 ${
-                                                formik.touched.confirmPassword && formik.errors.confirmPassword 
-                                                    ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                                                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                                            }`}
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
-                                            tabIndex="-1"
-                                        >
-                                            {showConfirmPassword ? (
-                                                <EyeOff className="h-5 w-5" />
-                                            ) : (
-                                                <Eye className="h-5 w-5" />
-                                            )}
-                                        </button>
-                                    </div>
-                                    {formik.touched.confirmPassword && formik.errors.confirmPassword && (
-                                        <p className="text-red-500 text-sm mt-1">{formik.errors.confirmPassword}</p>
-                                    )}
-                                </div>
-                                
-                                <div className="pt-2">
-                                    <Button 
-                                        type="submit" 
-                                        className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base transition-all duration-200 hover:shadow-lg hover:scale-[1.02]" 
-                                        disabled={isLoading || passwordStrength === "weak"}
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Đang xử lý...
-                                            </>
-                                        ) : "Đặt lại mật khẩu"}
-                                    </Button>
-                                </div>
-                            </form>
-                            
-                            <div className="mt-6 text-center">
-                                <button 
-                                    onClick={() => navigate("/login")}
-                                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 transition-all duration-200 hover:underline"
-                                    disabled={isLoading}
+                    </Link>
+                    
+                    <a href="tel:0903731347" className="flex items-center text-white hover:text-blue-200 transition-colors">
+                        <Phone className="h-5 w-5 mr-2" />
+                        <span>0903731347</span>
+                    </a>
+                </div>
+            </header>
+            
+            {/* Main content */}
+            <main className="flex-1 flex flex-col items-center justify-center py-10 px-4">
+                <h1 className="text-3xl font-bold text-blue-900 mb-8">{t('resetPassword.title')}</h1>
+                
+                {/* Reset Password Form */}
+                <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('resetPassword.heading')}</h2>
+                        <p className="text-gray-600">
+                            {t('resetPassword.subtitle')}
+                        </p>
+                    </div>
+
+                    {error && (
+                        <Alert variant="destructive" className="mb-6 bg-red-50 border border-red-200 text-red-900">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {success && (
+                        <Alert className="mb-6 bg-green-50 border border-green-200 text-green-800">
+                            <Shield className="h-4 w-4 text-green-600" />
+                            <AlertDescription>
+                                {t('resetPassword.success')}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    <form onSubmit={formik.handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                {t('resetPassword.newPassword', 'New Password')}
+                            </label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder={t('resetPassword.newPasswordPlaceholder', 'Enter new password')}
+                                    value={formik.values.password}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    className={`w-full h-11 px-3 py-2 pr-10 ${
+                                        formik.touched.password && formik.errors.password
+                                            ? "border-red-500 focus:ring-red-500"
+                                            : "border-gray-300 focus:ring-blue-500"
+                                    }`}
+                                    disabled={isLoading || success}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    tabIndex="-1"
                                 >
-                                    Quay lại đăng nhập
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
                                 </button>
                             </div>
-                        </>
-                    )}
-                </motion.div>
-            </div>
+                            {formik.touched.password && formik.errors.password && (
+                                <p className="text-sm text-red-600">{formik.errors.password}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                                {t('resetPassword.confirmPassword', 'Confirm Password')}
+                            </label>
+                            <div className="relative">
+                                <Input
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder={t('resetPassword.confirmPasswordPlaceholder', 'Confirm your password')}
+                                    value={formik.values.confirmPassword}
+                                    onChange={formik.handleChange}
+                                    onBlur={formik.handleBlur}
+                                    className={`w-full h-11 px-3 py-2 pr-10 ${
+                                        formik.touched.confirmPassword && formik.errors.confirmPassword
+                                            ? "border-red-500 focus:ring-red-500"
+                                            : "border-gray-300 focus:ring-blue-500"
+                                    }`}
+                                    disabled={isLoading || success}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    tabIndex="-1"
+                                >
+                                    {showConfirmPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
+                            </div>
+                            {formik.touched.confirmPassword && formik.errors.confirmPassword && (
+                                <p className="text-sm text-red-600">{formik.errors.confirmPassword}</p>
+                            )}
+                        </div>
+
+                        <Button 
+                            type="submit" 
+                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors mt-6" 
+                            disabled={isLoading || success}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                                    {t('resetPassword.processing', 'Processing...')}
+                                </>
+                            ) : t('resetPassword.resetButton', 'Reset Password')}
+                        </Button>
+                        
+                        <div className="text-center mt-4">
+                            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-800">
+                                {t('resetPassword.backToLogin', 'Back to Login')}
+                            </Link>
+                        </div>
+                    </form>
+                </div>
+            </main>
+            
+            <Footer />
         </div>
     );
-} 
+};
+
+export default ResetPasswordPage; 

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import MainNav from "../components/MainNav";
-import UserSidebar from "../components/UserSidebar";
-import AddChild from "../components/AddChild";
-import UpdateChild from "../components/UpdateChild";
+import MainNav from "../components/layout/MainNav";
+import UserSidebar from "../components/layout/UserSidebar";
+import AddChild from "../components/layout/AddChild";
+import UpdateChild from "../components/layout/UpdateChild";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
 import { motion } from "framer-motion";

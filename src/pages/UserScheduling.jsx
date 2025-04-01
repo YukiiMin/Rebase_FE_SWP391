@@ -1,6 +1,6 @@
 import React from "react";
-import MainNav from "../components/MainNav";
-import UserSidebar from "../components/UserSidebar";
+import MainNav from "../components/layout/MainNav";
+import UserSidebar from "../components/layout/UserSidebar";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../components/ui/card";
 

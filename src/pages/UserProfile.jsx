@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
-import MainNav from "../components/MainNav";
+import MainNav from "../components/layout/MainNav";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { PencilIcon, UserIcon } from "@heroicons/react/24/outline";
-import UserSidebar from "../components/UserSidebar";
-import UpdateUser from "../components/UpdateUser";
+import UserSidebar from "../components/layout/UserSidebar";
+import UpdateUser from "../components/layout/UpdateUser";
 
 function UserProfile() {
 	const userAPI = "http://localhost:8080/users";

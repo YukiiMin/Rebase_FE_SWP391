@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "../components/ui/separator";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CardCvcElement, CardElement, CardExpiryElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import MainNav from "../components/MainNav";
+import MainNav from "../components/layout/MainNav";
 import { motion } from "framer-motion";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";

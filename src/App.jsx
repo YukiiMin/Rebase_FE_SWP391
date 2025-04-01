@@ -1,15 +1,16 @@
-import "./App.css";
+// Using Tailwind CSS for styling instead of custom CSS
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import HomePage from "./pages/HomePage";
-import AboutUsPage from "./pages/AboutUsPage";
+import AboutUs from "./pages/AboutUs";
 import PriceListPage from "./pages/PriceListPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VaccineDetail from "./pages/VaccineDetail";
-import AccountManage from "./admin/AccountManage";
-import VaccineManage from "./admin/VaccineManage";
-import ComboManage from "./admin/ComboManage";
-import WorkSchedule from "./admin/WorkSchedule";
+import AccountManage from "./pages/admin/AccountManage";
+import VaccineManage from "./pages/admin/VaccineManage";
+import ComboManage from "./pages/admin/ComboManage";
+import WorkSchedule from "./pages/admin/WorkSchedule";
 import BookingPage from "./pages/BookingPage";
 import VaccineList from "./pages/VaccineList";
 import ComboList from "./pages/ComboList";
@@ -18,27 +19,71 @@ import UserChildren from "./pages/UserChildren";
 import UserScheduling from "./pages/UserScheduling";
 import UserHistory from "./pages/UserHistory";
 import HealthRecord from "./pages/HealthRecord";
-import Dashboard from "./admin/Dashboard";
-import StaffHome from "./staff/StaffHome";
-import CheckIn from "./staff/CheckIn";
-import Schedule from "./staff/Schedule";
+import Dashboard from "./pages/admin/Dashboard";
+import StaffHome from "./pages/staff/StaffHome";
+import CheckIn from "./pages/staff/CheckIn";
+import Schedule from "./pages/staff/Schedule";
 import TransactionPage from "./pages/TransactionPage";
-import VaccinationPage from "./staff/VaccinationPage";
-import VaccinationManagement from "./staff/VaccinationManagement";
-import DiagnosisPage from "./staff/DiagnosisPage";
+import VaccinationPage from "./pages/staff/VaccinationPage";
+import VaccinationManagement from "./pages/staff/VaccinationManagement";
+import DiagnosisPage from "./pages/staff/DiagnosisPage";
 // import StaffSignUp from "./staff/StaffSignUp";
 // import StaffLogIn from "./staff/StaffLogIn";
 // import StaffMenu from "./components/StaffMenu";
 import ComboDetail from "./pages/ComboDetail";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useState } from "react";
 import axios from "axios";
-import ProtocolManage from "./admin/ProtocolManage";
+import ProtocolManage from "./pages/admin/ProtocolManage";
 import TokenUtils from "./utils/TokenUtils";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VerifyOTPPage from "./pages/VerifyOTPPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+
+// Create ErrorBoundary component for error handling
+class ErrorBoundary extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = { hasError: false, errorMessage: "" };
+	}
+
+	static getDerivedStateFromError(error) {
+		return { hasError: true };
+	}
+
+	componentDidCatch(error, errorInfo) {
+		console.log('Error caught by boundary:', error, errorInfo);
+		this.setState({ 
+			errorMessage: error.message || "An unexpected error occurred"
+		});
+	}
+
+	render() {
+		// if (this.state.hasError) {
+		// 	return (
+		// 		<div style={{ padding: "20px", textAlign: "center" }}>
+		// 			<h2>Something went wrong</h2>
+		// 			<p>{this.state.errorMessage}</p>
+		// 			<button 
+		// 				onClick={() => window.location.reload()} 
+		// 				style={{ 
+		// 					padding: "8px 16px", 
+		// 					backgroundColor: "#0066cc", 
+		// 					color: "white", 
+		// 					border: "none", 
+		// 					borderRadius: "4px",
+		// 					cursor: "pointer", 
+		// 					marginTop: "10px" 
+		// 				}}
+		// 			>
+		// 				Refresh Page
+		// 			</button>
+		// 		</div>
+		// 	);
+		// }
+		return this.props.children;
+	}
+}
 
 function App() {
 	const navigate = useNavigate();
@@ -308,7 +353,7 @@ function App() {
 	}, [token, decodedToken, api, isRefreshing]);
 
 	return (
-		<>
+		<ErrorBoundary>
 			{stripeError && (
 				<div className="alert alert-danger m-3">
 					<strong>Stripe Initialization Error:</strong> {stripeError}
@@ -318,7 +363,7 @@ function App() {
 			<Elements stripe={stripePromise}>
 				<Routes>
 					<Route path={"/"} element={<HomePage />} />
-					<Route path={"/AboutUs"} element={<AboutUsPage />} />
+					<Route path={"/AboutUs"} element={<AboutUs />} />
 					<Route path={"/PriceList"} element={<PriceListPage />} />
 					<Route path={"/Booking"} element={<BookingPage />} />
 					<Route path={"/VaccineList"} element={<VaccineList />} />
@@ -330,8 +375,8 @@ function App() {
 					<Route path={"/Login"} element={<ProtectedRoute element={LoginPage} guestOnly />} />
 					<Route path={"/Register"} element={<ProtectedRoute element={RegisterPage} guestOnly />} />
 					<Route path={"/forgot-password"} element={<ProtectedRoute element={ForgotPasswordPage} guestOnly />} />
-					<Route path={"/verify-otp"} element={<ProtectedRoute element={VerifyOTPPage} guestOnly />} />
-					<Route path={"/reset-password"} element={<ProtectedRoute element={ResetPasswordPage} guestOnly />} />
+					<Route path={"/VerifyOTP"} element={<ProtectedRoute element={VerifyOTPPage} guestOnly />} />
+					<Route path={"/ResetPassword"} element={<ProtectedRoute element={ResetPasswordPage} guestOnly />} />
 
 					{/*User only */}
 					<Route path={"/User/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />
@@ -378,7 +423,7 @@ function App() {
 					<Route path={"/Staff/Menu"} element={<ProtectedRoute element={StaffMenu} userOnly />} /> */}
 				</Routes>
 			</Elements>
-		</>
+		</ErrorBoundary>
 	);
 }
 

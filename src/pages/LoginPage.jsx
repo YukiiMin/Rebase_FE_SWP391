@@ -1,14 +1,15 @@
 import { useFormik } from "formik";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import TokenUtils from "../utils/TokenUtils";
-import MainNav from "../components/MainNav";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, Eye, EyeOff, X } from "lucide-react";
+import { AlertCircle, Loader2, Eye, EyeOff, X, Phone, Shield } from "lucide-react";
 import * as Yup from "yup";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import Footer from "../components/layout/Footer";
+import { useTranslation } from "react-i18next";
 
 function LoginPage() {
 	const navigate = useNavigate();
@@ -17,10 +18,23 @@ function LoginPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
+	const { t } = useTranslation();
+	
+	// Lưu lại trang trước đó khi component mount
+	useEffect(() => {
+		// Không lưu lại các trang auth khác
+		if (!location.pathname.includes("/login") && 
+			!location.pathname.includes("/register") && 
+			!location.pathname.includes("/forgot-password") && 
+			!location.pathname.includes("/verify-otp") && 
+			!location.pathname.includes("/reset-password")) {
+			sessionStorage.setItem("redirectUrl", location.pathname + location.search);
+		}
+	}, [location]);
 
 	const validation = Yup.object({
-		username: Yup.string().required("Username is required"),
-		password: Yup.string().required("Password is required"),
+		username: Yup.string().required(t('register.errors.required')),
+		password: Yup.string().required(t('register.errors.required')),
 	});
 
 	const formik = useFormik({
@@ -54,15 +68,21 @@ function LoginPage() {
 				TokenUtils.setToken(token);
 				
 				console.log("Login successful");
-				navigate("/");
+				
+				// Điều hướng đến trang trước đó hoặc trang chủ
+				const redirectUrl = sessionStorage.getItem("redirectUrl") || "/";
+				navigate(redirectUrl);
+				
+				// Xóa redirectUrl sau khi đã sử dụng
+				sessionStorage.removeItem("redirectUrl");
 			} else {
 				const errorData = await response.json().catch(() => null);
 				console.error("Login failed:", response.status, errorData);
-				setError("Login failed. Please check your username and password.");
+				setError(t('login.errors.invalidCredentials'));
 			}
 		} catch (error) {
 			console.error("Login error:", error);
-			setError("An error occurred during login. Please try again.");
+			setError(t('login.errors.serverError'));
 		} finally {
 			setIsLoading(false);
 		}
@@ -78,39 +98,36 @@ function LoginPage() {
 	};
 
 	return (
-		<div className="min-h-screen flex flex-col relative">
-			<MainNav />
+		<div className="min-h-screen flex flex-col bg-gray-50">
+			{/* Header */}
+			<header className="bg-blue-800 py-4 px-6">
+				<div className="max-w-7xl mx-auto flex items-center justify-between">
+					<Link to="/" className="flex items-center space-x-2">
+						<div className="bg-blue-700 p-2 rounded-full flex items-center justify-center">
+							<Shield className="h-5 w-5 text-white" />
+							<span className="text-lg font-bold text-white ml-2">VaccineCare</span>
+						</div>
+					</Link>
+					
+					<a href="tel:0903731347" className="flex items-center text-white hover:text-blue-200 transition-colors">
+						<Phone className="h-5 w-5 mr-2" />
+						<span>0903731347</span>
+					</a>
+				</div>
+			</header>
 			
-			{/* Background image */}
-			<div className="absolute inset-0 z-0">
-				<div className="absolute inset-0 bg-blue-900/60 z-10"></div> {/* Overlay */}
-				<img 
-					src="/vaccination-background.jpg" 
-					alt="Vaccination Background" 
-					className="w-full h-full object-cover object-center"
-				/>
-			</div>
-			
-			{/* Content */}
-			<div className="flex-1 flex justify-center items-center relative z-20 px-4">
-				<motion.div 
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.5 }}
-					className="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-xl w-full max-w-md relative"
-				>
-					{/* Close button */}
-					<button onClick={handleClose} 
-						className="absolute top-4 right-4 transition-colors">
-					<X className="h-5 w-5 text-gray-500 hover:!text-red-800" />
-					</button>
-
+			{/* Main content */}
+			<main className="flex-1 flex flex-col items-center justify-center py-10 px-4">
+				<h1 className="text-3xl font-bold text-blue-900 mb-8">{t('login.title')}</h1>
+				
+				{/* Login Form */}
+				<div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
 					<div className="text-center mb-6">
-						<h2 className="text-2xl font-bold text-[#1B1B1B] mb-2">Log in</h2>
-						<p className="text-gray-600">
-							Don't have an account?{" "}
-							<Link to="/register" className="text-blue-600 hover:text-blue-700">
-								Create Account
+						<h2 className="text-2xl font-bold text-gray-900">{t('login.heading')}</h2>
+						<p className="text-gray-600 mt-2">
+							{t('login.noAccount')}{" "}
+							<Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
+								{t('login.createAccount')}
 							</Link>
 						</p>
 					</div>
@@ -124,31 +141,31 @@ function LoginPage() {
 
 					<form onSubmit={formik.handleSubmit} className="space-y-6">
 						<div className="space-y-2">
-							<label htmlFor="username" className="text-sm font-medium text-gray-700">
-								Username
+							<label htmlFor="username" className="block text-sm font-medium text-gray-700">
+								{t('login.username')}
 							</label>
 							<Input
 								id="username"
 								name="username"
 								type="text"
-								placeholder="Enter your username"
+								placeholder={t('login.usernamePlaceholder')}
 								value={formik.values.username}
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
-								className={`h-11 ${formik.touched.username && formik.errors.username ? "border-red-500" : "border-gray-300"}`}
+								className={`w-full h-11 px-3 py-2 ${formik.touched.username && formik.errors.username ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
 							/>
 							{formik.touched.username && formik.errors.username && (
-								<p className="text-red-500 text-sm">{formik.errors.username}</p>
+								<p className="text-sm text-red-600">{formik.errors.username}</p>
 							)}
 						</div>
 						
 						<div className="space-y-2">
-							<div className="flex justify-between">
-								<label htmlFor="password" className="text-sm font-medium text-gray-700">
-									Password
+							<div className="flex items-center justify-between">
+								<label htmlFor="password" className="block text-sm font-medium text-gray-700">
+									{t('login.password')}
 								</label>
-								<Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
-									Forgot Password?
+								<Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
+									{t('login.forgotPassword')}
 								</Link>
 							</div>
 							<div className="relative">
@@ -156,11 +173,11 @@ function LoginPage() {
 									id="password"
 									name="password"
 									type={showPassword ? "text" : "password"}
-									placeholder="Enter your password"
+									placeholder={t('login.passwordPlaceholder')}
 									value={formik.values.password}
 									onChange={formik.handleChange}
 									onBlur={formik.handleBlur}
-									className={`h-11 pr-10 ${formik.touched.password && formik.errors.password ? "border-red-500" : "border-gray-300"}`}
+									className={`w-full h-11 px-3 py-2 pr-10 ${formik.touched.password && formik.errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
 								/>
 								<button
 									type="button"
@@ -176,36 +193,31 @@ function LoginPage() {
 								</button>
 							</div>
 							{formik.touched.password && formik.errors.password && (
-								<p className="text-red-500 text-sm">{formik.errors.password}</p>
+								<p className="text-sm text-red-600">{formik.errors.password}</p>
 							)}
 						</div>
 
-						<div className="flex items-center gap-2">
-							<input type="checkbox" id="remember" className="rounded border-gray-300" />
-							<label htmlFor="remember" className="text-sm text-gray-600">Remember Me</label>
-						</div>
-
-						<Button 
-							type="submit" 
-							className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base transition-all duration-200 hover:shadow-lg hover:scale-[1.02]" 
-							disabled={isLoading}
-						>
-							{isLoading ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Đang xử lý...
-								</>
-							) : "Đăng nhập"}
-						</Button>
-
-						<div className="text-center">
-							<Link to="#" className="text-sm text-blue-600 hover:text-blue-700">
-								Advanced options
-							</Link>
+						<div className="flex items-center justify-between mt-6">
+							<Button
+								type="submit"
+								disabled={isLoading}
+								className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+							>
+								{isLoading ? (
+									<>
+										<Loader2 className="animate-spin h-4 w-4 mr-2" />
+										{t('login.loggingIn')}
+									</>
+								) : (
+									t('login.login')
+								)}
+							</Button>
 						</div>
 					</form>
-				</motion.div>
-			</div>
+				</div>
+			</main>
+			
+			<Footer />
 		</div>
 	);
 }

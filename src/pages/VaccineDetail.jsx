@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import MainNav from "../components/MainNav";
+import MainNav from "../components/layout/MainNav";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
