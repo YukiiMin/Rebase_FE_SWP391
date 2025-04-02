@@ -215,12 +215,16 @@ const enTranslations = {
     },
     steps: {
       accountInfo: "Account Information",
+      accountDesc: "Create your login credentials",
       personalInfo: "Personal Information",
+      personalDesc: "Tell us about yourself",
       next: "Continue",
       back: "Back",
       create: "Create Account",
-      progress: "Step {current} of {total}"
-    }
+      cancel: "Cancel"
+    },
+    address: "Address",
+    addressPlaceholder: "Enter your address"
   },
   login: {
     title: "Log in to your VaccineCare Account",
@@ -273,6 +277,10 @@ const enTranslations = {
     account: {
       title: "Account Management",
       addAccount: "Add Account",
+      createDescription: "Create a new account for staff members with appropriate role access",
+      manageAccounts: "Manage Accounts",
+      searchPlaceholder: "Search accounts...",
+      id: "ID",
       accountID: "AccountID",
       fullName: "Full Name",
       username: "Username",
@@ -288,7 +296,12 @@ const enTranslations = {
       activate: "Activate",
       active: "Active",
       inactive: "Inactive",
-      noAccounts: "No accounts found"
+      makeAdmin: "Make Admin",
+      makeStaff: "Make Staff",
+      noAccounts: "No accounts found",
+      showing: "Showing",
+      of: "of",
+      items: "items"
     },
     vaccine: {
       title: "Vaccine Management",
@@ -669,12 +682,16 @@ const viTranslations = {
     },
     steps: {
       accountInfo: "Thông tin tài khoản",
+      accountDesc: "Tạo thông tin đăng nhập",
       personalInfo: "Thông tin cá nhân",
+      personalDesc: "Cho chúng tôi biết về bạn",
       next: "Tiếp tục",
       back: "Quay lại",
       create: "Tạo tài khoản",
-      progress: "Bước {current} / {total}"
-    }
+      cancel: "Hủy bỏ"
+    },
+    address: "Địa chỉ",
+    addressPlaceholder: "Nhập địa chỉ của bạn"
   },
   login: {
     title: "Đăng nhập vào tài khoản VaccineCare",
@@ -727,6 +744,10 @@ const viTranslations = {
     account: {
       title: "Quản lý tài khoản",
       addAccount: "Thêm tài khoản",
+      createDescription: "Tạo tài khoản mới cho nhân viên với quyền truy cập phù hợp",
+      manageAccounts: "Quản lý tài khoản",
+      searchPlaceholder: "Tìm kiếm tài khoản...",
+      id: "Mã",
       accountID: "Mã tài khoản",
       fullName: "Họ và tên",
       username: "Tên đăng nhập",
@@ -742,7 +763,12 @@ const viTranslations = {
       activate: "Kích hoạt",
       active: "Hoạt động",
       inactive: "Không hoạt động",
-      noAccounts: "Không tìm thấy tài khoản nào"
+      makeAdmin: "Đặt làm Admin",
+      makeStaff: "Đặt làm Nhân viên",
+      noAccounts: "Không tìm thấy tài khoản nào",
+      showing: "Hiển thị",
+      of: "trong tổng số",
+      items: "mục"
     },
     vaccine: {
       title: "Quản lý vắc xin",

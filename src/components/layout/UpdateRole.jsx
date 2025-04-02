@@ -4,14 +4,15 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Switch } from "../ui/switch";
+import { Alert, AlertDescription } from "../ui/alert";
 
 function UpdateRole({ setIsOpen, open, userId }) {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const userAPI = "http://localhost:8080/users";
 	const [role, setRole] = useState("");
-	const [status, setStatus] = useState(true);
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	// Danh sách role hợp lệ
 	const validRoles = [
@@ -26,16 +27,10 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		}
 	}, [userId]);
 
-	//useEffect(() => {
-	// 	if (user) {
-	// 		setRole(user.roleName);
-	// 		setStatus(user.status);
-	// 	}
-	// }, [user]);
-
 	//get user information
 	const getUser = async (userId) => {
 		try {
+			setLoading(true);
 			const response = await fetch(`${userAPI}/${userId}`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -44,21 +39,25 @@ function UpdateRole({ setIsOpen, open, userId }) {
 			});
 			if (response.ok) {
 				const data = await response.json();
-				// Chỉ set role nếu nó nằm trong danh sách validRoles
 				const validRole = validRoles.find(r => r.value === data.result.roleName);
-				setRole(validRole ? validRole.value : "DOCTOR"); // Mặc định là DOCTOR nếu không hợp lệ
-				setStatus(data.result.status);
+				setRole(validRole ? validRole.value : "DOCTOR");
 			} else {
-				console.error(response.status);
+				const errorData = await response.json();
+				setError(errorData.message || "Failed to fetch user data");
 			}
 		} catch (err) {
-			console.error("Get user failed: ", err);
+			setError("Error fetching user data: " + err.message);
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	//Update user information
-	const handleSubmit = async () => {
+	//Update user role
+	const handleUpdateRole = async () => {
 		try {
+			setLoading(true);
+			setError("");
+			
 			const response = await fetch(`${userAPI}/${userId}`, {
 				method: "PATCH",
 				headers: {
@@ -66,22 +65,22 @@ function UpdateRole({ setIsOpen, open, userId }) {
 					"Content-type": "application/json",
 				},
 				body: JSON.stringify({
-					roleName: role,
-					status: status,
+					roleName: role
 				}),
 			});
+			
 			if (response.ok) {
-				alert("Update role successful!");
+				alert("Role updated successfully!");
 				handleClose();
 				navigate('/Admin/ManageAccount');
 			} else {
-				console.error("Failed to update user:", response.status);
 				const errorData = await response.json();
-				alert(`Update failed: ${errorData.message || "Unknown error"}`);
+				setError(errorData.message || "Failed to update role");
 			}
 		} catch (err) {
-			console.error("Error updating user role: ", err);
-			alert("An error occurred during update. Please try again.");
+			setError("Error updating role: " + err.message);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -93,20 +92,20 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		setRole(value);
 	};
 
-	const handleStatusChange = (checked) => {
-		setStatus(checked);
-	};
-
 	return (
 		<Dialog open={open} onOpenChange={setIsOpen}>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Update Role</DialogTitle>
 				</DialogHeader>
-				<form onSubmit={(e) => {
-					e.preventDefault();
-					handleSubmit();
-				}} className="space-y-4">
+				
+				{error && (
+					<Alert variant="destructive">
+						<AlertDescription>{error}</AlertDescription>
+					</Alert>
+				)}
+				
+				<div className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="role">Role</Label>
 						<Select value={role} onValueChange={handleRoleChange}>
@@ -123,24 +122,19 @@ function UpdateRole({ setIsOpen, open, userId }) {
 						</Select>
 					</div>
 					
-					<div className="flex items-center justify-between space-y-2">
-						<Label htmlFor="status">Status: {status ? "Active" : "Inactive"}</Label>
-						<Switch 
-							id="status" 
-							checked={status} 
-							onCheckedChange={handleStatusChange} 
-						/>
-					</div>
-					
-					<DialogFooter className="mt-6">
-						<Button variant="outline" type="button" onClick={handleClose}>
+					<DialogFooter className="flex justify-end gap-2 pt-4">
+						<Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
 							Cancel
 						</Button>
-						<Button type="submit">
-							Update
+						<Button 
+							type="button" 
+							onClick={handleUpdateRole}
+							disabled={loading}
+						>
+							Update Role
 						</Button>
 					</DialogFooter>
-				</form>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);

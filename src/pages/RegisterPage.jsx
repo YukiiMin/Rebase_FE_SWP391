@@ -225,16 +225,20 @@ function RegisterPage() {
 								<StepOne 
 									formik={formik} 
 									passwordStrength={passwordStrength} 
-									setPasswordStrength={setPasswordStrength} 
+									setPasswordStrength={setPasswordStrength}
+									nextStep={nextStep}
+									onCancel={handleClose}
 								/>
 							) : (
 								<StepTwo 
-									formik={formik} 
+									formik={formik}
+									previousStep={previousStep}
+									isLoading={loading}
 								/>
 							)}
 
 							{/* Form actions */}
-							<div className="flex justify-between mt-8">
+							{/* <div className="flex justify-between mt-8">
 								{currentStep === 2 ? (
 									<button 
 										type="button" 
@@ -277,7 +281,7 @@ function RegisterPage() {
 										)}
 									</button>
 								)}
-							</div>
+							</div> */}
 						</form>
 					)}
 				</div>

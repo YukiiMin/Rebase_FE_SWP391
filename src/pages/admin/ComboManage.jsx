@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/layout/Sidebar";
+import MainNav from "../../components/layout/MainNav";
 import AddCombo from "../../components/layout/AddCombo";
-import Navigation from "../../components/layout/Navbar";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/table";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Search, Plus, Filter, Package } from "lucide-react";
+import { Search, Plus, Filter, Package, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 
 function ComboManage() {
 	const [comboList, setComboList] = useState([]);
-	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [isOpen, setIsOpen] = useState(false);
 	const [searchName, setSearchName] = useState("");
 	const [searchCategory, setSearchCategory] = useState("");
 	const [sortOption, setSortOption] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
+	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [currentPage, setCurrentPage] = useState(1);
-	const itemsPerPage = 10; // Number of items per page
+	const itemsPerPage = 10;
 
 	useEffect(() => {
 		getCombo();
@@ -23,16 +26,19 @@ function ComboManage() {
 
 	const getCombo = async () => {
 		try {
+			setLoading(true);
 			const response = await fetch(`${comboAPI}`);
 			if (response.ok) {
 				const data = await response.json();
 				const groupedCombos = groupCombos(data.result);
 				setComboList(groupedCombos);
 			} else {
-				console.error("Getting combo list failed: ", response.status);
+				setError("Failed to fetch combo list. Please try again later.");
 			}
 		} catch (err) {
-			console.error("Something went wrong when getting combo list: ", err);
+			setError("An error occurred while fetching combo list.");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -48,12 +54,11 @@ function ComboManage() {
 					comboCategory: combo.comboCategory,
 					saleOff: combo.saleOff,
 					total: combo.total,
-					vaccines: [], // Initialize vaccines array
+					vaccines: [],
 				};
 			}
 			grouped[combo.comboId].vaccines.push({ name: combo.vaccineName, manufacturer: combo.manufacturer, dose: combo.dose });
 		});
-		// Convert grouped object to array
 		return Object.values(grouped);
 	};
 
@@ -76,7 +81,7 @@ function ComboManage() {
 	//Pagination
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentCombos = searchCombo().slice(indexOfFirstItems, indexOfLastItems); //Ensure list not empty
+	const currentCombos = searchCombo().slice(indexOfFirstItems, indexOfLastItems);
 	const totalPages = Math.ceil(searchCombo().length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
@@ -84,231 +89,252 @@ function ComboManage() {
 	};
 
 	return (
-		<>
-			<Navigation />
-			<div className="admin-layout">
+		<div className="min-h-screen bg-gray-100">
+			<MainNav isAdmin={true} />
+			<div className="flex">
 				<Sidebar />
-				<main className="admin-content">
-					<div className="admin-header flex justify-between items-center">
-						<h1 className="admin-title flex items-center gap-2">
-							<Package size={24} className="text-blue-600" />
-							Combo Vaccine Management
-						</h1>
-						<Button 
-							className="flex items-center gap-2"
-							onClick={() => setIsOpen(true)}
-						>
-							<Plus size={16} />
-							Add New Combo
-						</Button>
-					</div>
-					
-					{isOpen && <AddCombo setIsOpen={setIsOpen} open={isOpen} />}
-					
-					{/* Search and Filters */}
-					<div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-6">
-						<div className="flex flex-col md:flex-row gap-4 items-end">
-							<div className="flex-1">
-								<label className="block text-sm font-medium text-gray-700 mb-1">Combo Name</label>
-								<div className="relative">
-									<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-									<Input
-										type="text"
-										placeholder="Search by name"
-										value={searchName}
-										onChange={(e) => setSearchName(e.target.value)}
-										className="pl-9"
-									/>
+				<main className="flex-1 p-8 ml-64">
+					<div className="max-w-7xl mx-auto">
+						<div className="flex justify-between items-center mb-8">
+							<h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+								<Package className="h-8 w-8 text-blue-600" />
+								Combo Vaccine Management
+							</h1>
+							<Button 
+								onClick={() => setIsOpen(true)}
+								className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+							>
+								<Plus className="h-5 w-5" />
+								Add New Combo
+							</Button>
+						</div>
+						
+						{isOpen && <AddCombo setIsOpen={setIsOpen} open={isOpen} />}
+						
+						{error && (
+							<Alert variant="destructive" className="mb-6">
+								<AlertCircle className="h-5 w-5" />
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
+						
+						{/* Search and Filters */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-2">Combo Name</label>
+									<div className="relative">
+										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+										<Input
+											type="text"
+											placeholder="Search by name"
+											value={searchName}
+											onChange={(e) => setSearchName(e.target.value)}
+											className="pl-9 h-10"
+										/>
+									</div>
 								</div>
-							</div>
-							<div className="flex-1">
-								<label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-								<div className="relative">
-									<Package className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-									<select
-										value={searchCategory}
-										onChange={(e) => setSearchCategory(e.target.value)}
-										className="pl-9 h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									>
-										<option value="">---Category---</option>
-										<option value="kids">Combo for kids</option>
-										<option value="preschool">Combo for preschool children</option>
-									</select>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+									<div className="relative">
+										<Package className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+										<select
+											value={searchCategory}
+											onChange={(e) => setSearchCategory(e.target.value)}
+											className="w-full h-10 pl-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+										>
+											<option value="">---Category---</option>
+											<option value="kids">Combo for kids</option>
+											<option value="preschool">Combo for preschool children</option>
+										</select>
+									</div>
 								</div>
-							</div>
-							<div className="w-full md:w-auto">
-								<label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-								<div className="relative">
-									<Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-									<select
-										value={sortOption}
-										onChange={(e) => setSortOption(e.target.value)}
-										className="pl-9 h-9 w-full md:w-52 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-									>
-										<option value="">---Sort---</option>
-										<option value="priceAsc">Price (Low to High)</option>
-										<option value="priceDes">Price (High to Low)</option>
-									</select>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+									<div className="relative">
+										<Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+										<select
+											value={sortOption}
+											onChange={(e) => setSortOption(e.target.value)}
+											className="w-full h-10 pl-9 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+										>
+											<option value="">---Sort---</option>
+											<option value="priceAsc">Price (Low to High)</option>
+											<option value="priceDes">Price (High to Low)</option>
+										</select>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-					
-					{/* Combos Table */}
-					<div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>#</TableHead>
-									<TableHead>Combo Name</TableHead>
-									<TableHead>Combo Category</TableHead>
-									<TableHead>Description</TableHead>
-									<TableHead>Included Vaccine</TableHead>
-									<TableHead>Vaccine Manufacturer</TableHead>
-									<TableHead>Vaccine Dose</TableHead>
-									<TableHead>Sale Off</TableHead>
-									<TableHead>Total Price</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{currentCombos.length > 0 ? (
-									currentCombos.map((combo) => (
-										<TableRow key={combo.comboId}>
-											<TableCell>{combo.comboId}</TableCell>
-											<TableCell>{combo.comboName}</TableCell>
-											<TableCell>
-												<span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-													combo.comboCategory === "kids" 
-														? "bg-blue-100 text-blue-800" 
-														: "bg-green-100 text-green-800"
-												}`}>
-													{combo.comboCategory}
-												</span>
-											</TableCell>
-											<TableCell className="max-w-[180px] truncate">
-												{combo.description}
-											</TableCell>
-											<TableCell>
-												{combo.vaccines.map((v, index, array) => (
-													<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
-														{v.name}
-													</div>
-												))}
-											</TableCell>
-											<TableCell>
-												{combo.vaccines.map((v, index, array) => (
-													<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
-														{v.manufacturer}
-													</div>
-												))}
-											</TableCell>
-											<TableCell>
-												{combo.vaccines.map((v, index, array) => (
-													<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
-														{v.dose}
-													</div>
-												))}
-											</TableCell>
-											<TableCell>
-												<span className="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-													{combo.saleOff}%
-												</span>
-											</TableCell>
-											<TableCell>
-												<span className="font-semibold text-blue-600">
-													${parseFloat(combo.total).toFixed(2)}
-												</span>
-											</TableCell>
-										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell colSpan={9} className="text-center py-6 text-gray-500">
-											No Result
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
 						
-						{/* Custom Pagination */}
-						{totalPages > 0 && (
-							<div className="flex items-center justify-center mt-6">
-								<nav className="flex items-center space-x-2">
-									<Button 
-										variant="outline"
-										size="sm"
-										disabled={currentPage === 1}
-										onClick={() => handlePageChange(1)}
-										className="px-3 py-1"
-									>
-										First
-									</Button>
-									<Button 
-										variant="outline"
-										size="sm"
-										disabled={currentPage === 1}
-										onClick={() => handlePageChange(currentPage - 1)}
-										className="px-3 py-1"
-									>
-										&laquo; Prev
-									</Button>
-									
-									<div className="flex items-center space-x-1">
-										{[...Array(totalPages)].map((_, index) => {
-											const pageNum = index + 1;
-											// Show limited page numbers
-											if (
-												pageNum === 1 ||
-												pageNum === totalPages ||
-												(pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-											) {
-												return (
-													<Button
-														key={pageNum}
-														variant={pageNum === currentPage ? "default" : "outline"}
-														size="sm"
-														onClick={() => handlePageChange(pageNum)}
-														className="px-3 py-1"
-													>
-														{pageNum}
-													</Button>
-												);
-											} else if (
-												pageNum === currentPage - 2 ||
-												pageNum === currentPage + 2
-											) {
-												return <span key={pageNum}>...</span>;
-											}
-											return null;
-										})}
+						{/* Combos Table */}
+						<div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+							{loading ? (
+								<div className="p-8 text-center">
+									<div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent mx-auto"></div>
+									<p className="mt-4 text-gray-600">Loading combos...</p>
+								</div>
+							) : currentCombos.length > 0 ? (
+								<>
+									<div className="overflow-x-auto">
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead className="w-20">#</TableHead>
+													<TableHead className="min-w-[200px]">Combo Name</TableHead>
+													<TableHead className="w-32">Category</TableHead>
+													<TableHead className="min-w-[200px]">Description</TableHead>
+													<TableHead className="min-w-[200px]">Included Vaccine</TableHead>
+													<TableHead className="min-w-[200px]">Vaccine Manufacturer</TableHead>
+													<TableHead className="w-32">Vaccine Dose</TableHead>
+													<TableHead className="w-32">Sale Off</TableHead>
+													<TableHead className="w-32">Total Price</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{currentCombos.map((combo) => (
+													<TableRow key={combo.comboId}>
+														<TableCell>{combo.comboId}</TableCell>
+														<TableCell className="font-medium">{combo.comboName}</TableCell>
+														<TableCell>
+															<span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+																combo.comboCategory === "kids" 
+																	? "bg-blue-100 text-blue-800" 
+																	: "bg-green-100 text-green-800"
+															}`}>
+																{combo.comboCategory}
+															</span>
+														</TableCell>
+														<TableCell className="max-w-[200px] truncate">
+															{combo.description}
+														</TableCell>
+														<TableCell>
+															{combo.vaccines.map((v, index, array) => (
+																<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
+																	{v.name}
+																</div>
+															))}
+														</TableCell>
+														<TableCell>
+															{combo.vaccines.map((v, index, array) => (
+																<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
+																	{v.manufacturer}
+																</div>
+															))}
+														</TableCell>
+														<TableCell>
+															{combo.vaccines.map((v, index, array) => (
+																<div key={index} className={index < array.length - 1 ? "mb-1" : ""}>
+																	{v.dose}
+																</div>
+															))}
+														</TableCell>
+														<TableCell>
+															<span className="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+																{combo.saleOff}%
+															</span>
+														</TableCell>
+														<TableCell>
+															<span className="font-semibold text-blue-600">
+																${parseFloat(combo.total).toFixed(2)}
+															</span>
+														</TableCell>
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
 									</div>
-									
-									<Button 
-										variant="outline"
-										size="sm"
-										disabled={currentPage === totalPages}
-										onClick={() => handlePageChange(currentPage + 1)}
-										className="px-3 py-1"
-									>
-										Next &raquo;
-									</Button>
-									<Button 
-										variant="outline"
-										size="sm"
-										disabled={currentPage === totalPages}
-										onClick={() => handlePageChange(totalPages)}
-										className="px-3 py-1"
-									>
-										Last
-									</Button>
-								</nav>
-							</div>
-						)}
+
+									{/* Pagination */}
+									{totalPages > 0 && (
+										<div className="flex items-center justify-center py-4 border-t border-gray-200">
+											<nav className="flex items-center gap-2">
+												<Button 
+													variant="outline"
+													size="sm"
+													disabled={currentPage === 1}
+													onClick={() => handlePageChange(1)}
+													className="px-3 py-1"
+												>
+													First
+												</Button>
+												<Button 
+													variant="outline"
+													size="sm"
+													disabled={currentPage === 1}
+													onClick={() => handlePageChange(currentPage - 1)}
+													className="px-3 py-1"
+												>
+													Previous
+												</Button>
+												
+												<div className="flex items-center gap-1">
+													{[...Array(totalPages)].map((_, index) => {
+														const pageNum = index + 1;
+														if (
+															pageNum === 1 ||
+															pageNum === totalPages ||
+															(pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+														) {
+															return (
+																<Button
+																	key={pageNum}
+																	variant={pageNum === currentPage ? "default" : "outline"}
+																	size="sm"
+																	onClick={() => handlePageChange(pageNum)}
+																	className="px-3 py-1"
+																>
+																	{pageNum}
+																</Button>
+															);
+														} else if (
+															pageNum === currentPage - 2 ||
+															pageNum === currentPage + 2
+														) {
+															return <span key={pageNum} className="px-1">...</span>;
+														}
+														return null;
+													})}
+												</div>
+												
+												<Button 
+													variant="outline"
+													size="sm"
+													disabled={currentPage === totalPages}
+													onClick={() => handlePageChange(currentPage + 1)}
+													className="px-3 py-1"
+												>
+													Next
+												</Button>
+												<Button 
+													variant="outline"
+													size="sm"
+													disabled={currentPage === totalPages}
+													onClick={() => handlePageChange(totalPages)}
+													className="px-3 py-1"
+												>
+													Last
+												</Button>
+											</nav>
+										</div>
+									)}
+								</>
+							) : (
+								<div className="p-8 text-center">
+									<div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+										<Package className="h-8 w-8 text-gray-400" />
+									</div>
+									<h3 className="text-lg font-medium text-gray-900 mb-2">No Combos Found</h3>
+									<p className="text-gray-500">
+										No results match your search criteria.
+									</p>
+								</div>
+							)}
+						</div>
 					</div>
 				</main>
 			</div>
-		</>
+		</div>
 	);
 }
 

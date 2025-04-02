@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Navigation from "../../components/layout/Navbar";
+import MainNav from "../../components/layout/MainNav";
 import StaffMenu from "../../components/layout/StaffMenu";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../components/ui/button";
@@ -162,7 +162,7 @@ function DiagnosisPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50">
-                <Navigation />
+                <MainNav isAdmin={true} />
                 <div className="flex">
                     <StaffMenu />
                     <main className="flex-grow p-6">
@@ -181,7 +181,7 @@ function DiagnosisPage() {
     if (error && !booking) {
         return (
             <div className="min-h-screen bg-gray-50">
-                <Navigation />
+                <MainNav isAdmin={true} />
                 <div className="flex">
                     <StaffMenu />
                     <main className="flex-grow p-6">
@@ -200,8 +200,8 @@ function DiagnosisPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Navigation />
+        <div className="min-h-screen bg-gray-100">
+            <MainNav isAdmin={true} />
             <div className="flex">
                 <StaffMenu />
                 <main className="flex-grow p-6">

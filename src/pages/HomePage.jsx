@@ -157,21 +157,21 @@ export default function HomePage() {
 			name: "Vắc xin COVID-19",
 			description: "Ngừa COVID-19 với hiệu quả bảo vệ cao",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2021/06/vac-xin-covid-astrazeneca-tai-vnvc-14.jpg",
-			price: 850000
+			price: 30
 		},
 		{
 			id: 2,
 			name: "Vắc xin Cúm mùa",
 			description: "Bảo vệ hàng năm chống lại các chủng cúm theo mùa",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2018/06/banner-vnvc.jpg",
-			price: 620000
+			price: 39
 		},
 		{
 			id: 3,
 			name: "Vắc xin MMR",
 			description: "Phòng ngừa Sởi, Quai bị và Rubella cho trẻ",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2021/05/MMR-VNVC.jpg",
-			price: 580000
+			price: 37
 		}
 	];
 
@@ -181,21 +181,21 @@ export default function HomePage() {
 			name: "Gói vắc xin cho bé dưới 1 tuổi",
 			description: "Tất cả vắc xin cần thiết cho năm đầu đời của bé",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2019/11/vacxin-tre-duoi-1-tuoi.jpg",
-			price: 5500000
+			price: 99
 		},
 		{
 			id: 2,
 			name: "Gói vắc xin cho trẻ 1-4 tuổi",
 			description: "Vắc xin cần thiết cho trẻ từ 1-4 tuổi",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2019/11/vacxin-tre-1-5-tuoi.jpg",
-			price: 4800000
+			price: 133
 		},
 		{
 			id: 3,
 			name: "Gói vắc xin cho học sinh",
 			description: "Vắc xin bắt buộc để chuẩn bị cho bé đi học",
 			imageUrl: "https://vnvc.vn/wp-content/uploads/2019/11/vacxin-cho-tre-truoc-khi-di-hoc.jpg",
-			price: 3200000
+			price: 89
 		}
 	];
 
@@ -429,7 +429,7 @@ export default function HomePage() {
 													
 													<div className="flex items-center justify-between">
 														<span className="text-lg font-bold text-blue-600">
-															{new Intl.NumberFormat('vi-VN').format(vaccine.price)} VNĐ
+															{new Intl.NumberFormat('vi-VN').format(vaccine.price)} $
 														</span>
 														<Link to={`/Vaccine/${vaccine.id}`} className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
 															View Details

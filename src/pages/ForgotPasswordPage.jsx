@@ -9,6 +9,11 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Mail, Loader2, X, Phone, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Footer from "../components/layout/Footer";
+// import PasswordStrengthMeter from "../components/ui/PasswordStrengthMeter";
+
+// // Lưu ý: Component PasswordStrengthMeter được import để sử dụng ở trang ResetPasswordPage
+// // khi người dùng cần đặt lại mật khẩu mới sau khi xác thực OTP. Component này giúp đo độ mạnh của mật khẩu
+// // và xử lý confirm password một cách đồng nhất xuyên suốt ứng dụng.
 
 export default function ForgotPasswordPage() {
     const navigate = useNavigate();

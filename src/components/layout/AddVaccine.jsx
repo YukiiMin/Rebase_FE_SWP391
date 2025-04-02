@@ -61,7 +61,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		quantity: Yup.number().required("Quantity is required").min(0, "Quantity cannot be negative"),
 		unitPrice: Yup.number().required("Unit price is required").min(0, "Unit price cannot be negative"),
 		salePrice: Yup.number().required("Sale price is required").min(0, "Sale price cannot be negative").moreThan(Yup.ref("unitPrice"), "Sale price must be higher than Unit price"),
-		status: Yup.boolean().required("Status is required"),
 		totalDose: Yup.number().required("Total dose count is required").min(1, "Must have at least 1 dose").max(5, "Cannot exceed 5 doses"),
 	});
 
@@ -84,7 +83,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			quantity: "",
 			unitPrice: "",
 			salePrice: "",
-			status: true,
 			totalDose: 1,
 		},
 		onSubmit: (values) => {
@@ -178,7 +176,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				quantity: values.quantity,
 				unitPrice: values.unitPrice,
 				salePrice: values.salePrice,
-				status: values.status,
 				totalDose: values.totalDose,
 			};
 			
@@ -612,7 +609,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 								</div>
 							</div>
 							
-							<div className="flex items-center space-x-2">
+							{/* <div className="flex items-center space-x-2">
 								<Switch
 									id="status"
 									name="status"
@@ -620,7 +617,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 									onCheckedChange={(checked) => formik.setFieldValue("status", checked)}
 								/>
 								<Label htmlFor="status">Active Status</Label>
-							</div>
+							</div> */}
 							
 							<div className="space-y-2">
 								<Label htmlFor="imageUrl">Image URL</Label>

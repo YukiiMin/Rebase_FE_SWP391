@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 import { motion } from "framer-motion"
+import React from "react"
 
 // Lucide icons
 import { UserIcon, SyringeIcon, PackageIcon, CalendarIcon, ShoppingCart, Plus, Loader2 } from "lucide-react"
@@ -466,37 +467,172 @@ function BookingPage() {
     })
   }
 
-  const handleVaccineSelection = (vaccine) => {
-    // Use a function form of setState to avoid dependency on current state
+  // Optimize vaccine selection handling
+  const handleVaccineSelection = React.useCallback((vaccine) => {
     setSelectedVaccine((prevSelected) => {
-      const index = prevSelected.findIndex((v) => v.vaccine.id === vaccine.id)
-      if (index !== -1) {
-        // Vaccine already selected, remove it
-        const newSelected = [...prevSelected]
-        newSelected.splice(index, 1)
-        return newSelected
-      } else {
-        // Vaccine not selected, add it
-        return [...prevSelected, { vaccine, quantity: 1 }]
+      const existingIndex = prevSelected.findIndex((v) => v.vaccine.id === vaccine.id)
+      if (existingIndex !== -1) {
+        // Remove vaccine if already selected
+        return prevSelected.filter((_, index) => index !== existingIndex)
       }
+      // Add new vaccine with quantity 1
+      return [...prevSelected, { vaccine, quantity: 1 }]
     })
-  }
+  }, []) // Empty dependency array since we're using functional updates
 
-  const handleComboSelection = (combo) => {
-    // Use a function form of setState to avoid dependency on current state
+  // Update vaccine quantity
+  const updateVaccineQuantity = React.useCallback((vaccineId, newQuantity) => {
+    if (newQuantity < 1) return // Prevent negative quantities
+    setSelectedVaccine((prevSelected) => 
+      prevSelected.map((item) => 
+        item.vaccine.id === vaccineId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    )
+  }, [])
+
+  // Optimize combo selection handling
+  const handleComboSelection = React.useCallback((combo) => {
     setSelectedCombo((prevSelected) => {
-      const index = prevSelected.findIndex((c) => c.comboId === combo.comboId)
-      if (index !== -1) {
-        // Combo already selected, remove it
-        const newSelected = [...prevSelected]
-        newSelected.splice(index, 1)
-        return newSelected
-      } else {
-        // Combo not selected, add it
-        return [...prevSelected, combo]
+      const existingIndex = prevSelected.findIndex((c) => c.comboId === combo.comboId)
+      if (existingIndex !== -1) {
+        // Remove combo if already selected
+        return prevSelected.filter((_, index) => index !== existingIndex)
       }
+      // Add new combo
+      return [...prevSelected, combo]
     })
-  }
+  }, []) // Empty dependency array since we're using functional updates
+
+  // Memoize the filtered vaccines list
+  const filteredVaccinesList = React.useMemo(() => {
+    return vaccinesList.filter(vaccine => vaccine.quantity > 0)
+  }, [vaccinesList])
+
+  // Memoize the filtered combo list
+  const filteredComboList = React.useMemo(() => {
+    return comboList.filter(combo => combo.vaccines && combo.vaccines.length > 0)
+  }, [comboList])
+
+  // Replace the vaccine selection rendering with this updated version
+  const renderVaccineItem = React.useCallback((vaccine) => {
+    const isSelected = selectedVaccine.some((v) => v.vaccine.id === vaccine.id)
+    return (
+      <div
+        key={vaccine.id}
+        className={cn(
+          "p-4 rounded-lg border transition-all",
+          isSelected
+            ? "border-blue-300 bg-blue-50 shadow-sm"
+            : "border-gray-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-md"
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => handleVaccineSelection(vaccine)}
+              className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+            />
+            <div>
+              <p className="font-medium text-gray-900 text-lg">{vaccine.name}</p>
+              <div className="flex flex-col gap-2 mt-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Manufacturer:</span>
+                  <span className="text-sm text-gray-600">{vaccine.manufacturer}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Category:</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {vaccine.categoryName || "Unknown"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="flex flex-col items-end gap-1">
+              <p className="font-semibold text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-base border border-blue-200">
+                {formatCurrency(vaccine.salePrice)}
+              </p>
+              {isSelected && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600">Quantity:</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={vaccine.quantity || 999}
+                      value={selectedVaccine.find(v => v.vaccine.id === vaccine.id)?.quantity || 1}
+                      onChange={(e) => updateVaccineQuantity(vaccine.id, parseInt(e.target.value))}
+                      className="w-20 text-center"
+                    />
+                  </div>
+
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }, [selectedVaccine, handleVaccineSelection, updateVaccineQuantity])
+
+  // Replace the combo selection rendering with this optimized version
+  const renderComboItem = React.useCallback((combo) => {
+    const isSelected = selectedCombo.some((c) => c.comboId === combo.comboId)
+    return (
+      <div
+        key={combo.comboId}
+        className={cn(
+          "p-4 rounded-lg border transition-all",
+          isSelected
+            ? "border-blue-300 bg-blue-50 shadow-sm"
+            : "border-gray-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-md"
+        )}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-4">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => handleComboSelection(combo)}
+              className="mt-1 h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+            />
+            <div>
+              <p className="font-medium text-gray-900 text-lg">{combo.comboName}</p>
+              <p className="text-sm text-gray-600 mt-2">{combo.description}</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {combo.vaccines.map((vaccine, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                  >
+                    {vaccine}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            {combo.saleOff > 0 && (
+              <div className="line-through text-sm text-gray-500">
+                {formatCurrency(combo.total)}
+              </div>
+            )}
+            <div className="font-semibold text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-base border border-blue-200 mt-1">
+              {formatCurrency(combo.total * (1 - combo.saleOff / 100))}
+            </div>
+            {combo.saleOff > 0 && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700 mt-2 border border-green-200">
+                Save {combo.saleOff}%
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }, [selectedCombo, handleComboSelection])
 
   // Format currency
   const formatCurrency = (price) => {
@@ -696,40 +832,7 @@ function BookingPage() {
                             </h3>
                             {vaccinesList.length > 0 ? (
                               <div className="space-y-6 max-h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-blue-50">
-                                {vaccinesList.map((vaccine) => (
-                                  <div
-                                    key={vaccine.id}
-                                    className={cn(
-                                      "p-4 rounded-lg border transition-all cursor-pointer",
-                                      selectedVaccine.some((v) => v.vaccine.id === vaccine.id)
-                                        ? "border-blue-300 bg-blue-50 shadow-sm"
-                                        : "border-gray-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-md",
-                                    )}
-                                    onClick={() => handleVaccineSelection(vaccine)}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-4">
-                                        <Checkbox
-                                          checked={selectedVaccine.some((v) => v.vaccine.id === vaccine.id)}
-                                          onCheckedChange={() => handleVaccineSelection(vaccine)}
-                                          className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                        />
-                                        <div>
-                                          <p className="font-medium text-gray-900 text-lg">{vaccine.name}</p>
-                                          <div className="flex flex-col gap-2 mt-3">
-                                            <p className="text-sm text-gray-600">
-                                              Manufacturer: {vaccine.manufacturer}
-                                            </p>
-                                            <p className="text-sm text-gray-600">Category: {vaccine.vaccineCategory}</p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <p className="font-semibold text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-base border border-blue-200">
-                                        {formatCurrency(vaccine.salePrice)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
+                                {filteredVaccinesList.map(renderVaccineItem)}
                               </div>
                             ) : (
                               <div className="text-center py-8 border rounded-lg bg-gray-50">
@@ -810,56 +913,7 @@ function BookingPage() {
                             </h3>
                             {comboList.length > 0 ? (
                               <div className="space-y-5">
-                                {comboList.map((combo) => (
-                                  <div
-                                    key={combo.comboId}
-                                    className={cn(
-                                      "p-4 rounded-lg border transition-all cursor-pointer",
-                                      selectedCombo.some((c) => c.comboId === combo.comboId)
-                                        ? "border-blue-300 bg-blue-50 shadow-sm"
-                                        : "border-gray-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-md",
-                                    )}
-                                    onClick={() => handleComboSelection(combo)}
-                                  >
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex items-start space-x-4">
-                                        <Checkbox
-                                          checked={selectedCombo.some((c) => c.comboId === combo.comboId)}
-                                          className="mt-1 h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                        />
-                                        <div>
-                                          <p className="font-medium text-gray-900 text-lg">{combo.comboName}</p>
-                                          <p className="text-sm text-gray-600 mt-2">{combo.description}</p>
-                                          <div className="flex flex-wrap gap-2 mt-3">
-                                            {combo.vaccines.map((vaccine, idx) => (
-                                              <span
-                                                key={idx}
-                                                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200"
-                                              >
-                                                {vaccine}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        {combo.saleOff > 0 && (
-                                          <div className="line-through text-sm text-gray-500">
-                                            {formatCurrency(combo.total)}
-                                          </div>
-                                        )}
-                                        <div className="font-semibold text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-base border border-blue-200 mt-1">
-                                          {formatCurrency(combo.total * (1 - combo.saleOff / 100))}
-                                        </div>
-                                        {combo.saleOff > 0 && (
-                                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700 mt-2 border border-green-200">
-                                            Save {combo.saleOff}%
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
+                                {filteredComboList.map(renderComboItem)}
                               </div>
                             ) : (
                               <div className="text-center py-8 border rounded-lg bg-gray-50">

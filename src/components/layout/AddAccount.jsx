@@ -11,17 +11,13 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
-import StepOne from "../ui/RegisterSteps/StepOne";
 import StepTwo from "../ui/RegisterSteps/StepTwo";
-import ProgressIndicator from "../ui/RegisterSteps/ProgressIndicator";
 
-const AddAccount = ({ open, onOpenChange, onSuccess }) => {
+const AddAccount = ({ open, setIsOpen, onAccountAdded }) => {
 	const { t } = useTranslation();
-	const [currentStep, setCurrentStep] = useState(1);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState(false);
-	const [passwordStrength, setPasswordStrength] = useState("weak");
 
 	const validation = Yup.object({
 		firstName: Yup.string()
@@ -30,7 +26,15 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 		lastName: Yup.string()
 			.required(t('register.errors.required'))
 			.max(100, t('register.errors.lastNameLength')),
-		dob: Yup.date().required(t('register.errors.required')),
+		username: Yup.string()
+			.required(t('register.errors.required'))
+			.min(3, t('register.errors.usernameLength'))
+			.max(30, t('register.errors.usernameLength'))
+			.matches(/^[a-zA-Z0-9]+$/, t('register.errors.invalidUsername')),
+		dob: Yup.date()
+			.required(t('register.errors.required'))
+			.max(new Date(), "Date of birth cannot be in the future")
+			.typeError("Please enter a valid date"),
 		phoneNumber: Yup.string()
 			.required(t('register.errors.required'))
 			.matches(/^0[0-9]{9}$/, t('register.errors.phoneFormat')),
@@ -38,41 +42,27 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 			.email(t('register.errors.invalidEmail'))
 			.required(t('register.errors.required'))
 			.max(50, t('register.errors.emailLength')),
-		username: Yup.string()
-			.required(t('register.errors.required'))
-			.min(6, t('register.errors.usernameLength'))
-			.max(30, t('register.errors.usernameLength'))
-			.matches(/^[a-zA-Z0-9]+$/, t('register.errors.invalidUsername')),
 		gender: Yup.string()
 			.required(t('register.errors.required'))
 			.oneOf(["MALE", "FEMALE", "OTHER"], t('register.errors.invalidGender')),
-		password: Yup.string()
+		address: Yup.string()
 			.required(t('register.errors.required'))
-			.min(8, t('register.errors.passwordLength'))
-			.matches(/(?=.*[a-z])/, t('register.errors.lowercase'))
-			.matches(/(?=.*[A-Z])/, t('register.errors.uppercase'))
-			.matches(/(?=.*\d)/, t('register.errors.number'))
-			.matches(/(?=.*[!@#$%^&*(),.?":{}|<>])/, t('register.errors.special')),
-		confirmPassword: Yup.string()
-			.required(t('register.errors.required'))
-			.oneOf([Yup.ref("password"), null], t('register.errors.passwordMatch')),
-		address: Yup.string().required(t('register.errors.required')),
+			.max(100, "Address must not exceed 100 characters"),
 		roleName: Yup.string()
 			.required(t('register.errors.required'))
-			.oneOf(["ADMIN", "DOCTOR", "NURSE"], "Please select a valid role"),
+			.oneOf(["DOCTOR", "NURSE"], "Please select a valid role"),
 	});
 
 	const formik = useFormik({
 		initialValues: {
 			firstName: "",
 			lastName: "",
+			username: "",
 			dob: "",
 			phoneNumber: "",
 			email: "",
-			username: "",
 			gender: "",
-			password: "",
-			confirmPassword: "",
+			password: "123456", // Default password
 			address: "",
 			roleName: "",
 		},
@@ -81,41 +71,6 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 			handleAddStaff(values);
 		},
 	});
-
-	const nextStep = () => {
-		// Check if step one inputs are valid before proceeding
-		const stepOneFields = ['username', 'password', 'confirmPassword'];
-		const errors = {};
-		
-		stepOneFields.forEach(field => {
-			try {
-				validation.fields[field].validateSync(formik.values[field]);
-			} catch (error) {
-				errors[field] = error.message;
-			}
-		});
-		
-		// Additional check for password strength
-		if (passwordStrength === "weak") {
-			setError(t('register.errors.weakPassword'));
-			return;
-		}
-		
-		if (Object.keys(errors).length === 0) {
-			setCurrentStep(2);
-			setError("");
-		} else {
-			// Update formik touched and errors
-			stepOneFields.forEach(field => {
-				formik.setFieldTouched(field, true);
-			});
-		}
-	};
-
-	const previousStep = () => {
-		setCurrentStep(1);
-		setError("");
-	};
 
 	const handleAddStaff = async (values) => {
 		setLoading(true);
@@ -156,11 +111,10 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 			if (response.ok) {
 				setSuccess(true);
 				setTimeout(() => {
-					if (onSuccess) onSuccess();
-					onOpenChange(false);
+					if (onAccountAdded) onAccountAdded(data.result);
+					setIsOpen(false);
 					// Reset form
 					formik.resetForm();
-					setCurrentStep(1);
 					setSuccess(false);
 				}, 2000);
 			} else {
@@ -176,19 +130,18 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 
 	const handleClose = () => {
 		formik.resetForm();
-		setCurrentStep(1);
 		setError("");
 		setSuccess(false);
-		onOpenChange(false);
+		setIsOpen(false);
 	};
 
 	return (
 		<Dialog open={open} onOpenChange={handleClose}>
-			<DialogContent className="sm:max-w-md md:max-w-xl">
+			<DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Add New Staff Account</DialogTitle>
+					<DialogTitle>{t('admin.account.addAccount') || "Add New Staff Account"}</DialogTitle>
 					<DialogDescription>
-						Create a new account for staff members with appropriate role access.
+						{t('admin.account.createDescription') || "Create a new account for staff members with appropriate role access."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -211,25 +164,11 @@ const AddAccount = ({ open, onOpenChange, onSuccess }) => {
 				)}
 
 				<form onSubmit={formik.handleSubmit} className="space-y-4">
-					<ProgressIndicator currentStep={currentStep} />
-
-					{currentStep === 1 && (
-						<StepOne 
-							formik={formik} 
-							nextStep={nextStep} 
-							passwordStrength={passwordStrength}
-							setPasswordStrength={setPasswordStrength}
-						/>
-					)}
-
-					{currentStep === 2 && (
-						<StepTwo 
-							formik={formik} 
-							previousStep={previousStep} 
-							isLoading={loading}
-							isStaffForm={true}
-						/>
-					)}
+					<StepTwo 
+						formik={formik} 
+						isLoading={loading}
+						isStaffForm={true}
+					/>
 				</form>
 			</DialogContent>
 		</Dialog>

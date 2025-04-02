@@ -30,7 +30,7 @@ function TransactionPage() {
 		selectedVaccine = [], 
 		selectedCombo = [], 
 		child = {}, 
-		vaccinationDate = "", 
+		appointmentDate = "",
 		payment = "credit", 
 		type = "single", 
 		orderId = null
@@ -134,7 +134,7 @@ function TransactionPage() {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					appointmentDate: vaccinationDate,
+					appointmentDate: appointmentDate,
 					status: "PENDING"
 				}),
 			});
@@ -299,8 +299,19 @@ function TransactionPage() {
 	// Format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) return "N/A"; // Check if date is valid
+			return date.toLocaleDateString('en-US', { 
+				year: 'numeric', 
+				month: 'long', 
+				day: 'numeric',
+				weekday: 'long'
+			});
+		} catch (error) {
+			console.error("Date formatting error:", error);
+			return "N/A";
+		}
 	};
 
 	// Return early with an error message if state is missing
@@ -359,7 +370,7 @@ function TransactionPage() {
 										</div>
 										<div className="flex justify-between">
 											<span className="font-medium">Appointment date:</span>
-											<span>{formatDate(vaccinationDate)}</span>
+											<span>{formatDate(appointmentDate)}</span>
 										</div>
 									</div>
 								</CardContent>

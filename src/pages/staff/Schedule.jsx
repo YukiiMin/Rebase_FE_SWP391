@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../../components/layout/Navbar';
+import MainNav from "../../components/layout/MainNav";
 import StaffMenu from '../../components/layout/StaffMenu';
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -84,8 +84,8 @@ function Schedule() {
 	const shiftTabs = orderedShifts.filter(shift => groupedSchedules[shift] && groupedSchedules[shift].length > 0);
 
 	return (
-		<div className="min-h-screen bg-gray-50">
-			<Navigation />
+		<div className="min-h-screen bg-gray-100">
+			<MainNav isAdmin={true} />
 			<div className="flex">
 				<StaffMenu />
 				<main className="flex-grow p-6">

@@ -91,7 +91,8 @@ import { jwtDecode } from 'jwt-decode';
             return {
                 userId: decoded.sub,
                 role: decoded.scope,
-                exp: decoded.exp
+                exp: decoded.exp,
+                username: decoded.username
             };
         } catch (error) {
             console.error("Error getting user info:", error);
