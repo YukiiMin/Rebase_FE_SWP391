@@ -5,6 +5,7 @@ import { Button } from "../../ui/button";
 import { RadioGroup, RadioGroupItem } from "../../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { useTranslation } from "react-i18next";
+import { format } from "date-fns";
 
 const StepTwo = ({ 
   formik, 
@@ -13,10 +14,11 @@ const StepTwo = ({
   isStaffForm = false
 }) => {
   const { t } = useTranslation();
+  const today = format(new Date(), "yyyy-MM-dd");
 
   return (
     <div>
-      <h3 className="text-lg font-medium mb-6">{t('register.steps.personalInfo')}</h3>
+      <h3 className="text-lg font-medium mb-6">{isStaffForm ? "Staff Account Information" : t('register.steps.personalInfo')}</h3>
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,12 +55,31 @@ const StepTwo = ({
           </div>
         </div>
 
+        {isStaffForm && (
+          <div className="auth-form-group">
+            <Label htmlFor="username" className="auth-label block mb-2">{t('register.username')}</Label>
+            <Input
+              id="username"
+              name="username"
+              value={formik.values.username}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              placeholder={t('register.username')}
+              className={`auth-input py-2 ${formik.touched.username && formik.errors.username ? "auth-input-error" : ""}`}
+            />
+            {formik.touched.username && formik.errors.username && (
+              <p className="auth-error-message mt-1">{formik.errors.username}</p>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {isStaffForm ? (
             // Staff form using RadioGroup for gender
             <div className="auth-form-group">
-              <Label className="auth-label block mb-2">{t('register.gender')}</Label>
+              <Label htmlFor="gender" className="auth-label block mb-2">{t('register.gender')}</Label>
               <RadioGroup
+                id="gender"
                 name="gender"
                 value={formik.values.gender}
                 onValueChange={(value) => formik.setFieldValue("gender", value)}
@@ -93,7 +114,7 @@ const StepTwo = ({
                 onBlur={formik.handleBlur}
                 className={`auth-select py-2 w-full ${formik.touched.gender && formik.errors.gender ? "auth-input-error" : ""}`}
               >
-                <option value="">{t('register.selectGender')}</option>
+                {/* <option value="">{t('register.selectGender')}</option> */}
                 <option value="MALE">{t('register.male')}</option>
                 <option value="FEMALE">{t('register.female')}</option>
                 <option value="OTHER">{t('register.other')}</option>
@@ -110,6 +131,7 @@ const StepTwo = ({
               id="dob"
               name="dob"
               type="date"
+              max={today}
               value={formik.values.dob}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
@@ -165,63 +187,78 @@ const StepTwo = ({
           </div>
         </div>
 
-        {isStaffForm && (
-          <div className="auth-form-group">
-            <Label htmlFor="address" className="auth-label block mb-2">Address</Label>
-            <Input
-              id="address"
-              name="address"
-              placeholder="Enter address"
-              value={formik.values.address}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              className={`auth-input py-2 ${formik.touched.address && formik.errors.address ? "auth-input-error" : ""}`}
-            />
-            {formik.touched.address && formik.errors.address && (
-              <p className="auth-error-message mt-1">{formik.errors.address}</p>
-            )}
-          </div>
-        )}
+        <div className="auth-form-group">
+          <Label htmlFor="address" className="auth-label block mb-2">{t('register.address')}</Label>
+          <Input
+            id="address"
+            name="address"
+            value={formik.values.address}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder={t('register.addressPlaceholder')}
+            className={`auth-input py-2 ${formik.touched.address && formik.errors.address ? "auth-input-error" : ""}`}
+          />
+          {formik.touched.address && formik.errors.address && (
+            <p className="auth-error-message mt-1">{formik.errors.address}</p>
+          )}
+        </div>
 
         {isStaffForm && (
-          <div className="auth-form-group">
-            <Label htmlFor="roleName" className="auth-label block mb-2">Role</Label>
-            <Select
-              name="roleName"
-              value={formik.values.roleName}
-              onValueChange={(value) => formik.setFieldValue("roleName", value)}
-            >
-              <SelectTrigger
-                className={formik.touched.roleName && formik.errors.roleName ? "border-red-500" : ""}
+          <>
+            <div className="auth-form-group">
+              <Label htmlFor="roleName" className="auth-label block mb-2">Role</Label>
+              <Select
+                name="roleName"
+                value={formik.values.roleName}
+                onValueChange={(value) => formik.setFieldValue("roleName", value)}
               >
-                <SelectValue placeholder="Select Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="DOCTOR">Doctor</SelectItem>
-                <SelectItem value="NURSE">Nurse</SelectItem>
-              </SelectContent>
-            </Select>
-            {formik.touched.roleName && formik.errors.roleName && (
-              <p className="auth-error-message mt-1">{formik.errors.roleName}</p>
-            )}
-          </div>
+                <SelectTrigger
+                  className={formik.touched.roleName && formik.errors.roleName ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DOCTOR">Doctor</SelectItem>
+                  <SelectItem value="NURSE">Nurse</SelectItem>
+                </SelectContent>
+              </Select>
+              {formik.touched.roleName && formik.errors.roleName && (
+                <p className="auth-error-message mt-1">{formik.errors.roleName}</p>
+              )}
+            </div>
+
+            <div className="auth-form-group">
+              <Label className="auth-label block mb-2">Password</Label>
+              <p className="text-sm text-gray-500">
+                Default password is "123456". User should change it after first login.
+              </p>
+            </div>
+          </>
         )}
 
         <div className="flex justify-between mt-8">
-          <Button 
-            type="button" 
-            onClick={previousStep}
-            className="auth-secondary-button"
-          >
-            {t('register.steps.back')}
-          </Button>
+          {previousStep && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={previousStep}
+              className="w-24"
+            >
+              {t('register.back')}
+            </Button>
+          )}
           <Button 
             type="submit" 
-            className="auth-submit-button" 
+            className={`${previousStep ? 'w-24' : 'w-full'} bg-blue-600 hover:bg-blue-700`}
             disabled={isLoading}
           >
-            {isLoading ? t('register.processing') : (isStaffForm ? "Create Account" : t('register.register'))}
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              isStaffForm ? "Create Account" : t('register.createAccount')
+            )}
           </Button>
         </div>
       </div>

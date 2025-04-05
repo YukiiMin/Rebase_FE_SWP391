@@ -8,6 +8,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from ".
 import { Badge } from "../ui/badge";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Loader2 } from "lucide-react";
+import { apiService } from "../../api";
 
 function DetailReaction({ open, setIsOpen, booking }) {
 	const [loading, setLoading] = useState(false);
@@ -63,29 +64,17 @@ function DetailReaction({ open, setIsOpen, booking }) {
 				return;
 			}
 
-			const response = await fetch(`http://localhost:8080/booking/${booking.bookingId}/reaction`, {
-				method: "POST",
-				headers: {
-					"Authorization": `Bearer ${token}`,
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({
-					reaction: reactionData.reaction
-				})
+			const response = await apiService.bookings.recordReaction(booking.bookingId, {
+				reaction: reactionData.reaction
 			});
 
-			if (response.ok) {
-				// Close modal after successful submission
-				setTimeout(() => {
-					handleClose();
-				}, 1500);
-			} else {
-				const data = await response.json();
-				setError(data.message || "Failed to record reaction");
-			}
+			// Close modal after successful submission
+			setTimeout(() => {
+				handleClose();
+			}, 1500);
 		} catch (error) {
 			console.error("Error recording reaction:", error);
-			setError("An error occurred while recording the reaction");
+			setError(error.response?.data?.message || "An error occurred while recording the reaction");
 		} finally {
 			setLoading(false);
 		}

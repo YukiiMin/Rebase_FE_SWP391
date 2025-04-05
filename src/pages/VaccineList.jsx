@@ -7,11 +7,10 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../api";
 
 function VaccineList() {
 	const { t } = useTranslation();
-	// const vaccineAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/vaccine";
-	const vaccineAPI = "http://localhost:8080/vaccine";
 	const [vaccinesList, setVaccinesList] = useState([]);
 	const [searchList, setSearchList] = useState([]);
 	const [search, setSearch] = useState("");
@@ -22,14 +21,10 @@ function VaccineList() {
 
 	const fetchVaccine = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/get`);
-			if (response.ok) {
-				const data = await response.json();
-				setVaccinesList(data.result);
-				setSearchList(data.result);
-			} else {
-				console.error("Fetching vaccines failed: ", response.status);
-			}
+			const response = await apiService.vaccine.getAll();
+			const data = response.data;
+			setVaccinesList(data.result);
+			setSearchList(data.result);
 		} catch (err) {
 			console.error("Something went wrong when fetching vaccines: ", err);
 		}

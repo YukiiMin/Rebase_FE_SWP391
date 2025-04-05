@@ -1,6 +1,7 @@
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import * as Yup from "yup";
+import { apiService } from "../../api";
 
 // ShadCN Components
 import {
@@ -48,29 +49,16 @@ function AddCategory({ open, setIsOpen, onAddedCategory }) {
 			setLoading(true);
 			setError("");
 			
-			const response = await fetch(`${vaccineAPI}/category/add`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(values),
-			});
+			const response = await apiService.vaccine.addCategory(values);
 			
-			if (response.ok) {
-				console.log("Adding category successful");
-				const newCategory = await response.json();
-				console.log(newCategory.result);
-				handleClose();
-				onAddedCategory(newCategory.result);
-			} else {
-				const errorData = await response.json();
-				setError(errorData.message || "Failed to add category");
-				console.error("Adding category failed: ", response.status);
-			}
+			console.log("Adding category successful");
+			const newCategory = response.data;
+			console.log(newCategory.result);
+			handleClose();
+			onAddedCategory(newCategory.result);
 		} catch (err) {
 			console.error("Adding category failed: ", err);
-			setError(err.message || "An unexpected error occurred");
+			setError(err.response?.data?.message || "Failed to add category");
 		} finally {
 			setLoading(false);
 		}

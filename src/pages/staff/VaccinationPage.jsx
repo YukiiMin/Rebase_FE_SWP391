@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Navigation from "../../components/layout/Navbar";
+import MainNav from "../../components/layout/MainNav";
 import StaffMenu from "../../components/layout/StaffMenu";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../components/ui/button";
@@ -15,6 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog";
 import { Separator } from "../../components/ui/separator";
 import { User, Calendar, Clock, ShieldCheck, CheckCircle, AlertCircle, Loader2, Syringe, FileText } from "lucide-react";
+import { apiService } from "../../api";
+import TokenUtils from "../../utils/TokenUtils";
 
 function VaccinationPage() {
     const { t } = useTranslation();
@@ -44,83 +46,70 @@ function VaccinationPage() {
     const fetchBookingAndDiagnosis = async () => {
         try {
             setLoading(true);
-            setError("");
             
-            // Fetch booking details
-            const bookingResponse = await fetch(`http://localhost:8080/booking/${bookingId}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!bookingResponse.ok) {
-                if (bookingResponse.status === 401 || bookingResponse.status === 403) {
-                    localStorage.removeItem("token");
-                    navigate("/Login");
-                    return;
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
+                return;
+            }
+            
+            // Get booking details
+            const response = await apiService.bookings.getById(bookingId);
+            
+            if (response.status === 200) {
+                const bookingData = response.data.result;
+                setBooking(bookingData);
+                
+                // Get user info to determine role
+                const userInfo = TokenUtils.getUserInfo();
+                
+                // Check if child information exists
+                if (bookingData.child) {
+                    setChildData(bookingData.child);
                 }
-                throw new Error(`HTTP error! status: ${bookingResponse.status}`);
-            }
-
-            const bookingData = await bookingResponse.json();
-            
-            if (bookingData.status !== 200) {
-                throw new Error(bookingData.message || "Failed to fetch booking details");
-            }
-            
-            const bookingDetails = bookingData.result;
-            
-            // Validate booking status
-            if (bookingDetails.status !== "DIAGNOSED") {
-                throw new Error("This booking is not ready for vaccination");
-            }
-            
-            setBooking(bookingDetails);
-            
-            // Fetch diagnosis details
-            const diagnosisResponse = await fetch(`http://localhost:8080/diagnosis/${bookingId}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!diagnosisResponse.ok) {
-                throw new Error(`HTTP error! status: ${diagnosisResponse.status}`);
-            }
-
-            const diagnosisData = await diagnosisResponse.json();
-            
-            if (diagnosisData.status !== 200) {
-                throw new Error(diagnosisData.message || "Failed to fetch diagnosis details");
-            }
-            
-            const diagnosisDetails = diagnosisData.result;
-            setDiagnosis(diagnosisDetails);
-            
-            // Initialize vaccine results based on diagnosis
-            if (diagnosisDetails && diagnosisDetails.diagnosisResults) {
-                const initialResults = {};
-                const initialNotes = {};
                 
-                diagnosisDetails.diagnosisResults.forEach(result => {
-                    // For each vaccine that can be injected, mark as not injected by default
-                    if (result.result === "CAN_INJECT") {
-                        initialResults[result.vaccineOrderId] = false;
-                        initialNotes[result.vaccineOrderId] = "";
+                // Check if diagnosis exists
+                if (bookingData.diagnosis) {
+                    setDiagnosis(bookingData.diagnosis);
+                } else {
+                    setError("No diagnosis record found for this booking");
+                }
+                
+                // Get vaccine details from order
+                if (bookingData.orders && bookingData.orders.length > 0) {
+                    // Find the active order
+                    const activeOrder = bookingData.orders.find(order => 
+                        order.status === "ACTIVE" || order.status === "PAID"
+                    );
+                    
+                    if (activeOrder && activeOrder.orderDetails) {
+                        // Format vaccine data for the form
+                        const formattedVaccines = activeOrder.orderDetails.map(detail => ({
+                            orderId: detail.id,
+                            vaccineName: detail.vaccine.name,
+                            vaccineId: detail.vaccine.id,
+                            administered: false,
+                            notes: ""
+                        }));
+                        
+                        setVaccines(formattedVaccines);
+                    } else {
+                        setError("No active order or vaccine details found");
                     }
-                });
-                
-                setVaccineResults(initialResults);
-                setVaccineNotes(initialNotes);
+                } else {
+                    setError("No orders found for this booking");
+                }
+            } else {
+                setError(response.data.message || "Failed to fetch booking details");
             }
-            
         } catch (err) {
-            console.error("Error fetching booking or diagnosis:", err);
-            setError(err.message || "Failed to fetch data. Please try again.");
+            console.error("Error fetching booking and diagnosis:", err);
+            setError(err.response?.data?.message || "An error occurred while fetching booking details");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
             setLoading(false);
         }
@@ -161,48 +150,53 @@ function VaccinationPage() {
     const submitVaccinationResults = async () => {
         try {
             setSubmitting(true);
-            setError("");
             
-            // Prepare the data for submission
-            const vaccinationData = {
-                bookingId: parseInt(bookingId),
-                vaccineResults: Object.entries(vaccineResults).map(([vaccineOrderId, isInjected]) => ({
-                    vaccineOrderId: parseInt(vaccineOrderId),
-                    injected: isInjected,
-                    note: vaccineNotes[vaccineOrderId] || ""
-                })),
-                generalNotes: generalNotes
-            };
-            
-            console.log("Submitting vaccination data:", vaccinationData);
-            
-            const response = await fetch(`http://localhost:8080/vaccination/${bookingId}/record`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(vaccinationData),
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || "Failed to submit vaccination results");
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
+                return;
             }
             
-            setSuccess(true);
-            setConfirmModal(false);
+            // Get user info
+            const userInfo = TokenUtils.getUserInfo();
+            const nurseId = userInfo.userId;
             
-            // Redirect after a short delay
-            setTimeout(() => {
-                navigate("/Staff/VaccinationManagement");
-            }, 2000);
+            // Prepare vaccination data
+            const vaccineData = vaccines
+                .filter(v => v.administered)
+                .map(v => ({
+                    vaccineId: v.vaccineId,
+                    notes: v.notes || "No special observations"
+                }));
             
+            if (vaccineData.length === 0) {
+                setError("No vaccines marked as administered");
+                setSubmitting(false);
+                return;
+            }
+            
+            // Record injection
+            const response = await apiService.vaccination.recordInjection(bookingId, nurseId, {
+                vaccines: vaccineData,
+                injectionTime: new Date().toISOString()
+            });
+            
+            if (response.status === 200) {
+                setSuccess(true);
+                setTimeout(() => {
+                    navigate("/staff/vaccination-management");
+                }, 2000);
+            } else {
+                setError(response.data.message || "Failed to record vaccination results");
+            }
         } catch (err) {
             console.error("Error submitting vaccination results:", err);
-            setError(err.message || "Failed to submit vaccination results. Please try again.");
-            setConfirmModal(false);
+            setError(err.response?.data?.message || "An error occurred while recording vaccination results");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -238,7 +232,7 @@ function VaccinationPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50">
-                <Navigation />
+                <MainNav isAdmin={true} />
                 <div className="flex">
                     <StaffMenu />
                     <main className="flex-grow p-6">
@@ -257,7 +251,7 @@ function VaccinationPage() {
     if (error && !booking) {
         return (
             <div className="min-h-screen bg-gray-50">
-                <Navigation />
+                <MainNav isAdmin={true} />
                 <div className="flex">
                     <StaffMenu />
                     <main className="flex-grow p-6">
@@ -280,8 +274,8 @@ function VaccinationPage() {
     const nonInjectableVaccines = diagnosis?.diagnosisResults?.filter(item => item.result !== "CAN_INJECT") || [];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Navigation />
+        <div className="min-h-screen bg-gray-100">
+            <MainNav isAdmin={true} />
             <div className="flex">
                 <StaffMenu />
                 <main className="flex-grow p-6">

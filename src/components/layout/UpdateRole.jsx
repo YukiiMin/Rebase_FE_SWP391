@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiService } from "../../api";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Switch } from "../ui/switch";
+import { Alert, AlertDescription } from "../ui/alert";
 
 function UpdateRole({ setIsOpen, open, userId }) {
 	const navigate = useNavigate();
-	const token = localStorage.getItem("token");
-	const userAPI = "http://localhost:8080/users";
 	const [role, setRole] = useState("");
-	const [status, setStatus] = useState(true);
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	// Danh sách role hợp lệ
 	const validRoles = [
@@ -26,62 +26,38 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		}
 	}, [userId]);
 
-	//useEffect(() => {
-	// 	if (user) {
-	// 		setRole(user.roleName);
-	// 		setStatus(user.status);
-	// 	}
-	// }, [user]);
-
 	//get user information
 	const getUser = async (userId) => {
 		try {
-			const response = await fetch(`${userAPI}/${userId}`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				// Chỉ set role nếu nó nằm trong danh sách validRoles
-				const validRole = validRoles.find(r => r.value === data.result.roleName);
-				setRole(validRole ? validRole.value : "DOCTOR"); // Mặc định là DOCTOR nếu không hợp lệ
-				setStatus(data.result.status);
-			} else {
-				console.error(response.status);
-			}
+			setLoading(true);
+			const response = await apiService.users.getById(userId);
+			const data = response.data;
+			const validRole = validRoles.find(r => r.value === data.result.roleName);
+			setRole(validRole ? validRole.value : "DOCTOR");
 		} catch (err) {
-			console.error("Get user failed: ", err);
+			setError("Error fetching user data: " + err.response?.data?.message || err.message);
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	//Update user information
-	const handleSubmit = async () => {
+	//Update user role
+	const handleUpdateRole = async () => {
 		try {
-			const response = await fetch(`${userAPI}/${userId}`, {
-				method: "PATCH",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-				body: JSON.stringify({
-					roleName: role,
-					status: status,
-				}),
+			setLoading(true);
+			setError("");
+			
+			await apiService.users.update(userId, {
+				roleName: role
 			});
-			if (response.ok) {
-				alert("Update role successful!");
-				handleClose();
-				navigate('/Admin/ManageAccount');
-			} else {
-				console.error("Failed to update user:", response.status);
-				const errorData = await response.json();
-				alert(`Update failed: ${errorData.message || "Unknown error"}`);
-			}
+			
+			alert("Role updated successfully!");
+			handleClose();
+			navigate('/Admin/ManageAccount');
 		} catch (err) {
-			console.error("Error updating user role: ", err);
-			alert("An error occurred during update. Please try again.");
+			setError(err.response?.data?.message || "Failed to update role");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -93,56 +69,70 @@ function UpdateRole({ setIsOpen, open, userId }) {
 		setRole(value);
 	};
 
-	const handleStatusChange = (checked) => {
-		setStatus(checked);
-	};
-
 	return (
-		<Dialog open={open} onOpenChange={setIsOpen}>
-			<DialogContent className="sm:max-w-[425px]">
-				<DialogHeader>
-					<DialogTitle>Update Role</DialogTitle>
-				</DialogHeader>
-				<form onSubmit={(e) => {
-					e.preventDefault();
-					handleSubmit();
-				}} className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="role">Role</Label>
-						<Select value={role} onValueChange={handleRoleChange}>
-							<SelectTrigger id="role">
-								<SelectValue placeholder="Select a role" />
-							</SelectTrigger>
-							<SelectContent>
-								{validRoles.map((roleOption) => (
-									<SelectItem key={roleOption.value} value={roleOption.value}>
-										{roleOption.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+		<div className="relative z-50">
+			{open && (
+				<>
+					{/* Custom backdrop with Tailwind classes */}
+					<div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={handleClose}></div>
 					
-					<div className="flex items-center justify-between space-y-2">
-						<Label htmlFor="status">Status: {status ? "Active" : "Inactive"}</Label>
-						<Switch 
-							id="status" 
-							checked={status} 
-							onCheckedChange={handleStatusChange} 
-						/>
+					{/* Modal content */}
+					<div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-gray-200 bg-white p-6 shadow-lg">
+						<button 
+							className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100"
+							onClick={handleClose}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+								<line x1="18" y1="6" x2="6" y2="18"></line>
+								<line x1="6" y1="6" x2="18" y2="18"></line>
+							</svg>
+							<span className="sr-only">Close</span>
+						</button>
+						
+						<div className="flex flex-col space-y-1.5 text-center sm:text-left">
+							<h2 className="text-lg font-semibold leading-none tracking-tight">Update Role</h2>
+						</div>
+						
+						{error && (
+							<Alert variant="destructive" className="mt-4">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
+						
+						<div className="mt-4 space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="role">Role</Label>
+								<Select value={role} onValueChange={handleRoleChange}>
+									<SelectTrigger id="role">
+										<SelectValue placeholder="Select a role" />
+									</SelectTrigger>
+									<SelectContent>
+										{validRoles.map((roleOption) => (
+											<SelectItem key={roleOption.value} value={roleOption.value}>
+												{roleOption.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+							
+							<div className="flex justify-end gap-2 pt-4">
+								<Button variant="outline" type="button" onClick={handleClose} disabled={loading}>
+									Cancel
+								</Button>
+								<Button 
+									type="button" 
+									onClick={handleUpdateRole}
+									disabled={loading}
+								>
+									Update Role
+								</Button>
+							</div>
+						</div>
 					</div>
-					
-					<DialogFooter className="mt-6">
-						<Button variant="outline" type="button" onClick={handleClose}>
-							Cancel
-						</Button>
-						<Button type="submit">
-							Update
-						</Button>
-					</DialogFooter>
-				</form>
-			</DialogContent>
-		</Dialog>
+				</>
+			)}
+		</div>
 	);
 }
 

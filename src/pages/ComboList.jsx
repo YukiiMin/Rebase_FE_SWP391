@@ -6,9 +6,9 @@ import { Input } from "../components/ui/input";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { apiService } from "../api";
 
 function ComboList() {
-	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [comboList, setComboList] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [filteredCombos, setFilteredCombos] = useState([]);
@@ -30,15 +30,11 @@ function ComboList() {
 
 	const getCombo = async () => {
 		try {
-			const response = await fetch(`${comboAPI}`);
-			if (response.ok) {
-				const data = await response.json();
-				const groupedCombos = groupCombos(data.result);
-				setComboList(groupedCombos);
-				setFilteredCombos(groupedCombos);
-			} else {
-				console.error("Fetching combos failed: ", response.status);
-			}
+			const response = await apiService.vaccine.getComboDetails();
+			const data = response.data;
+			const groupedCombos = groupCombos(data.result);
+			setComboList(groupedCombos);
+			setFilteredCombos(groupedCombos);
 		} catch (err) {
 			console.error("Something went wrong when getting combos: ", err);
 		}

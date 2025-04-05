@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../api";
 
 function VaccineDetail() {
 	const { t } = useTranslation();
 	const [vaccineList, setVaccineList] = useState([]);
 	const [vaccine, setVaccine] = useState();
 	const [loading, setLoading] = useState(true);
-	const vaccineAPI = "http://localhost:8080/vaccine";
 	const { id } = useParams();
 
 	useEffect(() => {
@@ -27,14 +27,10 @@ function VaccineDetail() {
 	const fetchAPI = async () => {
 		setLoading(true);
 		try {
-			const response = await fetch(`${vaccineAPI}/get`);
-			if (response.ok) {
-				const data = await response.json();
-				setVaccineList(data.result);
-				setLoading(false);
-			} else {
-				console.error("Fetching vaccines failed: ", response.status);
-			}
+			const response = await apiService.vaccine.getAll();
+			const data = response.data;
+			setVaccineList(data.result);
+			setLoading(false);
 		} catch (err) {
 			console.log(err);
 			setLoading(false);

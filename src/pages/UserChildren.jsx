@@ -9,11 +9,12 @@ import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card
 import { motion } from "framer-motion";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { apiService } from "../api";
+import TokenUtils from "../utils/TokenUtils";
 
 function UserChildren() {
 	const token = localStorage.getItem("token");
 	const decodedToken = jwtDecode(token);
-	const userAPI = "http://localhost:8080/users";
 	const [isAddOpen, setIsAddOpen] = useState(false); //For add child form
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false); //For update child form
 	const [childs, setChilds] = useState([]);
@@ -25,18 +26,13 @@ function UserChildren() {
 
 	const getChild = async () => {
 		try {
-			const accountId = decodedToken.sub;
-			const response = await fetch(`${userAPI}/${accountId}/children`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				setChilds(data.children);
-			} else {
-				console.error("Get children failed: ", response.status);
-			}
+			const userInfo = TokenUtils.getUserInfo();
+			if (!userInfo) return;
+			
+			const accountId = userInfo.userId;
+			const response = await apiService.users.getChildren(accountId);
+			const data = response.data;
+			setChilds(data.children);
 		} catch (err) {
 			console.error("Something went wrong when fetching child: ", err);
 		}

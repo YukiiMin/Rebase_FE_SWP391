@@ -46,22 +46,21 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 
 	const validation = Yup.object({
 		name: Yup.string().required("Vaccine Name is required"),
-		description: Yup.string().required("Description is required").min(30, "Description must be at least 30 characters"),
+		description: Yup.string().required("Description is required").min(3, "Description must be at least 3 characters"),
 		manufacturer: Yup.string().required("Manufacturer is required"),
 		categoryId: Yup.string().required("Category is required"),
 		dosage: Yup.string().required("Dosage is required"),
-		contraindications: Yup.string().required("Contraindications are required").min(30, "Contraindications must be at least 30 characters"),
-		precautions: Yup.string().required("Precautions are required").min(30, "Precautions must be at least 30 characters"),
-		interactions: Yup.string().required("Interactions are required").min(30, "Interactions must be at least 30 characters"),
-		adverseReaction: Yup.string().required("Adverse Reactions are required").min(30, "Adverse Reactions must be at least 30 characters"),
-		storageConditions: Yup.string().required("Storage Conditions are required").min(30, "Storage Conditions must be at least 30 characters"),
-		recommended: Yup.string().required("Recommended For is required").min(30, "Recommended For must be at least 30 characters"),
-		preVaccination: Yup.string().required("Pre-Vaccination Information is required").min(30, "Pre-Vaccination Information must be at least 30 characters"),
-		compatibility: Yup.string().required("Compatibility is required").min(30, "Compatibility must be at least 30 characters"),
+		contraindications: Yup.string().required("Contraindications are required").min(3, "Contraindications must be at least 3 characters"),
+		precautions: Yup.string().required("Precautions are required").min(3, "Precautions must be at least 3 characters"),
+		interactions: Yup.string().required("Interactions are required").min(3, "Interactions must be at least 3 characters"),
+		adverseReaction: Yup.string().required("Adverse Reactions are required").min(3, "Adverse Reactions must be at least 3 characters"),
+		storageConditions: Yup.string().required("Storage Conditions are required").min(3, "Storage Conditions must be at least 3 characters"),
+		recommended: Yup.string().required("Recommended For is required").min(3, "Recommended For must be at least 3 characters"),
+		preVaccination: Yup.string().required("Pre-Vaccination Information is required").min(3, "Pre-Vaccination Information must be at least 3 characters"),
+		compatibility: Yup.string().required("Compatibility is required").min(3, "Compatibility must be at least 3 characters"),
 		quantity: Yup.number().required("Quantity is required").min(0, "Quantity cannot be negative"),
 		unitPrice: Yup.number().required("Unit price is required").min(0, "Unit price cannot be negative"),
 		salePrice: Yup.number().required("Sale price is required").min(0, "Sale price cannot be negative").moreThan(Yup.ref("unitPrice"), "Sale price must be higher than Unit price"),
-		status: Yup.boolean().required("Status is required"),
 		totalDose: Yup.number().required("Total dose count is required").min(1, "Must have at least 1 dose").max(5, "Cannot exceed 5 doses"),
 	});
 
@@ -84,7 +83,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 			quantity: "",
 			unitPrice: "",
 			salePrice: "",
-			status: true,
 			totalDose: 1,
 		},
 		onSubmit: (values) => {
@@ -178,7 +176,6 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				quantity: values.quantity,
 				unitPrice: values.unitPrice,
 				salePrice: values.salePrice,
-				status: values.status,
 				totalDose: values.totalDose,
 			};
 			
@@ -612,7 +609,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 								</div>
 							</div>
 							
-							<div className="flex items-center space-x-2">
+							{/* <div className="flex items-center space-x-2">
 								<Switch
 									id="status"
 									name="status"
@@ -620,7 +617,7 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 									onCheckedChange={(checked) => formik.setFieldValue("status", checked)}
 								/>
 								<Label htmlFor="status">Active Status</Label>
-							</div>
+							</div> */}
 							
 							<div className="space-y-2">
 								<Label htmlFor="imageUrl">Image URL</Label>

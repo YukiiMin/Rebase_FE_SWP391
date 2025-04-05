@@ -12,22 +12,30 @@ import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../ui/table";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
+import { Badge } from "../ui/badge";
+import { apiService } from "../../api";
 
 function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const navigate = useNavigate();
 	const token = TokenUtils.getToken();
-	const api = "http://localhost:8080";
 
 	const [staffs, setStaffs] = useState([]);
 	const [chosenStaff, setChosenStaff] = useState([]);
 	const [staffError, setStaffError] = useState();
 	const [apiError, setApiError] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [success, setSuccess] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
+	const [error, setError] = useState(null);
 
 	const [repeat, setRepeat] = useState(false);
 
+	// Add debugging state
+	const [debugInfo, setDebugInfo] = useState(null);
+	const isDevelopment = process.env.NODE_ENV === 'development';
+
 	const validation = Yup.object({
 		scheduleName: Yup.string().required("Schedule name is required"),
-		shiftType: Yup.string().required("Choose a shift type"),
 		//Bat buoc co startDate, khong duoc chon ngay trong qua khu
 		startDate: Yup.date()
 			.transform((currentValue, originalValue) => {
@@ -35,7 +43,7 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 			})
 			.nullable()
 			.required("Start date is required")
-			.min(new Date(new Date().setDate(new Date().getDate())), "Start date cannot be today or before"),
+			.min(new Date(new Date().setHours(0,0,0,0)), "Start date must be today or after today"),
 		//Bat buoc co endDate, phai sau startDate, cach startDate khong qua 1 nam (tranh viec fetching qua dai)
 		endDate: Yup.date()
 			.transform((currentValue, originalValue) => {
@@ -68,7 +76,7 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	const formik = useFormik({
 		initialValues: {
 			scheduleName: "",
-			shiftType: "",
+			shiftType: "Regular", // Mặc định là "Regular"
 			startDate: "",
 			endDate: "",
 			repeat: false,
@@ -115,122 +123,151 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 
 	//Creating work shift
 	const handleAddShift = async (values) => {
+		setSubmitting(true);
+		setError(null);
+		setSuccess(false); // Reset success state
+		setDebugInfo(null);
+		
 		try {
-			console.log("Creating schedule with values:", values);
+			// Format days of week to match API expectations
+			const weekdays = formik.values.repeatDays.map((day) => {
+				switch (day) {
+					case "MONDAY": return 1;
+					case "TUESDAY": return 2;
+					case "WEDNESDAY": return 3;
+					case "THURSDAY": return 4;
+					case "FRIDAY": return 5;
+					case "SATURDAY": return 6;
+					case "SUNDAY": return 0;
+					default: return 0;
+				}
+			});
+			
+			// Format dates as ISO strings instead of Date objects
 			const startDate = new Date(values.startDate);
 			const endDate = new Date(values.endDate);
 			
-			const response = await fetch(`${api}/working/schedule/create`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-				body: JSON.stringify(values),
-			});
+			// Create schedule request object
+			const scheduleRequest = {
+				scheduleName: values.scheduleName,
+				shiftType: values.shiftType,
+				startDate: startDate.toISOString().split('T')[0],
+				endDate: endDate.toISOString().split('T')[0],
+				repeatPattern: values.repeat,
+				weekdays: values.repeat ? weekdays : [],
+				staffIds: chosenStaff.map(staff => staff.accountId)  // Include staff IDs directly here
+			};
 			
-			if (response.ok) {
-				const data = await response.json();
-				const schedule = data.result;
-				console.log("Schedule created successfully:", schedule);
-				alert("Adding shift successful! Now adding staffs to shift");
-				await handleAddStaff(schedule);
-				
-				// Gọi callback để thông báo đã thêm lịch thành công
-				if (onScheduleAdded) {
-					onScheduleAdded();
+			console.log("Sending schedule request:", scheduleRequest);
+			
+			// Create schedule
+			const response = await apiService.working.createSchedule(scheduleRequest);
+			console.log("Schedule creation response:", response);
+			
+			// Store debug info
+			if (isDevelopment) {
+				setDebugInfo({
+					statusCode: response.status,
+					response: response.data,
+					requestData: scheduleRequest
+				});
+			}
+			
+			// Check if the response might be a misinterpreted error message
+			if (response.data && typeof response.data === 'string' && response.data.toLowerCase().includes('error')) {
+				setError(response.data);
+				return;
+			}
+			
+			if (response.status === 200 && response.data) {
+				// Check if there's an error message in the response despite the 200 status
+				if (response.data.error || (response.data.code && response.data.code !== 200 && response.data.code !== 201)) {
+					setError(response.data.message || "An error occurred during schedule creation");
+					return;
 				}
 				
-				handleClose();
+				// Show success message
+				setSuccess(true);
+				
+				// Call onScheduleAdded callback if provided
+				if (onScheduleAdded) {
+					onScheduleAdded(response.data.data || response.data.result);
+				}
+				
+				setTimeout(() => {
+					handleClose();
+				}, 2000);
 			} else {
-				const errorData = await response.json().catch(() => ({}));
-				console.error("Adding shift error:", response.status, errorData);
-				setApiError(`Failed to create schedule: ${errorData.message || response.statusText || "Unknown error"}`);
+				setError((response.data && response.data.message) || "Failed to create schedule. Please try again.");
 			}
 		} catch (err) {
 			console.error("Error creating schedule:", err);
-			setApiError(`An error occurred: ${err.message || "Unknown error"}`);
-		}
-	};
-
-	const handleAddStaff = async (schedule) => {
-		try {
-			let success = true;
-			setApiError("");
+			console.error("Error details:", {
+				message: err.message,
+				stack: err.stack,
+				response: err.response?.data
+			});
 			
-			if (!schedule || !schedule.workDates) {
-				setApiError("No work dates found in schedule");
-				return false;
+			// Store debug info for error case
+			if (isDevelopment) {
+				setDebugInfo({
+					error: true,
+					message: err.message,
+					responseData: err.response?.data,
+					requestData: scheduleRequest
+				});
 			}
 			
-			const shift = schedule.workDates;
-			console.log("Adding staff to workdates:", shift);
-			
-			// Sử dụng Promise.all để xử lý tất cả các request cùng lúc
-			const promises = [];
-			
-			for (const day of shift) {
-				for (const man of chosenStaff) {
-					console.log(`Adding staff ${man.accountId} to work day ${day.id}`);
-					
-					try {
-						const response = await fetch(`${api}/working/detail/${day.id}/${man.accountId}`, {
-							method: "POST",
-							headers: {
-								Authorization: `Bearer ${token}`,
-								"Content-type": "application/json",
-							},
-						});
-						
-						if (response.ok) {
-							console.log(`Successfully added staff ${man.accountId} to day ${day.id}`);
-						} else {
-							const data = await response.json().catch(() => ({}));
-							console.error(`Failed to add staff ${man.accountId} to day ${day.id}:`, data);
-							success = false;
-							setApiError(`Failed to add staff to workday: ${data.message || response.statusText || "Unknown error"}`);
-						}
-					} catch (error) {
-						console.error("Error adding staff to workday:", error);
-						success = false;
-						setApiError(`Error adding staff to workday: ${error.message || "Unknown error"}`);
-					}
-				}
-			}
-			
-			if (success) {
-				alert("Adding all staffs to schedule success");
-				handleClose();
-				return true;
-			}
-			
-			return false;
-		} catch (err) {
-			console.error("Something went wrong when adding staffs to schedule:", err);
-			setApiError(`Error adding staff to schedule: ${err.message || "Unknown error"}`);
-			return false;
+			setError(err.response?.data?.message || "An error occurred while creating the schedule.");
+		} finally {
+			setSubmitting(false);
 		}
 	};
 
 	//Get all account which have role == STAFF
 	const fetchStaff = async () => {
+		setLoading(true);
 		try {
-			const response = await fetch(`${api}/users/getAllUser`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				const staffList = data.result.filter(user => user.roleName === "DOCTOR" || user.roleName === "NURSE");
-				setStaffs(staffList);
+			console.log("AddShift: Fetching staff using apiService...");
+			
+			// Use apiService instead of direct fetch
+			const response = await apiService.users.getAll();
+			console.log("AddShift: API Response from apiService:", response);
+			
+			// Log the full response structure to help debug
+			if (response) {
+				console.log("Response structure:", {
+					status: response.status,
+					statusText: response.statusText,
+					hasData: !!response.data,
+					dataKeys: response.data ? Object.keys(response.data) : [],
+				});
+				
+				if (response.data && response.data.result) {
+					const staffList = response.data.result.filter(
+						(user) => user.roleName === "DOCTOR" || user.roleName === "NURSE"
+					);
+					console.log("AddShift: Filtered Staff from apiService:", staffList);
+					console.log("Staff count:", staffList.length);
+					setStaffs(staffList);
+				} else {
+					console.log("AddShift: Invalid response structure");
+					setApiError("Failed to fetch staff list - invalid response format");
+				}
 			} else {
-				console.error("Fetching account failed: ", response.status);
-				setApiError("Failed to fetch staff list");
+				console.log("AddShift: Empty response received");
+				setApiError("Failed to fetch staff list - empty response");
 			}
 		} catch (err) {
-			console.error("Something went wrong when fetching:", err);
-			setApiError(`Error fetching staff list: ${err.message || "Unknown error"}`);
+			console.error("Error fetching staff:", err);
+			console.error("Error details:", {
+				message: err.message,
+				stack: err.stack,
+				response: err.response
+			});
+			setApiError(`Failed to load staff list: ${err.message}`);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -261,21 +298,54 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 	}, [chosenStaff]);
 
 	const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-
+	
 	return (
 		<Dialog open={open} onOpenChange={handleClose}>
 			<DialogContent className="max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Add Work Schedule</DialogTitle>
 				</DialogHeader>
-				
+
 				{apiError && (
 					<Alert variant="destructive" className="mb-4">
 						<AlertTitle>Error</AlertTitle>
 						<AlertDescription>{apiError}</AlertDescription>
 					</Alert>
 				)}
-				
+
+				{error && (
+					<Alert variant="destructive" className="mb-4">
+						<AlertTitle>Error</AlertTitle>
+						<AlertDescription>{error}</AlertDescription>
+					</Alert>
+				)}
+
+				{success && (
+					<Alert variant="default" className="mb-4 bg-green-50 border-green-500 text-green-800">
+						<AlertTitle className="text-green-800">Success</AlertTitle>
+						<AlertDescription>Đã tạo lịch làm việc thành công</AlertDescription>
+					</Alert>
+				)}
+
+				{isDevelopment && debugInfo && (
+					<div className="mb-4 p-4 border border-gray-300 bg-gray-50 rounded-md">
+						<div className="flex justify-between items-center mb-2">
+							<h3 className="font-medium">Debug Information</h3>
+							<Button 
+								type="button" 
+								variant="outline" 
+								size="sm"
+								onClick={() => setDebugInfo(null)}
+							>
+								Close
+							</Button>
+						</div>
+						<div className="text-xs font-mono overflow-auto max-h-40">
+							<pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+						</div>
+					</div>
+				)}
+
 				<form onSubmit={formik.handleSubmit} className="space-y-6">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div className="space-y-2">
@@ -292,29 +362,15 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 								<p className="text-sm text-red-500">{formik.errors.scheduleName}</p>
 							)}
 						</div>
-						
+
 						<div className="space-y-2">
 							<Label htmlFor="shiftType">Shift Type</Label>
-							<Select 
-								name="shiftType" 
-								onValueChange={(value) => formik.setFieldValue("shiftType", value)}
-								value={formik.values.shiftType}
-							>
-								<SelectTrigger id="shiftType">
-									<SelectValue placeholder="Select shift type" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="MORNING">Morning Shift (7:00 - 12:00)</SelectItem>
-									<SelectItem value="AFTERNOON">Afternoon Shift (13:00 - 17:00)</SelectItem>
-									<SelectItem value="EVENING">Evening Shift (18:00 - 23:00)</SelectItem>
-								</SelectContent>
-							</Select>
-							{formik.touched.shiftType && formik.errors.shiftType && (
-								<p className="text-sm text-red-500">{formik.errors.shiftType}</p>
-							)}
+							<div className="text-sm text-gray-600 border rounded-md p-2 bg-gray-50">
+								Regular Shift (09:00 - 17:00)
+							</div>
 						</div>
-					</div>
-					
+						</div>
+
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div className="space-y-2">
 							<Label htmlFor="startDate">Start Date</Label>
@@ -329,7 +385,7 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 							{formik.touched.startDate && formik.errors.startDate && (
 								<p className="text-sm text-red-500">{formik.errors.startDate}</p>
 							)}
-						</div>
+							</div>
 						
 						<div className="space-y-2">
 							<Label htmlFor="endDate">End Date</Label>
@@ -344,9 +400,9 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 							{formik.touched.endDate && formik.errors.endDate && (
 								<p className="text-sm text-red-500">{formik.errors.endDate}</p>
 							)}
+							</div>
 						</div>
-					</div>
-					
+
 					<div className="space-y-2">
 						<div className="flex items-center space-x-2">
 							<Switch
@@ -356,23 +412,23 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 							/>
 							<Label htmlFor="repeat">Repeat on specific days of the week</Label>
 						</div>
-						
+
 						{repeat && (
 							<div className="mt-4 grid grid-cols-3 md:grid-cols-7 gap-2">
 								{days.map((day) => (
 									<div key={day} className="flex items-center space-x-2">
-										<Checkbox
+											<Checkbox
 											id={day}
 											checked={formik.values.repeatDays.includes(day)}
 											onCheckedChange={(checked) => handleDayChange(day, checked)}
-										/>
+											/>
 										<Label htmlFor={day}>{day.charAt(0) + day.slice(1).toLowerCase()}</Label>
-									</div>
-								))}
+										</div>
+									))}
 							</div>
 						)}
 					</div>
-					
+
 					<div className="space-y-4">
 						<div className="flex justify-between items-center">
 							<h3 className="text-lg font-medium">Select Staff for Schedule</h3>
@@ -395,24 +451,33 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 								</TableHeader>
 								<TableBody>
 									{staffs.map((staff) => (
-										<TableRow key={staff.accountId} className="cursor-pointer hover:bg-gray-50" onClick={() => handleStaffSelection(staff)}>
-											<TableCell>
+										<TableRow 
+											key={staff.accountId} 
+											className="hover:bg-gray-50"
+										>
+											<TableCell className="w-12">
 												<Checkbox
 													checked={chosenStaff.some(s => s.accountId === staff.accountId)}
-													onCheckedChange={(checked) => {
-														if (checked) {
-															handleStaffSelection(staff);
-														} else {
-															handleStaffSelection(staff);
-														}
-													}}
+													onCheckedChange={() => handleStaffSelection(staff)}
+													onClick={(e) => e.stopPropagation()}
 												/>
 											</TableCell>
 											<TableCell>{staff.accountId}</TableCell>
-											<TableCell>{staff.firstName} {staff.lastName}</TableCell>
+											<TableCell>
+												<div className="font-medium">
+													{staff.firstName} {staff.lastName}
+												</div>
+											</TableCell>
 											<TableCell>{staff.email}</TableCell>
 											<TableCell>{staff.phone}</TableCell>
-											<TableCell>{staff.roleName}</TableCell>
+											<TableCell>
+												<Badge variant="outline" className={`
+													${staff.roleName === "DOCTOR" ? "bg-green-100 text-green-800 border-green-200" : ""}
+													${staff.roleName === "NURSE" ? "bg-yellow-100 text-yellow-800 border-yellow-200" : ""}
+												`}>
+													{staff.roleName}
+												</Badge>
+											</TableCell>
 										</TableRow>
 									))}
 									{staffs.length === 0 && (
@@ -428,11 +493,16 @@ function AddShift({ setIsOpen, open, onScheduleAdded }) {
 					</div>
 					
 					<DialogFooter>
-						<Button type="button" variant="outline" onClick={handleClose} className="mr-2">
+						<Button type="button" variant="outline" onClick={handleClose} className="mr-2" disabled={submitting}>
 							Cancel
 						</Button>
-						<Button type="submit">
-							Create Schedule
+						<Button type="submit" disabled={submitting}>
+							{submitting ? (
+								<>
+									<span className="animate-spin mr-2">⏳</span>
+									Creating...
+								</>
+							) : "Create Schedule"}
 						</Button>
 					</DialogFooter>
 				</form>

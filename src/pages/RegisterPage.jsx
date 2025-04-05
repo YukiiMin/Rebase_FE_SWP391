@@ -10,6 +10,7 @@ import Footer from '../components/layout/Footer';
 import StepOne from "../components/ui/RegisterSteps/StepOne";
 import StepTwo from "../components/ui/RegisterSteps/StepTwo";
 import ProgressIndicator from "../components/ui/RegisterSteps/ProgressIndicator";
+import { apiService } from "../api";
 
 function RegisterPage() {
 	const navigate = useNavigate();
@@ -80,37 +81,29 @@ function RegisterPage() {
 		setErrorMsg("");
 
 		try {
-			const response = await fetch("http://localhost:8080/users/register", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					firstName: values.firstName,
-					lastName: values.lastName,
-					dob: values.dob,
-					phoneNumber: values.phone,
-					email: values.email,
-					username: values.username,
-					password: values.password,
-					gender: values.gender,
-					status: true,
-					roleName: "USER"
-				}),
+			const response = await apiService.auth.register({
+				firstName: values.firstName,
+				lastName: values.lastName,
+				dob: values.dob,
+				phoneNumber: values.phone,
+				email: values.email,
+				username: values.username,
+				password: values.password,
+				gender: values.gender,
+				status: true,
+				roleName: "USER"
 			});
 
-			const data = await response.json();
-
-			if (response.ok) { 
+			if (response.status === 200 || response.status === 201) { 
 				setSuccess(true);
 				setTimeout(() => {
 					navigate("/login", { state: { from: location.state?.from } });
 				}, 3000);
 			} else {
-				setErrorMsg(data.message || t('register.errors.registerFailed'));
+				setErrorMsg(response.data?.message || t('register.errors.registerFailed'));
 			}
 		} catch (error) {
-			setErrorMsg(t('register.errors.serverError'));
+			setErrorMsg(error.response?.data?.message || t('register.errors.serverError'));
 		} finally {
 			setLoading(false);
 		}
@@ -225,16 +218,20 @@ function RegisterPage() {
 								<StepOne 
 									formik={formik} 
 									passwordStrength={passwordStrength} 
-									setPasswordStrength={setPasswordStrength} 
+									setPasswordStrength={setPasswordStrength}
+									nextStep={nextStep}
+									onCancel={handleClose}
 								/>
 							) : (
 								<StepTwo 
-									formik={formik} 
+									formik={formik}
+									previousStep={previousStep}
+									isLoading={loading}
 								/>
 							)}
 
 							{/* Form actions */}
-							<div className="flex justify-between mt-8">
+							{/* <div className="flex justify-between mt-8">
 								{currentStep === 2 ? (
 									<button 
 										type="button" 
@@ -277,7 +274,7 @@ function RegisterPage() {
 										)}
 									</button>
 								)}
-							</div>
+							</div> */}
 						</form>
 					)}
 				</div>

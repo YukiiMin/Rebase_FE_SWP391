@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { apiService } from "../../api";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +18,6 @@ import { Separator } from "../ui/separator";
 import { Loader2, Plus, Trash } from "lucide-react";
 
 function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
-  const token = localStorage.getItem("token");
-  const apiUrl = "http://localhost:8080/vaccine/protocol/add";
   const [protocolDetails, setProtocolDetails] = useState([
     { doseNumber: 1, intervalDays: 0 }
   ]);
@@ -84,25 +83,13 @@ function AddProtocol({ open, setIsOpen, onAddedProtocol }) {
         details: protocolDetails
       };
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(protocolData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Protocol added successfully:", data);
-        handleClose();
-        onAddedProtocol(data.result);
-      } else {
-        setError(`Failed to add protocol: ${response.status}`);
-      }
+      const response = await apiService.vaccine.addProtocol(protocolData);
+      
+      console.log("Protocol added successfully:", response.data);
+      handleClose();
+      onAddedProtocol(response.data.result);
     } catch (err) {
-      setError(`Error adding protocol: ${err.message}`);
+      setError(`Error adding protocol: ${err.response?.data?.message || err.message}`);
     } finally {
       setIsLoading(false);
     }

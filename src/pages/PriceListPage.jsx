@@ -12,10 +12,10 @@ import {
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../api";
 
 function PriceListPage() {
 	const { t } = useTranslation();
-	const vaccineAPI = "http://localhost:8080/vaccine";
 	const [vaccineList, setVaccineList] = useState([]);
 
 	useEffect(() => {
@@ -24,13 +24,9 @@ function PriceListPage() {
 
 	const getVaccine = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/get`);
-			if (response.ok) {
-				const data = await response.json();
-				setVaccineList(data.result);
-			} else {
-				console.error("Fetching vaccine failed: ", response.status);
-			}
+			const response = await apiService.vaccine.getAll();
+			const data = response.data;
+			setVaccineList(data.result);
 		} catch (err) {
 			console.log("Something went wrong when fetching vaccines: ", err);
 		}

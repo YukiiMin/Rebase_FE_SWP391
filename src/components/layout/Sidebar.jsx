@@ -45,7 +45,7 @@ const NavItem = ({ to, icon, label }) => {
 				"flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md transition-colors",
 				isActive 
 					? "bg-blue-50 text-blue-700"
-					: "text-gray-700 hover:bg-gray-100"
+					: "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
 			)}
 		>
 			{icon}

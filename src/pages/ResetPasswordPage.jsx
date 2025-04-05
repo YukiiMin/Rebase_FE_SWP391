@@ -3,12 +3,12 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { motion } from "framer-motion";
-import { AlertTriangle, Eye, EyeOff, Loader2, Shield, Phone } from "lucide-react";
+import { AlertTriangle, Loader2, Shield, Phone } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useTranslation } from "react-i18next";
+import PasswordStrengthMeter from "../components/ui/PasswordStrengthMeter";
+import { apiService } from "../api";
 
 const ResetPasswordPage = () => {
     const navigate = useNavigate();
@@ -16,8 +16,7 @@ const ResetPasswordPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordStrength, setPasswordStrength] = useState("weak");
     const { t } = useTranslation();
     
     const email = location.state?.email || "";
@@ -84,52 +83,23 @@ const ResetPasswordPage = () => {
                 password: "********"
             });
             
-            const response = await fetch("http://localhost:8080/auth/reset-password", {
-                method: "POST", // Use POST instead of PATCH
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email,
-                    password: values.password,
-                }),
+            const response = await apiService.auth.resetPassword({
+                email,
+                password: values.password,
             });
-
-            console.log("Response status:", response.status, response.statusText);
             
-            let data;
-            try {
-                const textResponse = await response.text();
-                console.log("Raw response:", textResponse);
-                
-                if (textResponse) {
-                    data = JSON.parse(textResponse);
-                } else {
-                    data = {};
-                }
-            } catch (parseError) {
-                console.error("Error parsing response:", parseError);
-                data = { message: "Error parsing server response" };
-            }
-            
-            console.log("Reset password response data:", data);
-
-            if (response.ok) {
-                setSuccess(true);
-                setTimeout(() => {
-                    navigate("/login", { 
-                        state: { 
-                            passwordResetSuccess: true,
-                            from: location.state?.from
-                        } 
-                    });
-                }, 2000);
-            } else {
-                setError(data.message || t('resetPassword.errors.resetFailed'));
-            }
+            setSuccess(true);
+            setTimeout(() => {
+                navigate("/login", { 
+                    state: { 
+                        passwordResetSuccess: true,
+                        from: location.state?.from
+                    } 
+                });
+            }, 2000);
         } catch (error) {
             console.error("Error resetting password:", error);
-            setError(t('resetPassword.errors.serverError'));
+            setError(error.response?.data?.message || t('resetPassword.errors.serverError'));
         } finally {
             setIsLoading(false);
         }
@@ -184,86 +154,18 @@ const ResetPasswordPage = () => {
                     )}
 
                     <form onSubmit={formik.handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                {t('resetPassword.newPassword', 'New Password')}
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder={t('resetPassword.newPasswordPlaceholder', 'Enter new password')}
-                                    value={formik.values.password}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    className={`w-full h-11 px-3 py-2 pr-10 ${
-                                        formik.touched.password && formik.errors.password
-                                            ? "border-red-500 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
-                                    }`}
-                                    disabled={isLoading || success}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                    tabIndex="-1"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-5 w-5" />
-                                    ) : (
-                                        <Eye className="h-5 w-5" />
-                                    )}
-                                </button>
-                            </div>
-                            {formik.touched.password && formik.errors.password && (
-                                <p className="text-sm text-red-600">{formik.errors.password}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                {t('resetPassword.confirmPassword', 'Confirm Password')}
-                            </label>
-                            <div className="relative">
-                                <Input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    placeholder={t('resetPassword.confirmPasswordPlaceholder', 'Confirm your password')}
-                                    value={formik.values.confirmPassword}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    className={`w-full h-11 px-3 py-2 pr-10 ${
-                                        formik.touched.confirmPassword && formik.errors.confirmPassword
-                                            ? "border-red-500 focus:ring-red-500"
-                                            : "border-gray-300 focus:ring-blue-500"
-                                    }`}
-                                    disabled={isLoading || success}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                    tabIndex="-1"
-                                >
-                                    {showConfirmPassword ? (
-                                        <EyeOff className="h-5 w-5" />
-                                    ) : (
-                                        <Eye className="h-5 w-5" />
-                                    )}
-                                </button>
-                            </div>
-                            {formik.touched.confirmPassword && formik.errors.confirmPassword && (
-                                <p className="text-sm text-red-600">{formik.errors.confirmPassword}</p>
-                            )}
-                        </div>
+                        <PasswordStrengthMeter 
+                            formik={formik}
+                            passwordStrength={passwordStrength}
+                            setPasswordStrength={setPasswordStrength}
+                            showConfirmPassword={true}
+                            disabled={isLoading || success}
+                        />
 
                         <Button 
                             type="submit" 
-                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors mt-6" 
-                            disabled={isLoading || success}
+                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors" 
+                            disabled={isLoading || success || passwordStrength === "weak"}
                         >
                             {isLoading ? (
                                 <>

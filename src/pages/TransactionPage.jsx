@@ -13,9 +13,10 @@ import { CreditCard, Calendar, Lock } from "lucide-react";
 import { InfoIcon } from "lucide-react";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Label } from "../components/ui/label";
+import { apiService } from "../api";
+import { TokenUtils } from "../utils/TokenUtils";
 
 function TransactionPage() {
-	const paymentAPI = "http://localhost:8080/payment";
 	const stripe = useStripe();
 	const elements = useElements();
 	const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ function TransactionPage() {
 		selectedVaccine = [], 
 		selectedCombo = [], 
 		child = {}, 
-		vaccinationDate = "", 
+		appointmentDate = "",
 		payment = "credit", 
 		type = "single", 
 		orderId = null
@@ -56,29 +57,21 @@ function TransactionPage() {
 			if (orderId) {
 				try {
 					console.log("Creating payment intent for order:", orderId, "with amount:", orderTotal);
-					const response = await fetch(`${paymentAPI}/${orderId}/create-intent`, {
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({ amount: orderTotal }),
-					});
+					const response = await apiService.payments.createIntent(orderId, { amount: orderTotal });
 
-					const data = await response.json();
-					console.log("Payment intent response:", data);
+					console.log("Payment intent response:", response.data);
 
-					if (!response.ok) {
-						console.error("Payment intent creation failed:", data);
-						throw new Error(data.message || "Failed to create payment intent");
+					if (response.status !== 200) {
+						console.error("Payment intent creation failed:", response.data);
+						throw new Error(response.data.message || "Failed to create payment intent");
 					}
 
-					if (!data.result || !data.result.clientSecret) {
-						console.error("No client secret in response:", data);
+					if (!response.data.result || !response.data.result.clientSecret) {
+						console.error("No client secret in response:", response.data);
 						throw new Error("Invalid response from payment server");
 					}
 
-					setClientSecret(data.result.clientSecret);
+					setClientSecret(response.data.result.clientSecret);
 					setRetryCount(0); // Reset retry count on successful creation
 				} catch (err) {
 					console.error("Payment error:", err);
@@ -90,7 +83,7 @@ function TransactionPage() {
 		if (orderTotal > 0 && orderId && (!clientSecret || clientSecret === "")) {
 			createPaymentIntent();
 		}
-	}, [orderTotal, orderId, accToken, retryCount, clientSecret, location.state]);
+	}, [orderTotal, orderId, retryCount, clientSecret, location.state]);
 
 	// Function to retry payment by creating a new payment intent
 	const retryPayment = () => {
@@ -127,87 +120,47 @@ function TransactionPage() {
 		try {
 			// 1. Tạo booking
 			console.log("Creating booking for child:", child);
-			const bookingResponse = await fetch(`http://localhost:8080/booking/${child.id}/create`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					appointmentDate: vaccinationDate,
-					status: "PENDING"
-				}),
+			const bookingResponse = await apiService.bookings.create(child.id, {
+				appointmentDate: appointmentDate,
+				status: "PENDING"
 			});
 
-			if (!bookingResponse.ok) {
+			if (bookingResponse.status !== 200 && bookingResponse.status !== 201) {
 				throw new Error("Failed to create booking");
 			}
 
-			const bookingData = await bookingResponse.json();
-			const bookingId = bookingData.result.bookingId;
+			const bookingId = bookingResponse.data.result.bookingId;
 
 			// 2. Tạo order
-			const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					orderDate: new Date().toISOString(),
-				}),
+			const orderResponse = await apiService.orders.create(bookingId, {
+				orderDate: new Date().toISOString(),
 			});
 
-			if (!orderResponse.ok) {
+			if (orderResponse.status !== 200 && orderResponse.status !== 201) {
 				throw new Error("Failed to create order");
 			}
 
-			const orderData = await orderResponse.json();
-			const orderId = orderData.result.id;
+			const orderId = orderResponse.data.result.id;
 
 			// 3. Thêm chi tiết vaccine/combo vào order
 			if (type === "single") {
 				for (const v of selectedVaccine) {
-					await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							quantity: v.quantity,
-							totalPrice: v.quantity * v.vaccine.salePrice,
-						}),
+					await apiService.orders.addDetail(orderId, v.vaccine.id, {
+						quantity: v.quantity,
+						totalPrice: v.quantity * v.vaccine.salePrice,
 					});
 				}
 			} else if (type === "combo") {
 				for (const combo of selectedCombo) {
 					// Add combo to order
-					await fetch(`http://localhost:8080/order/${orderId}/addCombo/${combo.comboId}`, {
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({
-							quantity: 1,
-							totalPrice: combo.total * (((100 - combo.saleOff) * 1) / 100)
-						}),
-					});
+					await apiService.orders.addCombo(orderId, combo.comboId);
 				}
 			}
 
 			// 4. Tạo payment intent
-			const paymentIntentResponse = await fetch(`http://localhost:8080/payment/${orderId}/create-intent`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ amount: orderTotal }),
-			});
+			const paymentIntentResponse = await apiService.payments.createIntent(orderId, { amount: orderTotal });
 
-			const paymentIntentData = await paymentIntentResponse.json();
+			const paymentIntentData = paymentIntentResponse.data;
 			const clientSecret = paymentIntentData.result.clientSecret;
 
 			// 5. Xác nhận thanh toán Stripe
@@ -232,24 +185,14 @@ function TransactionPage() {
 
 			if (paymentIntent.status === "succeeded") {
 				// 6. Xác nhận thanh toán với backend
-				await fetch(`http://localhost:8080/payment/${orderId}/confirm`, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${accToken}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						paymentIntentId: paymentIntent.id,
-						amount: orderTotal,
-					}),
+				await apiService.payments.confirm(orderId, {
+					paymentIntentId: paymentIntent.id,
+					amount: orderTotal,
 				});
 
 				// 7. Cập nhật trạng thái booking sang PAID
-				await fetch(`http://localhost:8080/booking/${bookingId}/payment`, {
-					method: "PUT",
-					headers: {
-						Authorization: `Bearer ${accToken}`,
-					},
+				await apiService.bookings.update(bookingId, {
+					payment: "PAID",
 				});
 
 				setSuccess("Payment successful!");
@@ -299,8 +242,19 @@ function TransactionPage() {
 	// Format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) return "N/A"; // Check if date is valid
+			return date.toLocaleDateString('en-US', { 
+				year: 'numeric', 
+				month: 'long', 
+				day: 'numeric',
+				weekday: 'long'
+			});
+		} catch (error) {
+			console.error("Date formatting error:", error);
+			return "N/A";
+		}
 	};
 
 	// Return early with an error message if state is missing
@@ -359,7 +313,7 @@ function TransactionPage() {
 										</div>
 										<div className="flex justify-between">
 											<span className="font-medium">Appointment date:</span>
-											<span>{formatDate(vaccinationDate)}</span>
+											<span>{formatDate(appointmentDate)}</span>
 										</div>
 									</div>
 								</CardContent>

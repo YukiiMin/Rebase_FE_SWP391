@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Loader2, X, Phone, Shield } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../api";
 
 const VerifyOtpPage = () => {
     const navigate = useNavigate();
@@ -113,24 +114,17 @@ const VerifyOtpPage = () => {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:8080/auth/verify-otp", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: email,
-                    otp: otpCode,
-                }),
+            const response = await apiService.auth.verifyOtp({
+                email: email,
+                otp: otpCode,
             });
 
-            const data = await response.json();
-            console.log("OTP verification response:", data);
+            console.log("OTP verification response:", response.data);
 
-            if (response.ok) {
+            if (response.status === 200) {
                 console.log("OTP verification successful");
                 // Extract token from response - could be in different formats based on your API
-                const tokenValue = data.token || data.data?.token || data.resetToken || data;
+                const tokenValue = response.data.token || response.data.data?.token || response.data.resetToken || response.data;
                 
                 console.log("Token extracted:", tokenValue);
                 
@@ -143,11 +137,11 @@ const VerifyOtpPage = () => {
                     } 
                 });
             } else {
-                setError(data.message || t('verifyOTP.errors.invalidOTP'));
+                setError(response.data.message || t('verifyOTP.errors.invalidOTP'));
             }
         } catch (error) {
             console.error("Error verifying OTP:", error);
-            setError(t('verifyOTP.errors.serverError'));
+            setError(error.response?.data?.message || t('verifyOTP.errors.serverError'));
         } finally {
             setIsLoading(false);
         }
@@ -161,24 +155,16 @@ const VerifyOtpPage = () => {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:8080/auth/resend-otp", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email }),
-            });
+            const response = await apiService.auth.resendOtp({ email });
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (response.status === 200) {
                 setCountdown(60);
             } else {
-                setError(data.message || t('verifyOTP.errors.resendFailed'));
+                setError(response.data.message || t('verifyOTP.errors.resendFailed'));
             }
         } catch (error) {
             console.error("Error resending OTP:", error);
-            setError(t('verifyOTP.errors.resendFailed'));
+            setError(error.response?.data?.message || t('verifyOTP.errors.resendFailed'));
         } finally {
             setResendLoading(false);
         }
