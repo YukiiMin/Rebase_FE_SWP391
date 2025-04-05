@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import MainNav from "../components/layout/MainNav";
 import { Button } from "../components/ui/button";
@@ -9,20 +8,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { PencilIcon, UserIcon } from "@heroicons/react/24/outline";
 import UserSidebar from "../components/layout/UserSidebar";
 import UpdateUser from "../components/layout/UpdateUser";
+import { apiService } from "../api";
+import TokenUtils from "../utils/TokenUtils";
 
 function UserProfile() {
-	const userAPI = "http://localhost:8080/users";
-
-	const token = localStorage.getItem("token");
 	const [user, setUser] = useState({});
 	const [userId, setUserId] = useState("");
 	const [isOpen, setIsOpen] = useState(false); //use this to open user update form
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (token) {
-			const decodedToken = jwtDecode(token);
-			setUserId(decodedToken.sub);
+		const userInfo = TokenUtils.getUserInfo();
+		if (userInfo) {
+			setUserId(userInfo.userId);
+		} else {
+			navigate("/login");
 		}
 	}, [navigate]);
 
@@ -34,18 +34,8 @@ function UserProfile() {
 
 	const getUser = async (userId) => {
 		try {
-			const response = await fetch(`${userAPI}/${userId}`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				setUser(data.result);
-			} else {
-				console.error(response.status);
-			}
+			const response = await apiService.users.getById(userId);
+			setUser(response.data.result);
 		} catch (err) {
 			console.error("Get user failed: ", err);
 		}

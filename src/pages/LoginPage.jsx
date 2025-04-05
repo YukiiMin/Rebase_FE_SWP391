@@ -10,11 +10,11 @@ import * as Yup from "yup";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import Footer from "../components/layout/Footer";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../api";
 
 function LoginPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const accountAPI = "http://localhost:8080/auth/login";
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
@@ -52,37 +52,24 @@ function LoginPage() {
 		setIsLoading(true);
 		setError("");
 		try {
-			const response = await fetch(accountAPI, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(values),
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				const token = data.result.token;
-				
-				// Sử dụng TokenUtils để lưu token
-				TokenUtils.setToken(token);
-				
-				console.log("Login successful");
-				
-				// Điều hướng đến trang trước đó hoặc trang chủ
-				const redirectUrl = sessionStorage.getItem("redirectUrl") || "/";
-				navigate(redirectUrl);
-				
-				// Xóa redirectUrl sau khi đã sử dụng
-				sessionStorage.removeItem("redirectUrl");
-			} else {
-				const errorData = await response.json().catch(() => null);
-				console.error("Login failed:", response.status, errorData);
-				setError(t('login.errors.invalidCredentials'));
-			}
+			const response = await apiService.auth.login(values);
+			const data = response.data;
+			const token = data.result.token;
+			
+			// Sử dụng TokenUtils để lưu token
+			TokenUtils.setToken(token);
+			
+			console.log("Login successful");
+			
+			// Điều hướng đến trang trước đó hoặc trang chủ
+			const redirectUrl = sessionStorage.getItem("redirectUrl") || "/";
+			navigate(redirectUrl);
+			
+			// Xóa redirectUrl sau khi đã sử dụng
+			sessionStorage.removeItem("redirectUrl");
 		} catch (error) {
 			console.error("Login error:", error);
-			setError(t('login.errors.serverError'));
+			setError(error.response?.data?.message || t('login.errors.invalidCredentials'));
 		} finally {
 			setIsLoading(false);
 		}

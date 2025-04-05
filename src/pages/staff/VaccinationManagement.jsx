@@ -12,11 +12,12 @@ import { Badge } from "../../components/ui/badge";
 import { Search, Filter, CalendarClock, UserCheck, Stethoscope, Syringe, ListFilter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../../api";
+import TokenUtils from "../../utils/TokenUtils";
 
 function VaccinationManagement() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const bookingAPI = "http://localhost:8080/booking";
     
     const [token, setToken] = useState(localStorage.getItem("token"));
     const [bookingList, setBookingList] = useState([]);
@@ -28,6 +29,9 @@ function VaccinationManagement() {
     const [loadingAction, setLoadingAction] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    const [allBookings, setAllBookings] = useState([]);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [error, setError] = useState("");
 
     // Theo dõi thay đổi của localStorage
     useEffect(() => {
@@ -59,58 +63,33 @@ function VaccinationManagement() {
 
     const getVaccinationBookings = async () => {
         try {
-            if (!token) {
-                console.error("No token found. Redirecting to login.");
-                navigate('/Login');
+            setLoading(true);
+            
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
                 return;
             }
-    
-            setLoading(true);
-            console.log("Fetching vaccination bookings with token:", token);
-            const response = await fetch(`${bookingAPI}/all`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-    
-            console.log("Response status:", response.status);
-    
-            if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    console.error("Unauthorized. Redirecting to login.");
-                    localStorage.removeItem('token');
-                    setToken(null);
-                    navigate('/Login');
-                    return;
-                }
-    
-                throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const response = await apiService.bookings.getAll();
+            
+            if (response.status === 200) {
+                // Sort bookings by date and status
+                const bookings = response.data.result || [];
+                const sorted = sortBookings(bookings);
+                setAllBookings(sorted);
+                setFilteredList(sorted);
+            } else {
+                setError(response.data.message || "Failed to fetch vaccination bookings");
             }
-    
-            const data = await response.json();
-            console.log("Booking data received:", data);
-            
-            // Kiểm tra xem data có phải là mảng không
-            const bookingData = Array.isArray(data.result) ? data.result : 
-                                (Array.isArray(data) ? data : []);
-            
-            // Chỉ lấy các booking có status liên quan đến quá trình tiêm chủng
-            const relevantBookings = bookingData.filter(booking => 
-                ["CHECKED_IN", "ASSIGNED", "DIAGNOSED", "VACCINE_INJECTED"].includes(booking.status)
-            );
-            
-            setBookingList(relevantBookings);
-            
         } catch (err) {
             console.error("Error fetching vaccination bookings:", err);
-            setMessageAlert({
-                show: true,
-                type: "destructive",
-                message: `Failed to load vaccination bookings: ${err.message}`
-            });
-            setBookingList([]);
+            setError(err.response?.data?.message || "An error occurred while fetching vaccination bookings");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
             setLoading(false);
         }
@@ -118,49 +97,58 @@ function VaccinationManagement() {
 
     const handleAssignStaff = async (bookingId) => {
         try {
-            setLoadingAction(true);
-            const response = await fetch(`${bookingAPI}/${bookingId}/assign`, {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            const data = await response.json();
+            setLoadingAction(bookingId);
             
-            if (response.ok) {
-                // Update local booking status
-                setBookingList(bookingList.map(booking => 
-                    booking.bookingId === bookingId 
-                    ? {...booking, status: "ASSIGNED"} 
-                    : booking
-                ));
-                
-                setMessageAlert({
-                    show: true,
-                    type: "success",
-                    message: `Staff assigned successfully! Doctor: ${data.result?.assignedDoctor || "N/A"}`
-                });
-                
-                // Auto refresh the list
-                getVaccinationBookings();
-            } else {
-                setMessageAlert({
-                    show: true,
-                    type: "destructive",
-                    message: data.message || "Failed to assign staff. Please try again."
-                });
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
+                return;
             }
-        } catch (error) {
-            console.error("Error during staff assignment:", error);
-            setMessageAlert({
-                show: true,
-                type: "destructive",
-                message: "An error occurred during staff assignment."
-            });
+            
+            // Get user info to determine role
+            const userInfo = TokenUtils.getUserInfo();
+            const userRole = userInfo.role;
+            
+            // Format the booking date for the API
+            const booking = allBookings.find(b => b.id === bookingId);
+            if (!booking) {
+                throw new Error("Booking not found");
+            }
+            
+            const bookingDate = new Date(booking.appointmentDate).toISOString().split('T')[0];
+            
+            // Map user role to API role parameter
+            let role;
+            if (userRole.includes("DOCTOR")) {
+                role = "doctor";
+            } else if (userRole.includes("NURSE")) {
+                role = "nurse";
+            } else {
+                throw new Error("Invalid staff role for vaccination");
+            }
+            
+            const response = await apiService.bookings.assignStaff(bookingId, role, bookingDate);
+            
+            if (response.status === 200) {
+                // Show success message and refresh booking list
+                setSuccessMessage(`Successfully assigned as ${role} for booking #${bookingId}`);
+                setTimeout(() => {
+                    setSuccessMessage("");
+                    getVaccinationBookings();
+                }, 2000);
+            } else {
+                setError(response.data.message || `Failed to assign staff as ${role} for booking #${bookingId}`);
+            }
+        } catch (err) {
+            console.error("Error assigning staff:", err);
+            setError(err.response?.data?.message || "An error occurred while assigning staff");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
-            setLoadingAction(false);
+            setLoadingAction(null);
         }
     };
 

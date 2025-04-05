@@ -19,6 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { Search, CalendarIcon, RefreshCw, CheckCircle, X, ClipboardCheck, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
+import { apiService } from "../../api";
+import TokenUtils from "../../utils/TokenUtils";
 
 function CheckIn() {
 	const { t } = useTranslation();
@@ -60,35 +62,37 @@ function CheckIn() {
 	const fetchBookings = async () => {
 		try {
 			setLoading(true);
-			setErrorMessage(null);
 			
-			const response = await fetch("http://localhost:8080/booking/all", {
-				method: "GET",
-				headers: {
-					"Authorization": `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			});
-
-			if (!response.ok) {
-				if (response.status === 401 || response.status === 403) {
-					localStorage.removeItem("token");
-					navigate("/Login");
-					return;
-				}
-				throw new Error(`HTTP error! status: ${response.status}`);
+			if (!TokenUtils.isLoggedIn()) {
+				navigate("/login");
+				return;
 			}
-
-			const data = await response.json();
 			
-			// Assuming data.result contains the bookings array
-			const bookings = Array.isArray(data.result) ? data.result : [];
-			console.log("Fetched bookings:", bookings);
-			setBookingList(bookings);
+			const response = await apiService.bookings.getAll();
 			
-		} catch (error) {
-			console.error("Error fetching bookings:", error);
-			setErrorMessage(error.message || "Failed to fetch bookings");
+			if (response.status === 200) {
+				const bookings = response.data.result || [];
+				
+				// Filter bookings with status PENDING (not checked in yet)
+				const pendingBookings = bookings.filter(booking => booking.status === "PENDING");
+				
+				// Sort by date (most recent first)
+				pendingBookings.sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate));
+				
+				setBookingList(pendingBookings);
+				setFilteredList(filterBookings(pendingBookings, searchTerm));
+			} else {
+				setErrorMessage(response.data.message || "Failed to fetch bookings");
+			}
+		} catch (err) {
+			console.error("Error fetching bookings:", err);
+			setErrorMessage(err.response?.data?.message || "An error occurred while fetching bookings");
+			
+			// Handle token expiration
+			if (err.response?.status === 401) {
+				TokenUtils.removeToken();
+				navigate("/login");
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -149,57 +153,45 @@ function CheckIn() {
 	const handleCheckIn = async (e) => {
 		e.preventDefault();
 		
-		if (!selectedBooking) return;
-		
-		const checkInData = {
-			bookingId: selectedBooking.bookingId,
-			temperature: parseFloat(temperature),
-			weight: parseFloat(weight),
-			height: parseFloat(height),
-			note: note
-		};
+		if (!selectedBooking) {
+			setErrorMessage("No booking selected for check-in");
+			return;
+		}
 		
 		try {
 			setSubmitting(true);
-			setErrorMessage(null);
 			
-			console.log("Submitting check-in data:", checkInData);
-			
-			const response = await fetch(`http://localhost:8080/booking/${selectedBooking.bookingId}/checkin`, {
-				method: "PUT",
-				headers: {
-					"Authorization": `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(checkInData),
-			});
-			
-			const data = await response.json();
-			
-			if (!response.ok) {
-				throw new Error(data.message || "Failed to check in patient");
+			if (!TokenUtils.isLoggedIn()) {
+				navigate("/login");
+				return;
 			}
 			
-			// Update the booking status in the list
-			const updatedBookings = bookingList.map(booking => 
-				booking.bookingId === selectedBooking.bookingId 
-				? { ...booking, status: "CHECKED_IN" } 
-				: booking
-			);
+			const response = await apiService.bookings.checkIn(selectedBooking.bookingId);
 			
-			setBookingList(updatedBookings);
-			setSuccessMessage(`Patient ${selectedBooking.child?.name} has been checked in successfully!`);
-			resetCheckInForm();
-			setShowCheckInModal(false);
+			if (response.status === 200) {
+				setSuccessMessage(`Patient ${selectedBooking.child?.name} has been checked in successfully!`);
+				resetCheckInForm();
+				setShowCheckInModal(false);
+				
+				// Reset form and refresh bookings
+				fetchBookings();
+				
+				// Clear success message after 3 seconds
+				setTimeout(() => {
+					setSuccessMessage(null);
+				}, 3000);
+			} else {
+				setErrorMessage(response.data.message || "Failed to check in. Please try again");
+			}
+		} catch (err) {
+			console.error("Error during check-in:", err);
+			setErrorMessage(err.response?.data?.message || "An error occurred during the check-in process");
 			
-			// Clear success message after 3 seconds
-			setTimeout(() => {
-				setSuccessMessage(null);
-			}, 3000);
-			
-		} catch (error) {
-			console.error("Error during check-in:", error);
-			setErrorMessage(error.message || "Failed to check in patient");
+			// Handle token expiration
+			if (err.response?.status === 401) {
+				TokenUtils.removeToken();
+				navigate("/login");
+			}
 		} finally {
 			setSubmitting(false);
 		}

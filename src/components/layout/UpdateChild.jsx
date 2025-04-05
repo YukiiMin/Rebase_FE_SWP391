@@ -1,6 +1,7 @@
 import { useFormik } from "formik";
 import React from "react";
 import * as Yup from "yup";
+import { apiService } from "../../api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -9,9 +10,6 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { FormItem, FormLabel, FormControl, FormMessage, FormField, Form } from "../ui/form";
 
 function UpdateChild({ setIsOpen, child, open, onUpdate }) {
-	const token = localStorage.getItem("token");
-	const childAPI = "http://localhost:8080/children";
-
 	const validation = Yup.object().shape({
 		firstName: Yup.string().required("First name is required").min(2, "First name must be at least 2 characters"),
 		lastName: Yup.string().required("Last name is required").min(2, "Last name must be at least 2 characters"),
@@ -44,22 +42,10 @@ function UpdateChild({ setIsOpen, child, open, onUpdate }) {
 
 	const handleSubmit = async (values) => {
 		try {
-			const response = await fetch(`${childAPI}/${child.id}`, {
-				method: "PATCH",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-				body: JSON.stringify(values),
-			});
-			if (response.ok) {
-				console.log("Update child successful");
-				const data = await response.json();
-				handleClose();
-				onUpdate(data);
-			} else {
-				console.error("Updating child failed: ", response.status);
-			}
+			const response = await apiService.children.update(child.id, values);
+			console.log("Update child successful");
+			handleClose();
+			onUpdate(response.data);
 		} catch (err) {
 			console.error("Something went wrong when updating child: ", err);
 		}

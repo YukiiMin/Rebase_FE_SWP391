@@ -8,6 +8,7 @@ import { AlertTriangle, Loader2, Shield, Phone } from "lucide-react";
 import Footer from "../components/layout/Footer";
 import { useTranslation } from "react-i18next";
 import PasswordStrengthMeter from "../components/ui/PasswordStrengthMeter";
+import { apiService } from "../api";
 
 const ResetPasswordPage = () => {
     const navigate = useNavigate();
@@ -82,52 +83,23 @@ const ResetPasswordPage = () => {
                 password: "********"
             });
             
-            const response = await fetch("http://localhost:8080/auth/reset-password", {
-                method: "POST", // Use POST instead of PATCH
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email,
-                    password: values.password,
-                }),
+            const response = await apiService.auth.resetPassword({
+                email,
+                password: values.password,
             });
-
-            console.log("Response status:", response.status, response.statusText);
             
-            let data;
-            try {
-                const textResponse = await response.text();
-                console.log("Raw response:", textResponse);
-                
-                if (textResponse) {
-                    data = JSON.parse(textResponse);
-                } else {
-                    data = {};
-                }
-            } catch (parseError) {
-                console.error("Error parsing response:", parseError);
-                data = { message: "Error parsing server response" };
-            }
-            
-            console.log("Reset password response data:", data);
-
-            if (response.ok) {
-                setSuccess(true);
-                setTimeout(() => {
-                    navigate("/login", { 
-                        state: { 
-                            passwordResetSuccess: true,
-                            from: location.state?.from
-                        } 
-                    });
-                }, 2000);
-            } else {
-                setError(data.message || t('resetPassword.errors.resetFailed'));
-            }
+            setSuccess(true);
+            setTimeout(() => {
+                navigate("/login", { 
+                    state: { 
+                        passwordResetSuccess: true,
+                        from: location.state?.from
+                    } 
+                });
+            }, 2000);
         } catch (error) {
             console.error("Error resetting password:", error);
-            setError(t('resetPassword.errors.serverError'));
+            setError(error.response?.data?.message || t('resetPassword.errors.serverError'));
         } finally {
             setIsLoading(false);
         }

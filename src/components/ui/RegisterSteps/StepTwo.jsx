@@ -77,8 +77,9 @@ const StepTwo = ({
           {isStaffForm ? (
             // Staff form using RadioGroup for gender
             <div className="auth-form-group">
-              <Label className="auth-label block mb-2">{t('register.gender')}</Label>
+              <Label htmlFor="gender" className="auth-label block mb-2">{t('register.gender')}</Label>
               <RadioGroup
+                id="gender"
                 name="gender"
                 value={formik.values.gender}
                 onValueChange={(value) => formik.setFieldValue("gender", value)}
@@ -113,7 +114,7 @@ const StepTwo = ({
                 onBlur={formik.handleBlur}
                 className={`auth-select py-2 w-full ${formik.touched.gender && formik.errors.gender ? "auth-input-error" : ""}`}
               >
-                <option value="">{t('register.selectGender')}</option>
+                {/* <option value="">{t('register.selectGender')}</option> */}
                 <option value="MALE">{t('register.male')}</option>
                 <option value="FEMALE">{t('register.female')}</option>
                 <option value="OTHER">{t('register.other')}</option>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { DollarSign, CreditCard, Wallet, AlertCircle } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
+import { apiService } from '../api';
 
 export default function Prices() {
   const { t } = useTranslation();
@@ -14,16 +15,12 @@ export default function Prices() {
     const fetchPrices = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:8080/vaccine/get');
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const response = await apiService.vaccine.getAll();
+        const data = response.data;
         setPriceData(data);
       } catch (error) {
         console.error('Error fetching price data:', error);
-        setError(error.message);
+        setError(error.response?.data?.message || error.message);
         // Use demo data if API fails
         setPriceData(demoPrices);
       } finally {

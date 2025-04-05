@@ -11,9 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { useTranslation } from "react-i18next";
+import { apiService } from "../../api";
 
 function AccountManage() {
-	const token = localStorage.getItem("token");
 	const [accountList, setAccountList] = useState([]);
 	const [isOpen, setIsOpen] = useState(false);
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
@@ -22,29 +22,27 @@ function AccountManage() {
 	const [error, setError] = useState("");
 	const { t } = useTranslation();
 
-	// const accountAPI = "https://66fe49e22b9aac9c997b30ef.mockapi.io/account";
-	const accountAPI = "http://localhost:8080/users/getAllUser";
-
 	useEffect(() => {
 		fetchAccount();
-	}, [accountAPI, token]);
+	}, []);
 
 	const fetchAccount = async () => {
 		try {
-			const response = await fetch(accountAPI, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				},
-			});
-			if (response.ok) {
-				const data = await response.json();
-				setAccountList(data.result);
+			console.log("AccountManage: Fetching accounts...");
+			const response = await apiService.users.getAll();
+			console.log("AccountManage Raw API Response:", response);
+			
+			// Successful approach used in AccountManage
+			if (response && response.data && response.data.result) {
+				console.log("AccountManage Result Length:", response.data.result.length);
+				setAccountList(response.data.result);
 			} else {
-				throw new Error("Failed to fetch users");
+				console.log("AccountManage: Invalid response structure");
+				setError("Failed to fetch users");
 			}
 		} catch (err) {
-			setError(err.message);
+			console.error("Error fetching accounts:", err);
+			setError(err.response?.data?.message || "Failed to fetch users");
 		}
 	};
 
@@ -86,35 +84,24 @@ function AccountManage() {
 			
 			if (!window.confirm(confirmMessage)) return;
 
-			const endpoint = currentStatus === "ACTIVE" 
-				? `http://localhost:8080/users/${accountId}/inactive`
-				: `http://localhost:8080/users/${accountId}/active`;
-
-			const response = await fetch(endpoint, {
-				method: "PUT",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-type": "application/json",
-				}
-			});
-
-			if (response.ok) {
-				// Cập nhật trạng thái tài khoản trong danh sách
-				const updatedAccounts = accountList.map(account => 
-					account.accountId === accountId 
-						? {...account, status: currentStatus === "ACTIVE" ? "DEACTIVE" : "ACTIVE"} 
-						: account
-				);
-				setAccountList(updatedAccounts);
-				
-				alert(`Account ${currentStatus === "ACTIVE" ? 'deactivated' : 'activated'} successfully!`);
+			if (currentStatus === "ACTIVE") {
+				await apiService.users.deactivate(accountId);
 			} else {
-				const errorData = await response.json();
-				alert(`Failed to update account status: ${errorData.message || "Unknown error"}`);
+				await apiService.users.activate(accountId);
 			}
+
+			// Update account status in the list
+			const updatedAccounts = accountList.map(account => 
+				account.accountId === accountId 
+					? {...account, status: currentStatus === "ACTIVE" ? "DEACTIVE" : "ACTIVE"} 
+					: account
+			);
+			setAccountList(updatedAccounts);
+			
+			alert(`Account ${currentStatus === "ACTIVE" ? 'deactivated' : 'activated'} successfully!`);
 		} catch (err) {
 			console.error("Error updating account status: ", err);
-			alert("An error occurred while updating account status.");
+			alert(err.response?.data?.message || "An error occurred while updating account status.");
 		}
 	};
 
@@ -157,6 +144,7 @@ function AccountManage() {
 					</div>
 					
 					{isOpen && <AddAccount setIsOpen={setIsOpen} open={isOpen} onAccountAdded={handleAddAccount} />}
+					{isUpdateOpen && <UpdateRole setIsOpen={setIsUpdateOpen} open={isUpdateOpen} userId={selectedAccount} />}
 					
 					<Card>
 						<CardHeader className="pb-4">
@@ -259,14 +247,6 @@ function AccountManage() {
 																		</Button>
 																	)}
 																</div>
-																{isUpdateOpen && (
-																	<div className="fixed inset-0 z-50">
-																		<div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
-																		<div className="relative z-50 flex items-center justify-center min-h-screen">
-																			<UpdateRole setIsOpen={setIsUpdateOpen} open={isUpdateOpen} userId={selectedAccount} />
-																		</div>
-																	</div>
-																)}
 															</TableCell>
 														</TableRow>
 													))

@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Mail, Loader2, X, Phone, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Footer from "../components/layout/Footer";
+import { apiService } from "../api";
 // import PasswordStrengthMeter from "../components/ui/PasswordStrengthMeter";
 
 // // Lưu ý: Component PasswordStrengthMeter được import để sử dụng ở trang ResetPasswordPage
@@ -44,33 +45,21 @@ export default function ForgotPasswordPage() {
         setError("");
         
         try {
-            const response = await fetch("http://localhost:8080/auth/forgot-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email: values.email }),
-            });
+            const response = await apiService.auth.forgotPassword({ email: values.email });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                setSuccess(true);
-                setTimeout(() => {
-                    navigate("/VerifyOTP", { 
-                        state: { 
-                            email: values.email,
-                            fromForgotPassword: true,
-                            from: location.state?.from
-                        } 
-                    });
-                }, 2000);
-            } else {
-                setError(data.message || t('resetPassword.errors.emailNotFound'));
-            }
+            setSuccess(true);
+            setTimeout(() => {
+                navigate("/VerifyOTP", { 
+                    state: { 
+                        email: values.email,
+                        fromForgotPassword: true,
+                        from: location.state?.from
+                    } 
+                });
+            }, 2000);
         } catch (error) {
             console.error("Error requesting password reset:", error);
-            setError(t('resetPassword.errors.serverError'));
+            setError(error.response?.data?.message || t('resetPassword.errors.serverError'));
         } finally {
             setIsLoading(false);
         }

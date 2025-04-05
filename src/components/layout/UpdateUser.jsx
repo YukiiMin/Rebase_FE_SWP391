@@ -2,6 +2,7 @@ import { useFormik } from "formik";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+import { apiService } from "../../api";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -11,8 +12,6 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { X } from "lucide-react";
 
 function UpdateUser({ setIsOpen, open, user }) {
-	const token = localStorage.getItem("token");
-	const userAPI = "http://localhost:8080/user";
 	const navigate = useNavigate();
 	const [error, setError] = React.useState(null);
 	const [success, setSuccess] = React.useState(false);
@@ -69,29 +68,16 @@ function UpdateUser({ setIsOpen, open, user }) {
 			};
 			const userId = values.accountId;
 			
-			const response = await fetch(`${userAPI}/${userId}`, {
-				method: "PATCH",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(userData),
-			});
+			const response = await apiService.users.update(userId, userData);
 			
-			if (response.ok) {
-				setSuccess(true);
-				setError(null);
-				setTimeout(() => {
-					handleClose();
-					navigate("/User/Profile");
-				}, 2000);
-			} else {
-				const data = await response.json();
-				setError(data.message || "Update profile failed. Please try again.");
-				setSuccess(false);
-			}
+			setSuccess(true);
+			setError(null);
+			setTimeout(() => {
+				handleClose();
+				navigate("/User/Profile");
+			}, 2000);
 		} catch (err) {
-			setError("An error occurred during update. Please try again.");
+			setError(err.response?.data?.message || "Update profile failed. Please try again.");
 			setSuccess(false);
 			console.error("Update profile error:", err);
 		}

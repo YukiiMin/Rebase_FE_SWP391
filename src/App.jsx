@@ -27,18 +27,17 @@ import TransactionPage from "./pages/TransactionPage";
 import VaccinationPage from "./pages/staff/VaccinationPage";
 import VaccinationManagement from "./pages/staff/VaccinationManagement";
 import DiagnosisPage from "./pages/staff/DiagnosisPage";
-// import StaffSignUp from "./staff/StaffSignUp";
-// import StaffLogIn from "./staff/StaffLogIn";
-// import StaffMenu from "./components/StaffMenu";
 import ComboDetail from "./pages/ComboDetail";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import axios from "axios";
 import ProtocolManage from "./pages/admin/ProtocolManage";
-import TokenUtils from "./utils/TokenUtils";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VerifyOTPPage from "./pages/VerifyOTPPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+// Import API từ cấu trúc mới
+import { apiService, API_ENDPOINTS } from "./api";
+import TokenUtils from "./utils/TokenUtils";
+import axios from "axios";
 
 // Create ErrorBoundary component for error handling
 class ErrorBoundary extends React.Component {
@@ -87,7 +86,6 @@ class ErrorBoundary extends React.Component {
 
 function App() {
 	const navigate = useNavigate();
-	const api = "http://localhost:8080/auth/refresh";
 	const [token, setToken] = useState(TokenUtils.getToken());
 	const [decodedToken, setDecodedToken] = useState(null);
 	const [stripePromise, setStripePromise] = useState(null);
@@ -131,8 +129,6 @@ function App() {
 		// Initialize Stripe
 		const initializeStripe = async () => {
 			try {
-				// const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-				// Get Stripe publishable key from environment variables
 				const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 				console.log("Stripe key present:", !!stripeKey);
 				
@@ -143,21 +139,14 @@ function App() {
 				
 				// Initialize Stripe
 				const stripe = await loadStripe(stripeKey);
-				// if (!stripe) {
-				// 	throw new Error('Failed to load Stripe');
-				// }
-				// setStripePromise(stripe);
-				// console.log("Stripe initialized successfully");
 								
 				if (stripe) {
 					console.log("Stripe initialized successfully");
-				setStripePromise(stripe);
+				    setStripePromise(stripe);
 				} else {
 					setStripeError("Failed to initialize Stripe. The loadStripe function returned null.");
 				}
 			} catch (error) {
-				// console.error('Error initializing Stripe:', error);
-				// // Handle error appropriately
 				console.error("Error initializing Stripe:", error);
 				setStripeError(`Failed to initialize Stripe: ${error.message}`);
 			}
@@ -166,88 +155,54 @@ function App() {
 		initializeStripe();
 	}, []);
 
-	// // Kiểm tra API
-	// useEffect(() => {
-	// 	const testAPI = async () => {
-	// 		if (token && !isRefreshing && authChecked) {
-	// 			try {
-	// 				await axios.get("http://localhost:8080/test", {
-	// 					headers: {
-	// 						'Authorization': `Bearer ${token}`
-	// 					}
-	// 				});
-	// 				console.log("API test successful");
-	// 			} catch (error) {
-	// 				console.log("API test error:", error);
-	// 				// Không xử lý lỗi ở đây, để refresh token handler lo
-	// 			}
-	// 		}
-	// 	};
-		
-	// 	testAPI();
-	// }, [token, isRefreshing, authChecked]);
-
-	// REMOVED: Đã xóa hàm testAPI vì gây lỗi 404 Not Found
-
-	// Refresh token
+	// Refresh token - sử dụng TokenUtils
 	useEffect(() => {
-		const refreshToken = async () => {
-			     // Tạm bỏ qua việc refresh token khi dev
-				 console.log("Skipping token refresh during development");
-				 return;
-				 
-				 // ... phần code refresh token cũ
-			// if (isRefreshing || !authChecked) return;
+		const checkAuthentication = async () => {
+			// Tạm bỏ qua việc refresh token khi dev
+			console.log("Skipping token refresh during development");
+			return;
 			
-			// try {
-			// 	if (token && decodedToken) {
-			// 		// Kiểm tra token hết hạn
-			// 		const currentTime = Date.now() / 1000;
-			// 		if (decodedToken.exp < currentTime) {
-			// 			console.log("Token expired, attempting to refresh");
-			// 			setIsRefreshing(true);
-						
-			// 			const response = await axios.post(api, {}, {
-			// 				headers: {
-			// 					'Authorization': `Bearer ${token}`
-			// 				}
-			// 			});
-
-			// 			if (response.data && response.data.token) {
-			// 				TokenUtils.setToken(response.data.token);
-			// 				setToken(response.data.token);
-			// 				console.log("Token refreshed successfully");
-			// 			} else {
-			// 				throw new Error("Failed to refresh token");
-			// 			}
-			// 		}
-			// 	}
-			// } catch (error) {
-			// 	console.error("Token refresh error:", error);
-			// 	// Xử lý lỗi nhưng không tự động chuyển đến trang đăng nhập
-			// 	if (error.message === "Unexpected end of JSON input") {
-			// 		console.error("API responded with invalid JSON. Backend might be unavailable.");
-			// 		// Thêm xử lý riêng cho lỗi parse JSON
-			// 	}
-				
-			// 	if (window.location.pathname !== '/Login') {
-			// 		TokenUtils.removeToken();
-			// 		setToken(null);
-			// 		setDecodedToken(null);
-			// 	}
-			// } finally {
-			// 	setIsRefreshing(false);
-			// }
+			// Khi muốn bật refresh token, dùng code dưới đây
+			/*
+			if (isRefreshing || !authChecked) return;
+			
+			try {
+				if (token) {
+					setIsRefreshing(true);
+					
+					// Sử dụng TokenUtils để kiểm tra và refresh token
+					const authCheck = await TokenUtils.checkAndRefreshToken();
+					
+					if (authCheck.success && authCheck.needsRefresh) {
+						console.log("Token refreshed successfully");
+						setToken(authCheck.accessToken);
+					} else if (!authCheck.success && window.location.pathname !== '/Login') {
+						console.error("Token refresh failed:", authCheck.message);
+						TokenUtils.removeToken();
+						setToken(null);
+						setDecodedToken(null);
+					}
+				}
+			} catch (error) {
+				console.error("Auth check error:", error);
+				if (window.location.pathname !== '/Login') {
+					TokenUtils.removeToken();
+					setToken(null);
+					setDecodedToken(null);
+				}
+			} finally {
+				setIsRefreshing(false);
+			}
+			*/
 		};
 
-		refreshToken();
-	}, [token, decodedToken, api, isRefreshing, authChecked]);
+		checkAuthentication();
+	}, [token, authChecked, isRefreshing]);
 
 	const isLoggedIn = !!token && !!decodedToken;
 
 	const ProtectedRoute = ({ element: Component, guestOnly, userOnly, adminOnly, doctorOnly, nurseOnly, ...rest }) => {
 		if (!authChecked) {
-			// Đang kiểm tra xác thực, hiển thị loading
 			return <div>Loading...</div>;
 		}
 		
@@ -299,33 +254,34 @@ function App() {
 					console.log("DEV MODE: Skipping token refresh in interceptor");
 					return Promise.reject(error);
 					
-					// Tránh vòng lặp vô hạn
+					// Khi muốn bật refresh token, dùng code dưới đây
 					/*
-					if (!originalRequest._retry && token && decodedToken) {
+					if (!originalRequest._retry && token) {
 						originalRequest._retry = true;
 						
 						try {
 							setIsRefreshing(true);
-							// Thử refresh token
-							const response = await axios.post(api, {}, {
-								headers: {
-									'Authorization': `Bearer ${token}`
-								}
-							});
 							
-							if (response.data && response.data.token) {
-								TokenUtils.setToken(response.data.token);
-								setToken(response.data.token);
+							// Sử dụng TokenUtils để refresh token
+							const refreshResult = await TokenUtils.refreshToken();
+							
+							if (refreshResult.success) {
+								// Cập nhật token và retry request
+								axios.defaults.headers.common['Authorization'] = `Bearer ${refreshResult.accessToken}`;
+								originalRequest.headers['Authorization'] = `Bearer ${refreshResult.accessToken}`;
 								
-								// Sử dụng token mới cho request ban đầu
-								axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-								originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
-								
+								setToken(refreshResult.accessToken);
 								return axios(originalRequest);
+							} else {
+								// Refresh token thất bại, đăng xuất
+								if (window.location.pathname !== '/Login') {
+									TokenUtils.removeToken();
+									setToken(null);
+									setDecodedToken(null);
+								}
 							}
 						} catch (refreshError) {
 							console.error("Failed to refresh token:", refreshError);
-							// Xử lý lỗi nhưng không tự động chuyển đến trang đăng nhập
 							if (window.location.pathname !== '/Login') {
 								TokenUtils.removeToken();
 								setToken(null);
@@ -335,7 +291,6 @@ function App() {
 							setIsRefreshing(false);
 						}
 					} else if (window.location.pathname !== '/Login') {
-						// Xóa token chỉ khi không phải đang ở trang Login
 						TokenUtils.removeToken();
 						setToken(null);
 						setDecodedToken(null);
@@ -350,7 +305,7 @@ function App() {
 		return () => {
 			axios.interceptors.response.eject(interceptor);
 		};
-	}, [token, decodedToken, api, isRefreshing]);
+	}, [token, decodedToken, isRefreshing]);
 
 	return (
 		<ErrorBoundary>
@@ -418,9 +373,6 @@ function App() {
 					<Route path={"/Staff/Vaccination/:bookingId"} element={<ProtectedRoute element={VaccinationPage} userOnly />} />
 					<Route path={"/Staff/Vaccination"} element={<ProtectedRoute element={VaccinationManagement} userOnly />} />
 					<Route path={"/Staff/Diagnosis/:bookingId"} element={<ProtectedRoute element={DiagnosisPage} userOnly />} />
-					{/* <Route path={"/StaffSignUp"} element={<StaffSignUp />} />
-					<Route path={"/StaffLogIn"} element={<StaffLogIn />} />
-					<Route path={"/Staff/Menu"} element={<ProtectedRoute element={StaffMenu} userOnly />} /> */}
 				</Routes>
 			</Elements>
 		</ErrorBoundary>

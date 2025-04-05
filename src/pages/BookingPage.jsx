@@ -6,6 +6,7 @@ import { useFormik } from "formik"
 import * as Yup from "yup"
 import { motion } from "framer-motion"
 import React from "react"
+import { apiService } from "../api"
 
 // Lucide icons
 import { UserIcon, SyringeIcon, PackageIcon, CalendarIcon, ShoppingCart, Plus, Loader2 } from "lucide-react"
@@ -27,9 +28,6 @@ import TokenUtils from "../utils/TokenUtils"
 import { cn } from "../lib/utils"
 
 function BookingPage() {
-  const vaccineAPI = "http://localhost:8080/vaccine"
-  const comboAPI = "http://localhost:8080/vaccine/comboDetails"
-  const userAPI = "http://localhost:8080/users"
   const token = TokenUtils.getToken()
   const decodedToken = TokenUtils.decodeToken(token)
 
@@ -113,39 +111,17 @@ function BookingPage() {
   const getVaccines = async () => {
     try {
       setApiErrors((prev) => ({ ...prev, vaccines: false }))
-      const response = await fetch(`${vaccineAPI}/get`, {
-        headers: {
-          Authorization: `Bearer ${TokenUtils.getToken()}`,
-        },
-      })
+      
+      const response = await apiService.vaccine.getAll();
       console.log("Vaccine API response status:", response.status)
 
-      if (response.ok) {
-        // Get the raw text first to check if it's valid JSON
-        const text = await response.text()
-
-        // Try to parse the text as JSON
-        let data
-        try {
-          data = JSON.parse(text)
-          console.log("Vaccine data received:", data)
-        } catch (jsonError) {
-          console.error("Invalid JSON response from vaccine API:", text)
-          console.error("JSON parse error:", jsonError)
-          setApiErrors((prev) => ({ ...prev, vaccines: true }))
-          setVaccinesList([])
-          return
-        }
-
-        if (data && data.result) {
-          setVaccinesList(data.result)
-        } else {
-          console.error("Invalid vaccine data structure:", data)
-          setVaccinesList([])
-          setApiErrors((prev) => ({ ...prev, vaccines: true }))
-        }
+      const data = response.data;
+      console.log("Vaccine data received:", data)
+      
+      if (data && data.result) {
+        setVaccinesList(data.result)
       } else {
-        console.error("Get vaccine error: ", response.status)
+        console.error("Invalid vaccine data structure:", data)
         setVaccinesList([])
         setApiErrors((prev) => ({ ...prev, vaccines: true }))
       }
@@ -160,40 +136,18 @@ function BookingPage() {
   const getCombo = async () => {
     try {
       setApiErrors((prev) => ({ ...prev, combos: false }))
-      const response = await fetch(`${comboAPI}`, {
-        headers: {
-          Authorization: `Bearer ${TokenUtils.getToken()}`,
-        },
-      })
+      
+      const response = await apiService.vaccine.getComboDetails();
       console.log("Combo API response status:", response.status)
 
-      if (response.ok) {
-        // Get the raw text first to check if it's valid JSON
-        const text = await response.text()
-
-        // Try to parse the text as JSON
-        let data
-        try {
-          data = JSON.parse(text)
-          console.log("Combo data received:", data)
-        } catch (jsonError) {
-          console.error("Invalid JSON response from combo API:", text)
-          console.error("JSON parse error:", jsonError)
-          setApiErrors((prev) => ({ ...prev, combos: true }))
-          setComboList([])
-          return
-        }
-
-        if (data && data.result) {
-          const groupedCombos = groupCombos(data.result)
-          setComboList(groupedCombos)
-        } else {
-          console.error("Invalid combo data structure:", data)
-          setComboList([])
-          setApiErrors((prev) => ({ ...prev, combos: true }))
-        }
+      const data = response.data;
+      console.log("Combo data received:", data)
+      
+      if (data && data.result) {
+        const groupedCombos = groupCombos(data.result)
+        setComboList(groupedCombos)
       } else {
-        console.error("Get combo error: ", response.status)
+        console.error("Invalid combo data structure:", data)
         setComboList([])
         setApiErrors((prev) => ({ ...prev, combos: true }))
       }
@@ -214,69 +168,46 @@ function BookingPage() {
       // Log account ID for debugging
       console.log("Fetching children for account ID:", accountId)
 
-      const response = await fetch(`${userAPI}/${accountId}/children`, {
-        headers: {
-          Authorization: `Bearer ${TokenUtils.getToken()}`,
-        },
-      })
+      const response = await apiService.users.getChildren(accountId);
 
       // Log response status
       console.log("Children API response status:", response.status)
 
-      if (response.ok) {
-        // Get the raw text first to check if it's valid JSON
-        const text = await response.text()
+      const data = response.data;
+      console.log("Raw children API response:", data)
+      
+      // Check the structure of the data to ensure we're handling it correctly
+      if (data && data.result) {
+        // The structure might be different than expected
+        // It could be data.result directly instead of data.result.children
+        let childrenData = Array.isArray(data.result) ? data.result : data.result.children ? data.result.children : []
 
-        // Try to parse the text as JSON
-        let data
-        try {
-          data = JSON.parse(text)
-          console.log("Raw children API response:", data)
-        } catch (jsonError) {
-          console.error("Invalid JSON response:", text)
-          console.error("JSON parse error:", jsonError)
-          setBookingError("Invalid response from server. Please try again.")
-          setApiErrors((prev) => ({ ...prev, children: true }))
-          return
-        }
+        console.log("Processed children data:", childrenData)
 
-        // Check the structure of the data to ensure we're handling it correctly
-        if (data && data.result) {
-          // The structure might be different than expected
-          // It could be data.result directly instead of data.result.children
-          let childrenData = Array.isArray(data.result) ? data.result : data.result.children ? data.result.children : []
-
-          console.log("Processed children data:", childrenData)
-
-          // Ensure each child has valid properties
-          childrenData = childrenData.map((child) => {
-            // Ensure we have at least an ID and a name for display
-            const validChild = {
-              ...child,
-              id: child.id || child.childId || Math.floor(Math.random() * 10000) + 1,
-              name:
-                child.name ||
-                (child.firstName && child.lastName
-                  ? `${child.firstName} ${child.lastName}`
-                  : `Child ${child.id || child.childId || "Unknown"}`),
-            }
-            return validChild
-          })
-
-          setChilds(childrenData)
-
-          if (childrenData.length === 0) {
-            setBookingError("No children found. Please add a child.")
-          } else {
-            setBookingError("")
+        // Ensure each child has valid properties
+        childrenData = childrenData.map((child) => {
+          // Ensure we have at least an ID and a name for display
+          const validChild = {
+            ...child,
+            id: child.id || child.childId || Math.floor(Math.random() * 10000) + 1,
+            name:
+              child.name ||
+              (child.firstName && child.lastName
+                ? `${child.firstName} ${child.lastName}`
+                : `Child ${child.id || child.childId || "Unknown"}`),
           }
+          return validChild
+        })
+
+        setChilds(childrenData)
+
+        if (childrenData.length === 0) {
+          setBookingError("No children found. Please add a child.")
         } else {
-          console.error("Invalid children data structure:", data)
-          setBookingError("Could not load children data. Please try again.")
-          setApiErrors((prev) => ({ ...prev, children: true }))
+          setBookingError("")
         }
       } else {
-        console.error("Get children failed: ", response.status)
+        console.error("Invalid children data structure:", data)
         setBookingError("Could not load children data. Please try again.")
         setApiErrors((prev) => ({ ...prev, children: true }))
       }
@@ -345,113 +276,63 @@ function BookingPage() {
 
   // Create booking first
   const createBooking = async (values) => {
-    const bookingResponse = await fetch(`http://localhost:8080/booking/${values.childId}/create`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${TokenUtils.getToken()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        appointmentDate: values.appointmentDate,
-        status: "PENDING",
-      }),
-    })
+    const response = await apiService.bookings.create(values.childId, {
+      appointmentDate: values.appointmentDate,
+      status: "PENDING",
+    });
 
-    if (!bookingResponse.ok) {
-      throw new Error(`Failed to create booking: ${bookingResponse.status}`)
-    }
-
-    const bookingData = await bookingResponse.json()
-    console.log(bookingData)
+    const bookingData = response.data;
+    console.log(bookingData);
 
     if (!bookingData || !bookingData.result || !bookingData.result.bookingId) {
-      throw new Error("Invalid booking response from server")
+      throw new Error("Invalid booking response from server");
     }
 
-    const bookingId = bookingData.result.bookingId
-    await createOrder(values, bookingId)
+    const bookingId = bookingData.result.bookingId;
+    await createOrder(values, bookingId);
   }
 
   //Create order with bookingId
   const createOrder = async (values, bookingId) => {
-    const orderResponse = await fetch(`http://localhost:8080/order/${bookingId}/create`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${TokenUtils.getToken()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        orderDate: new Date().toISOString(),
-      }),
-    })
+    const response = await apiService.orders.create(bookingId, {
+      orderDate: new Date().toISOString(),
+    });
 
-    if (!orderResponse.ok) {
-      throw new Error(`Failed to create order: ${orderResponse.status}`)
-    }
-
-    const orderData = await orderResponse.json()
-    console.log(orderData)
+    const orderData = response.data;
+    console.log(orderData);
 
     if (!orderData || !orderData.result || !orderData.result.id) {
-      throw new Error("Invalid order response from server")
+      throw new Error("Invalid order response from server");
     }
 
-    const orderId = orderData.result.id
-    await addDetail(values, orderId)
+    const orderId = orderData.result.id;
+    await addDetail(values, orderId);
   }
 
   //Add vaccine detail to order
-  //Might move this function to transaction page
   const addDetail = async (values, orderId) => {
-    const success = true
-
     if (type === "single") {
       for (const v of selectedVaccine) {
-        const detailResponse = await fetch(`http://localhost:8080/order/${orderId}/addDetail/${v.vaccine.id}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${TokenUtils.getToken()}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quantity: v.quantity,
-            totalPrice: v.quantity * v.vaccine.salePrice,
-          }),
-        })
-
-        if (!detailResponse.ok) {
-          throw new Error(`Failed to add vaccine ${v.vaccine.id} to orderDetail: ${detailResponse.status}`)
-        }
+        await apiService.orders.addDetail(orderId, v.vaccine.id, {
+          quantity: v.quantity,
+          totalPrice: v.quantity * v.vaccine.salePrice,
+        });
       }
     } else if (type === "combo") {
       // Handle combo vaccines here
       for (const combo of selectedCombo) {
         // Add combo to order
-        const detailResponse = await fetch(`http://localhost:8080/order/${orderId}/addCombo/${combo.comboId}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${TokenUtils.getToken()}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quantity: 1,
-            totalPrice: combo.total * (((100 - combo.saleOff) * 1) / 100),
-          }),
-        })
-
-        if (!detailResponse.ok) {
-          throw new Error(`Failed to add combo ${combo.comboId} to order: ${detailResponse.status}`)
-        }
+        await apiService.orders.addCombo(orderId, combo.comboId);
       }
     }
 
     // Find the selected child by its ID, and make sure we're using the right property
-    const selectedChildId = Number.parseInt(values.childId)
-    const selectedChild = childs.find((child) => child.id === selectedChildId || child.childId === selectedChildId)
-    console.log("Selected child:", selectedChild, "Child ID:", values.childId)
+    const selectedChildId = Number.parseInt(values.childId);
+    const selectedChild = childs.find((child) => child.id === selectedChildId || child.childId === selectedChildId);
+    console.log("Selected child:", selectedChild, "Child ID:", values.childId);
 
     if (!selectedChild) {
-      throw new Error("Selected child not found. Please try again.")
+      throw new Error("Selected child not found. Please try again.");
     }
 
     navigate("/Transaction", {
@@ -464,7 +345,7 @@ function BookingPage() {
         type: type,
         orderId: orderId,
       },
-    })
+    });
   }
 
   // Optimize vaccine selection handling

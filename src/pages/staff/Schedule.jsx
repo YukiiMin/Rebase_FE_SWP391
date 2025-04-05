@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { AlertCircle, Calendar as CalendarIcon, Loader2, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { apiService } from "../../api";
+import TokenUtils from "../../utils/TokenUtils";
 
 function Schedule() {
 	const { t } = useTranslation();
@@ -20,50 +22,56 @@ function Schedule() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [selectedDate, setSelectedDate] = useState(new Date());
-	const token = localStorage.getItem('token');
 
 	useEffect(() => {
-		if (!token) {
+		if (!TokenUtils.isLoggedIn()) {
 			navigate('/Login');
 			return;
 		}
 		
 		fetchSchedule();
-	}, [token, navigate, selectedDate]);
+	}, [navigate, selectedDate]);
 
 	const fetchSchedule = async () => {
 		try {
 			setLoading(true);
-			setError(null);
-			
-			const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-			const response = await fetch(`http://localhost:8080/staff/schedule/${formattedDate}`, {
-				method: 'GET',
-				headers: {
-					'Authorization': `Bearer ${token}`,
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (!response.ok) {
-				if (response.status === 401 || response.status === 403) {
-					localStorage.removeItem('token');
-					navigate('/Login');
-					return;
-				}
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			const data = await response.json();
-			
-			if (data.status !== 200) {
-				throw new Error(data.message || 'Failed to fetch schedule');
+			if (!TokenUtils.isLoggedIn()) {
+				navigate("/login");
+				return;
 			}
 			
-			setStaffSchedules(data.result || []);
+			const userInfo = TokenUtils.getUserInfo();
+			const staffId = userInfo.userId;
+			
+			// Get current month date range
+			const today = new Date();
+			const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+			const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+			
+			const formattedStartDate = firstDay.toISOString().split('T')[0];
+			const formattedEndDate = lastDay.toISOString().split('T')[0];
+			
+			const response = await apiService.working.getStaffSchedule(
+				staffId,
+				formattedStartDate,
+				formattedEndDate
+			);
+			
+			if (response.status === 200 && response.data.success) {
+				setStaffSchedules(response.data.data.schedules);
+			} else {
+				// Handle error case
+				setError(response.data.message || "Failed to fetch schedule");
+			}
 		} catch (err) {
-			console.error('Error fetching schedule:', err);
-			setError(err.message || 'Failed to load schedule. Please try again.');
+			console.error("Error fetching schedule:", err);
+			setError(err.response?.data?.message || "An error occurred while fetching your schedule");
+			
+			// Handle token expiration
+			if (err.response?.status === 401) {
+				TokenUtils.removeToken();
+				navigate("/login");
+			}
 		} finally {
 			setLoading(false);
 		}

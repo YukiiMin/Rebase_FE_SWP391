@@ -12,6 +12,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../../comp
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Separator } from "../../components/ui/separator";
 import { User, Calendar, Clock, ShieldCheck, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { apiService } from "../../api";
+import TokenUtils from "../../utils/TokenUtils";
 
 function DiagnosisPage() {
     const { t } = useTranslation();
@@ -38,54 +40,59 @@ function DiagnosisPage() {
     const fetchBookingDetails = async () => {
         try {
             setLoading(true);
-            setError("");
             
-            const response = await fetch(`http://localhost:8080/booking/${bookingId}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    localStorage.removeItem("token");
-                    navigate("/Login");
-                    return;
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
+                return;
+            }
+            
+            const response = await apiService.bookings.getById(bookingId);
+            
+            if (response.status === 200) {
+                const bookingData = response.data.result;
+                setBooking(bookingData);
+                
+                // Check if child information exists
+                if (bookingData.child) {
+                    setChild(bookingData.child);
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+                
+                // Get vaccine details from order
+                if (bookingData.orders && bookingData.orders.length > 0) {
+                    // Find the active order
+                    const activeOrder = bookingData.orders.find(order => 
+                        order.status === "ACTIVE" || order.status === "PAID"
+                    );
+                    
+                    if (activeOrder && activeOrder.orderDetails) {
+                        // Format vaccine data for the diagnosis form
+                        const initialVaccines = activeOrder.orderDetails.map(detail => ({
+                            orderId: detail.id,
+                            vaccineId: detail.vaccine.id,
+                            vaccineName: detail.vaccine.name,
+                            result: "CAN_INJECT", // Default result
+                            reason: "" // Default reason (empty)
+                        }));
+                        
+                        setVaccines(initialVaccines);
+                    } else {
+                        setError("No active order or vaccine details found");
+                    }
+                } else {
+                    setError("No orders found for this booking");
+                }
+            } else {
+                setError(response.data.message || "Failed to fetch booking details");
             }
-
-            const data = await response.json();
-            
-            if (data.status !== 200) {
-                throw new Error(data.message || "Failed to fetch booking details");
-            }
-            
-            const bookingData = data.result;
-            
-            // Validate booking status
-            if (bookingData.status !== "ASSIGNED") {
-                throw new Error("This booking is not assigned for diagnosis or has already been diagnosed");
-            }
-            
-            setBooking(bookingData);
-            
-            // Initialize diagnosis results based on the vaccine orders
-            if (bookingData.vaccineOrderList && bookingData.vaccineOrderList.length > 0) {
-                const initialDiagnosisResults = bookingData.vaccineOrderList.map(order => ({
-                    vaccineOrderId: order.vaccineOrderId,
-                    vaccineName: order.vaccine?.name || "Unknown Vaccine",
-                    result: "CAN_INJECT", // Default value
-                    note: "",
-                }));
-                setDiagnosisResults(initialDiagnosisResults);
-            }
-            
         } catch (err) {
             console.error("Error fetching booking details:", err);
-            setError(err.message || "Failed to fetch booking details. Please try again.");
+            setError(err.response?.data?.message || "An error occurred while fetching booking details");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
             setLoading(false);
         }
@@ -122,38 +129,51 @@ function DiagnosisPage() {
         
         try {
             setSubmitting(true);
-            setError("");
             
-            const diagnosisData = {
-                diagnosisResults,
-                generalComment,
-            };
-            
-            const response = await fetch(`http://localhost:8080/diagnosis/${bookingId}/create`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(diagnosisData),
-            });
-            
-            const responseData = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(responseData.message || "Failed to submit diagnosis");
+            if (!TokenUtils.isLoggedIn()) {
+                navigate("/login");
+                return;
             }
             
-            setSuccess(true);
+            // Get user info
+            const userInfo = TokenUtils.getUserInfo();
+            const doctorId = userInfo.userId;
             
-            // Redirect after a short delay
-            setTimeout(() => {
-                navigate("/Staff/VaccinationManagement");
-            }, 2000);
+            // Create diagnosis data
+            const diagnosisData = {
+                notes: generalComment,
+                vaccineResults: vaccines.map(vaccine => ({
+                    vaccineId: vaccine.vaccineId,
+                    result: vaccine.result,
+                    reason: vaccine.reason || "No specific concerns"
+                }))
+            };
             
+            const response = await apiService.vaccination.recordDiagnosis(
+                bookingId,
+                doctorId,
+                diagnosisData
+            );
+            
+            if (response.status === 200) {
+                setSuccess(true);
+                
+                // Navigate back after successful submission
+                setTimeout(() => {
+                    navigate("/staff/vaccination-management");
+                }, 2000);
+            } else {
+                setError(response.data.message || "Failed to submit diagnosis");
+            }
         } catch (err) {
             console.error("Error submitting diagnosis:", err);
-            setError(err.message || "Failed to submit diagnosis. Please try again.");
+            setError(err.response?.data?.message || "An error occurred while submitting diagnosis");
+            
+            // Handle token expiration
+            if (err.response?.status === 401) {
+                TokenUtils.removeToken();
+                navigate("/login");
+            }
         } finally {
             setSubmitting(false);
         }

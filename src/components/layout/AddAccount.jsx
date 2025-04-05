@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 import StepTwo from "../ui/RegisterSteps/StepTwo";
+import { apiService } from "../../api";
 
 const AddAccount = ({ open, setIsOpen, onAccountAdded }) => {
 	const { t } = useTranslation();
@@ -77,51 +78,32 @@ const AddAccount = ({ open, setIsOpen, onAccountAdded }) => {
 		setError("");
 
 		try {
-			// Get token from localStorage
-			const token = localStorage.getItem("token");
-			if (!token) {
-				setError("Authentication required. Please log in again.");
-				setLoading(false);
-				return;
-			}
-
-			const response = await fetch("http://localhost:8080/users/register", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"Authorization": `Bearer ${token}`
-				},
-				body: JSON.stringify({
-					firstName: values.firstName,
-					lastName: values.lastName,
-					dob: values.dob,
-					phoneNumber: values.phoneNumber,
-					email: values.email,
-					username: values.username,
-					password: values.password,
-					gender: values.gender,
-					address: values.address,
-					status: true,
-					roleName: values.roleName
-				}),
+			const response = await apiService.users.register({
+				firstName: values.firstName,
+				lastName: values.lastName,
+				dob: values.dob,
+				phoneNumber: values.phoneNumber,
+				email: values.email,
+				username: values.username,
+				password: values.password,
+				gender: values.gender,
+				address: values.address,
+				status: true,
+				roleName: values.roleName
 			});
 
-			const data = await response.json();
+			const data = response.data;
 
-			if (response.ok) {
-				setSuccess(true);
-				setTimeout(() => {
-					if (onAccountAdded) onAccountAdded(data.result);
-					setIsOpen(false);
-					// Reset form
-					formik.resetForm();
-					setSuccess(false);
-				}, 2000);
-			} else {
-				setError(data.message || "Failed to create account");
-			}
+			setSuccess(true);
+			setTimeout(() => {
+				if (onAccountAdded) onAccountAdded(data.result);
+				setIsOpen(false);
+				// Reset form
+				formik.resetForm();
+				setSuccess(false);
+			}, 2000);
 		} catch (error) {
-			setError("Server error. Please try again later.");
+			setError(error.response?.data?.message || "Failed to create account");
 			console.error("Error creating staff account:", error);
 		} finally {
 			setLoading(false);
