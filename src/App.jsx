@@ -15,6 +15,10 @@ import BookingPage from "./pages/BookingPage";
 import VaccineList from "./pages/VaccineList";
 import ComboList from "./pages/ComboList";
 import UserProfile from "./pages/UserProfile";
+import Children from "./pages/Children";
+import VaccineSchedule from "./pages/VaccineSchedule";
+import PaymentHistory from "./pages/PaymentHistory";
+import UpcomingVaccines from "./pages/UpcomingVaccines";
 import UserChildren from "./pages/UserChildren";
 import UserScheduling from "./pages/UserScheduling";
 import UserHistory from "./pages/UserHistory";
@@ -335,7 +339,10 @@ function App() {
 
 					{/*User only */}
 					<Route path={"/User/Profile"} element={<ProtectedRoute element={UserProfile} userOnly />} />
-					<Route path={"/User/Children"} element={<ProtectedRoute element={UserChildren} userOnly />} />
+					<Route path={"/User/Children"} element={<ProtectedRoute element={Children} userOnly />} />
+					<Route path={"/User/VaccineSchedule"} element={<ProtectedRoute element={VaccineSchedule} userOnly />} />
+					<Route path={"/User/PaymentHistory"} element={<ProtectedRoute element={PaymentHistory} userOnly />} />
+					<Route path={"/User/UpcomingVaccines"} element={<ProtectedRoute element={UpcomingVaccines} userOnly />} />
 					<Route path={"/User/Scheduling"} element={<ProtectedRoute element={UserScheduling} userOnly />} />
 					<Route path={"/User/History"} element={<ProtectedRoute element={UserHistory} userOnly />} />
 					<Route path={"/User/Record"} element={<ProtectedRoute element={HealthRecord} userOnly />} />
