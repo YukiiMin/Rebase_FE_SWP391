@@ -4,15 +4,22 @@ import MainNav from "../../components/layout/MainNav";
 import AddProtocol from "../../components/layout/AddProtocol";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
-import { Plus, FileText, Trash, ClipboardList, AlertCircle } from "lucide-react";
+import { Plus, FileText, Trash, ClipboardList, AlertCircle, X } from "lucide-react";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { apiService } from "../../api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog";
+import { Separator } from "../../components/ui/separator";
+import { Badge } from "../../components/ui/badge";
 
 function ProtocolManage() {
   const [protocols, setProtocols] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const apiUrl = "http://localhost:8080/vaccine/protocols";
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState("");
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,15 +42,12 @@ function ProtocolManage() {
   const fetchProtocols = async () => {
     try {
       setLoading(true);
-      const response = await fetch(apiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        setProtocols(data.result);
-      } else {
-        setError("Failed to fetch protocols. Please try again later.");
-      }
+      const response = await apiService.vaccine.getAllProtocols();
+      const data = response.data;
+      setProtocols(data.result);
     } catch (err) {
-      setError("An error occurred while fetching protocols.");
+      console.error("Error fetching protocols:", err);
+      setError("Failed to fetch protocols. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -54,6 +58,21 @@ function ProtocolManage() {
       setProtocols([newProtocol, ...protocols]);
     } else {
       fetchProtocols();
+    }
+  };
+
+  const handleViewProtocol = async (protocolId) => {
+    try {
+      setViewLoading(true);
+      setViewError("");
+      const response = await apiService.vaccine.getProtocolById(protocolId);
+      setSelectedProtocol(response.data.result);
+      setViewDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching protocol details:", err);
+      setViewError("Failed to fetch protocol details. Please try again later.");
+    } finally {
+      setViewLoading(false);
     }
   };
 
@@ -131,6 +150,7 @@ function ProtocolManage() {
                                   variant="outline"
                                   size="sm" 
                                   className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleViewProtocol(protocol.protocolId)}
                                 >
                                   <FileText className="h-4 w-4" />
                                   View
@@ -240,6 +260,88 @@ function ProtocolManage() {
           </div>
         </main>
       </div>
+
+      {/* Protocol Detail Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center">
+              <span>Protocol Details</span>
+              <Button
+                variant="ghost" 
+                size="icon"
+                onClick={() => setViewDialogOpen(false)}
+                className="h-6 w-6"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+
+          {viewLoading ? (
+            <div className="py-6 flex justify-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+            </div>
+          ) : viewError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription>{viewError}</AlertDescription>
+            </Alert>
+          ) : selectedProtocol ? (
+            <div className="py-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Protocol ID</h3>
+                  <p className="mt-1">{selectedProtocol.protocolId}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Name</h3>
+                  <p className="mt-1 font-medium">{selectedProtocol.name}</p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                <p className="mt-1">{selectedProtocol.description}</p>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Dose Schedule</h3>
+                <div className="space-y-3">
+                  {selectedProtocol.details && selectedProtocol.details.length > 0 ? (
+                    selectedProtocol.details.map((detail, index) => (
+                      <div key={detail.detailId} className="bg-gray-50 p-3 rounded-md">
+                        <div className="flex justify-between items-center">
+                          <Badge variant="outline" className="bg-blue-50">
+                            Dose {detail.doseNumber}
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            {detail.intervalDays === 0 
+                              ? "Starting dose" 
+                              : `+${detail.intervalDays} days after previous dose`}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 italic">No dose details available</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-6 text-center text-gray-500">
+              No protocol data available
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

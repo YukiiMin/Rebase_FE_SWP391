@@ -306,11 +306,11 @@ function BookingPage() {
     }
 
     const orderId = orderData.result.id;
-    await addDetail(values, orderId);
+    await addDetail(values, orderId, bookingId);
   }
 
   //Add vaccine detail to order
-  const addDetail = async (values, orderId) => {
+  const addDetail = async (values, orderId, bookingId) => {
     if (type === "single") {
       for (const v of selectedVaccine) {
         await apiService.orders.addDetail(orderId, v.vaccine.id, {
@@ -335,6 +335,8 @@ function BookingPage() {
       throw new Error("Selected child not found. Please try again.");
     }
 
+    console.log("Navigation with bookingId:", bookingId, "and orderId:", orderId);
+
     navigate("/Transaction", {
       state: {
         selectedVaccine: selectedVaccine,
@@ -344,6 +346,7 @@ function BookingPage() {
         payment: values.payment,
         type: type,
         orderId: orderId,
+        bookingId: bookingId,
       },
     });
   }

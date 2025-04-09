@@ -81,8 +81,7 @@ export const API_ENDPOINTS = {
   working: {
     createSchedule: `${API_BASE_URL}/working/api/schedules`,
     addStaff: `${API_BASE_URL}/working/api/schedules/add-staff`,
-    getSchedules: `${API_BASE_URL}/working/api/schedules`,
-    getAvailableDates: `${API_BASE_URL}/working/api/working-dates/available`,
+    getSchedules: `${API_BASE_URL}/working/api/schedules/all`,
     getAllWorkingDates: `${API_BASE_URL}/working/api/working-dates/all`,
     getStaffSchedule: (staffId) => `${API_BASE_URL}/working/api/staff/${staffId}/schedule`,
   },
@@ -93,14 +92,17 @@ export const API_ENDPOINTS = {
     getAllCategories: `${API_BASE_URL}/vaccine/categories`,
     add: (categoryId) => `${API_BASE_URL}/vaccine/add/${categoryId}`,
     getAll: `${API_BASE_URL}/vaccine/get`,
+    getById: (id) => `${API_BASE_URL}/vaccine/get/${id}`,
     addCombo: `${API_BASE_URL}/vaccine/addCombo`,
     addComboDetail: (vaccineId, comboId) => `${API_BASE_URL}/vaccine/addDetailCombo/${vaccineId}/${comboId}`,
     getCombos: `${API_BASE_URL}/vaccine/combo`,
+    getComboById: (id) => `${API_BASE_URL}/vaccine/combo/${id}`,
     getComboDetails: `${API_BASE_URL}/vaccine/comboDetails`,
+    searchComboByCategory: (category) => `${API_BASE_URL}/vaccine/search/${category}`,
     addProtocol: `${API_BASE_URL}/vaccine/protocol/add`,
     getAllProtocols: `${API_BASE_URL}/vaccine/protocols`,
     getProtocolById: (protocolId) => `${API_BASE_URL}/vaccine/protocol/${protocolId}`,
-    addVaccineToProtocol: (vaccineId, protocolId) =>
+    addVaccineToProtocol: (protocolId, vaccineId) =>
       `${API_BASE_URL}/vaccine/protocol/${protocolId}/addVaccine/${vaccineId}`,
     getProtocolDoseByVaccine: (vaccineId) => `${API_BASE_URL}/vaccine/protocol/dose/${vaccineId}`,
     activateVaccine: (vaccineId) => `${API_BASE_URL}/vaccine/${vaccineId}/active`,

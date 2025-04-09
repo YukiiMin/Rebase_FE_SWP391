@@ -6,12 +6,16 @@ import { Input } from "../components/ui/input";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { apiService } from "../api";
+import apiService from "../api/apiService";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
 function ComboList() {
 	const [comboList, setComboList] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [filteredCombos, setFilteredCombos] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
 
 	useEffect(() => {
 		getCombo();
@@ -22,7 +26,7 @@ function ComboList() {
 			setFilteredCombos(comboList);
 		} else {
 			const filtered = comboList.filter(combo => 
-				combo.comboName.toLowerCase().includes(searchTerm.toLowerCase())
+				combo.comboName?.toLowerCase().includes(searchTerm.toLowerCase())
 			);
 			setFilteredCombos(filtered);
 		}
@@ -30,31 +34,59 @@ function ComboList() {
 
 	const getCombo = async () => {
 		try {
+			setLoading(true);
+			setError("");
 			const response = await apiService.vaccine.getComboDetails();
 			const data = response.data;
+			
+			if (!data || !data.result || !Array.isArray(data.result)) {
+				setError("Invalid data format received from the server");
+				setComboList([]);
+				setFilteredCombos([]);
+				return;
+			}
+			
 			const groupedCombos = groupCombos(data.result);
 			setComboList(groupedCombos);
 			setFilteredCombos(groupedCombos);
 		} catch (err) {
-			console.error("Something went wrong when getting combos: ", err);
+			console.error("Error fetching combo list:", err);
+			setError("Failed to load combo packages: " + (err.response?.data?.message || err.message));
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	//Group vaccine with the same comboId
 	const groupCombos = (combosData) => {
+		if (!Array.isArray(combosData)) {
+			console.error("Expected combosData to be an array but got:", typeof combosData);
+			return [];
+		}
+		
 		const grouped = {};
 		combosData.forEach((combo) => {
+			if (!combo.comboId) {
+				console.warn("Combo missing comboId:", combo);
+				return;
+			}
+			
 			if (!grouped[combo.comboId]) {
 				grouped[combo.comboId] = {
 					comboId: combo.comboId,
-					comboName: combo.comboName,
-					description: combo.description,
-					ageGroup: combo.ageGroup,
-					saleOff: combo.saleOff,
+					comboName: combo.comboName || "Unnamed Combo",
+					description: combo.description || "",
+					// Use comboCategory instead of ageGroup which doesn't exist in backend model
+					comboCategory: combo.comboCategory || "",
+					saleOff: combo.saleOff || 0,
 					vaccines: [], // Initialize vaccines array
 				};
 			}
-			grouped[combo.comboId].vaccines.push(combo.vaccineName);
+			
+			// Only add vaccine name if it exists
+			if (combo.vaccineName) {
+				grouped[combo.comboId].vaccines.push(combo.vaccineName);
+			}
 		});
 		// Convert grouped object to array
 		return Object.values(grouped);
@@ -104,7 +136,19 @@ function ComboList() {
 					</div>
 				</div>
 
-				{comboList.length > 0 ? (
+				{error && (
+					<Alert variant="destructive" className="mb-6">
+						<ExclamationTriangleIcon className="h-5 w-5" />
+						<AlertDescription>{error}</AlertDescription>
+					</Alert>
+				)}
+
+				{loading ? (
+					<div className="flex justify-center items-center h-64">
+						<div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+						<span className="ml-3 text-gray-600">Loading combo packages...</span>
+					</div>
+				) : comboList.length > 0 ? (
 					<motion.div 
 						variants={containerVariants}
 						initial="hidden"
@@ -128,9 +172,11 @@ function ComboList() {
 										<div className="mb-3">
 											<h3 className="text-sm font-semibold text-gray-600">Includes:</h3>
 											<ul className="list-disc list-inside text-sm text-gray-500 pl-2">
-												{combo.vaccines.map((vaccine, idx) => (
+												{combo.vaccines.length > 0 ? combo.vaccines.map((vaccine, idx) => (
 													<li key={idx} className="line-clamp-1">{vaccine}</li>
-												))}
+												)) : (
+													<li className="text-gray-400">No vaccines listed</li>
+												)}
 											</ul>
 										</div>
 										{combo.saleOff > 0 && (
@@ -139,7 +185,7 @@ function ComboList() {
 											</div>
 										)}
 										<p className="text-gray-500 text-sm line-clamp-2">
-											<span className="font-semibold">Description:</span> {combo.description}
+											<span className="font-semibold">Description:</span> {combo.description || "No description available"}
 										</p>
 									</CardContent>
 									<CardFooter className="pt-0">
@@ -160,7 +206,7 @@ function ComboList() {
 				) : (
 					<div className="flex flex-col items-center justify-center py-16">
 						<div className="text-red-500 font-bold text-xl mb-2">No combo data retrieved.</div>
-						<p className="text-gray-500">Please check your network connection.</p>
+						<p className="text-gray-500">Please check your network connection or try again later.</p>
 					</div>
 				)}
 			</div>

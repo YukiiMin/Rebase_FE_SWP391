@@ -55,6 +55,9 @@ function VaccinationManagement() {
         }
         
         getVaccinationBookings();
+        
+        // Add direct API test
+        testDirectApiCall();
     }, [token, navigate]);
 
     useEffect(() => {
@@ -70,19 +73,55 @@ function VaccinationManagement() {
                 return;
             }
             
+            console.log("Fetching all bookings for vaccination management...");
             const response = await apiService.bookings.getAll();
             
             if (response.status === 200) {
-                // Sort bookings by date and status
+                // Get all bookings
                 const bookings = response.data.result || [];
-                const sorted = sortBookings(bookings);
+                console.log("API Response:", response);
+                console.log("Raw bookings data:", bookings);
+                console.log("Booking statuses:", bookings.map(b => ({ id: b.bookingId, status: b.status, date: b.appointmentDate })));
+                
+                // Count bookings by status
+                const statusCounts = bookings.reduce((acc, booking) => {
+                    acc[booking.status] = (acc[booking.status] || 0) + 1;
+                    return acc;
+                }, {});
+                console.log("Booking status counts:", statusCounts);
+                
+                // Show bookings with status PAID or any other status except PENDING
+                const filteredBookings = bookings.filter(booking => {
+                    const shouldInclude = booking.status === "PAID" || booking.status !== "PENDING";
+                    console.log(`Booking ${booking.bookingId} with status ${booking.status}: ${shouldInclude ? 'INCLUDE' : 'EXCLUDE'}`);
+                    return shouldInclude;
+                });
+                
+                console.log("Filtered bookings for vaccination management:", filteredBookings);
+                console.log("Filtered statuses:", filteredBookings.map(b => b.status));
+                
+                // Check if filtered list contains PAID bookings
+                const filteredPaidBookings = filteredBookings.filter(b => b.status === "PAID");
+                console.log("PAID bookings after filtering:", filteredPaidBookings.length, filteredPaidBookings);
+                
+                // Set allBookings with filtered booking list
+                const sorted = sortBookings(filteredBookings);
                 setAllBookings(sorted);
-                setFilteredList(sorted);
+                
+                // Update bookingList for filtration
+                setBookingList(sorted);
+                
+                // Apply initial filtering
+                handleSearch();
             } else {
+                console.error("API returned non-200 status:", response.status, response.data);
                 setError(response.data.message || "Failed to fetch vaccination bookings");
             }
         } catch (err) {
             console.error("Error fetching vaccination bookings:", err);
+            if (err.response) {
+                console.error("Error response:", err.response.status, err.response.data);
+            }
             setError(err.response?.data?.message || "An error occurred while fetching vaccination bookings");
             
             // Handle token expiration
@@ -157,10 +196,14 @@ function VaccinationManagement() {
         if (!status || status === "n/a") return <Badge variant="outline">Pending</Badge>;
         
         const statusVariants = {
+            "PENDING": "outline",
+            "PAID": "default",
             "CHECKED_IN": "primary",
             "ASSIGNED": "success",
             "DIAGNOSED": "info",
-            "VACCINE_INJECTED": "secondary"
+            "VACCINE_INJECTED": "secondary",
+            "COMPLETED": "success",
+            "CANCELLED": "destructive"
         };
         
         const variant = statusVariants[status] || "default";
@@ -194,9 +237,13 @@ function VaccinationManagement() {
 
     // Search and filter function
     const handleSearch = () => {
-        const safeBookingList = Array.isArray(bookingList) ? bookingList : [];
+        if (!allBookings || !Array.isArray(allBookings)) {
+            setFilteredList([]);
+            return;
+        }
         
-        let filtered = safeBookingList;
+        // Start with all bookings
+        let filtered = [...allBookings];
         
         // Apply status filter
         if (statusFilter !== "ALL") {
@@ -252,10 +299,14 @@ function VaccinationManagement() {
         } else if (booking.status === "DIAGNOSED") {
             // Navigate to vaccination page
             navigate(`/Staff/Vaccination/${booking.bookingId}`);
+        } else if (booking.status === "VACCINE_INJECTED" || booking.status === "COMPLETED") {
+            // Navigate to vaccination details page
+            navigate(`/Staff/VaccinationDetails/${booking.bookingId}`);
+        } else if (booking.status === "CANCELLED") {
+            alert("This booking has been cancelled and cannot be processed.");
         } else {
-            // For completed vaccinations (VIEW)
-            // Placeholder: navigate to a detail view
-            alert("View vaccination details - Not implemented yet");
+            // For other statuses like PENDING or PAID
+            alert("This booking is not ready for vaccination process yet. It needs to be checked in first.");
         }
     };
 
@@ -263,7 +314,7 @@ function VaccinationManagement() {
     const renderActionButton = (booking) => {
         if (booking.status === "CHECKED_IN") {
             return (
-                <Button size="sm" className="w-full" disabled={loadingAction} onClick={() => handleActionClick(booking)}>
+                <Button size="sm" className="w-full" disabled={loadingAction === booking.bookingId} onClick={() => handleActionClick(booking)}>
                     <UserCheck className="h-4 w-4 mr-1" />
                     Assign Staff
                 </Button>
@@ -282,10 +333,35 @@ function VaccinationManagement() {
                     Vaccinate
                 </Button>
             );
-        } else {
+        } else if (booking.status === "VACCINE_INJECTED" || booking.status === "COMPLETED") {
             return (
                 <Button size="sm" className="w-full" variant="outline" onClick={() => handleActionClick(booking)}>
-                    View
+                    View Details
+                </Button>
+            );
+        } else if (booking.status === "CANCELLED") {
+            return (
+                <Button size="sm" className="w-full" variant="destructive" disabled>
+                    Cancelled
+                </Button>
+            );
+        } else if (booking.status === "PENDING") {
+            return (
+                <Button size="sm" className="w-full" variant="outline" disabled>
+                    Pending Payment
+                </Button>
+            );
+        } else if (booking.status === "PAID") {
+            return (
+                <Button size="sm" className="w-full" variant="outline" disabled>
+                    Awaiting Check-in
+                </Button>
+            );
+        } else {
+            // For unknown status
+            return (
+                <Button size="sm" className="w-full" variant="outline" disabled>
+                    {booking.status || "Unknown Status"}
                 </Button>
             );
         }
@@ -381,6 +457,42 @@ function VaccinationManagement() {
         );
     };
 
+    // Function to test API directly
+    const testDirectApiCall = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            console.log("Testing direct API call with token", token ? "exists" : "missing");
+            
+            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/bookings/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            console.log("Direct API call response for VaccinationManagement:", data);
+            
+            if (data && data.result) {
+                // Log all booking statuses
+                const statuses = data.result.map(b => ({ id: b.bookingId, status: b.status }));
+                console.log("All booking statuses from direct API call:", statuses);
+                
+                // Count statuses
+                const counts = data.result.reduce((acc, booking) => {
+                    acc[booking.status] = (acc[booking.status] || 0) + 1;
+                    return acc;
+                }, {});
+                console.log("Status counts from direct API call:", counts);
+                
+                // Check PAID bookings specifically
+                const paidBookings = data.result.filter(b => b.status === "PAID");
+                console.log("PAID bookings from direct API call:", paidBookings);
+            }
+        } catch (err) {
+            console.error("Error in direct API call:", err);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100">
             <MainNav isAdmin={true} />
@@ -434,10 +546,13 @@ function VaccinationManagement() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="ALL">All Statuses</SelectItem>
+                                                <SelectItem value="PAID">Paid</SelectItem>
                                                 <SelectItem value="CHECKED_IN">Checked In</SelectItem>
                                                 <SelectItem value="ASSIGNED">Assigned</SelectItem>
                                                 <SelectItem value="DIAGNOSED">Diagnosed</SelectItem>
                                                 <SelectItem value="VACCINE_INJECTED">Vaccine Injected</SelectItem>
+                                                <SelectItem value="COMPLETED">Completed</SelectItem>
+                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>

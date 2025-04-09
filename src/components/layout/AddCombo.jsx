@@ -32,13 +32,11 @@ import {
 import { Alert, AlertDescription } from "../ui/alert";
 import { Loader2, Search, Plus, Package } from "lucide-react";
 import { cn } from "../../lib/utils";
+import apiService from "../../api/apiService";
 
 function AddCombo({ setIsOpen, open }) {
 	const navigate = useNavigate();
-	const token = localStorage.getItem("token");
-	const vaccineAPI = "http://localhost:8080/vaccine/get";
-	const comboAPI = "http://localhost:8080/vaccine";
-
+	
 	const [search, setSearch] = useState("");
 	const [searchResult, setSearchResult] = useState([]);
 	const [selectedVaccs, setSelectedVaccs] = useState([]);
@@ -50,7 +48,7 @@ function AddCombo({ setIsOpen, open }) {
 
 	const validation = Yup.object({
 		comboName: Yup.string().required("Combo Name is required"),
-		description: Yup.string().required("Description is required").min(30, "Description must be at least 30 characters"),
+		description: Yup.string().required("Description is required").min(3, "Description must be at least 3 characters"),
 		saleOff: Yup.number().min(0, "Sale cannot be negative"),
 		comboCategory: Yup.string().required("Combo category is required"),
 	});
@@ -77,31 +75,25 @@ function AddCombo({ setIsOpen, open }) {
 		setIsLoading(true);
 		setError("");
 		try {
-			const response = await fetch(vaccineAPI);
-			if (response.ok) {
-				const data = await response.json();
-				console.log("API response:", data);
-				
-				if (!data || !data.result || !Array.isArray(data.result)) {
-					setError("Invalid data format received from API");
-					setAllVaccines([]);
-					setSearchResult([]);
-					setIsLoading(false);
-					return;
-				}
-				
-				// Filter only active vaccines with quantity > 0
-				const activeVaccines = data.result.filter(vaccine => vaccine.quantity > 0);
-				setAllVaccines(activeVaccines);
-				setSearchResult(activeVaccines);
-			} else {
-				const errorText = await response.text();
-				console.error("API error:", response.status, errorText);
-				setError(`Failed to fetch vaccines. Server returned: ${response.status} ${response.statusText}`);
+			const response = await apiService.vaccine.getAll();
+			const data = response.data;
+			console.log("API response:", data);
+			
+			if (!data || !data.result || !Array.isArray(data.result)) {
+				setError("Invalid data format received from API");
+				setAllVaccines([]);
+				setSearchResult([]);
+				setIsLoading(false);
+				return;
 			}
+			
+			// Filter only active vaccines with quantity > 0
+			const activeVaccines = data.result.filter(vaccine => vaccine.quantity > 0);
+			setAllVaccines(activeVaccines);
+			setSearchResult(activeVaccines);
 		} catch (err) {
 			console.error("Fetch error:", err);
-			setError("Error fetching vaccines: " + err.message);
+			setError("Error fetching vaccines: " + (err.response?.data?.message || err.message));
 		} finally {
 			setIsLoading(false);
 		}
@@ -150,36 +142,32 @@ function AddCombo({ setIsOpen, open }) {
 		}
 		
 		try {
+			// Create combo data according to backend expectations
 			const comboData = {
 				comboName: values.comboName,
 				description: values.description,
+				comboCategory: values.comboCategory,
+				saleOff: values.saleOff,
+				// Note: dose isn't used at combo level in this context
 			};
 			
 			console.log("Sending combo data:", comboData);
 			
-			const response = await fetch(`${comboAPI}/addCombo`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(comboData),
-			});
-			
-			const responseData = await response.json();
+			const response = await apiService.vaccine.addCombo(comboData);
+			const responseData = response.data;
 			console.log("Add combo response:", responseData);
 			
-			if (response.ok) {
+			if (response.status >= 200 && response.status < 300) {
 				const comboId = responseData.result.id;
 				console.log("ComboId: ", comboId, ". Next is adding combo detail");
-				handleAddComboDetail(values, comboId);
+				await handleAddComboDetail(values, comboId);
 			} else {
-				setError(`Adding combo failed: ${responseData.message || response.statusText}`);
+				setError(`Adding combo failed: ${responseData.message || "Unknown error"}`);
 				setIsLoading(false);
 			}
 		} catch (err) {
 			console.error("Error adding combo:", err);
-			setError("An error occurred while adding the combo: " + err.message);
+			setError("An error occurred while adding the combo: " + (err.response?.data?.message || err.message));
 			setIsLoading(false);
 		}
 	};
@@ -198,19 +186,20 @@ function AddCombo({ setIsOpen, open }) {
 				
 				console.log("Adding detail for vaccine:", item.vaccine.id, "to combo:", comboId, "data:", detailData);
 				
-				const response = await fetch(`${comboAPI}/addDetailCombo/${item.vaccine.id}/${comboId}`, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(detailData),
-				});
-				
-				const responseData = await response.json();
-				console.log("Add detail response:", responseData);
-				
-				if (!response.ok) {
+				try {
+					const response = await apiService.vaccine.addComboDetail(
+						item.vaccine.id, 
+						comboId, 
+						detailData
+					);
+					console.log("Add detail response:", response.data);
+					
+					if (response.status < 200 || response.status >= 300) {
+						failedVaccines.push(item.vaccine.name || item.vaccine.vaccineName || `ID: ${item.vaccine.id}`);
+						success = false;
+					}
+				} catch (detailErr) {
+					console.error("Error adding combo detail:", detailErr);
 					failedVaccines.push(item.vaccine.name || item.vaccine.vaccineName || `ID: ${item.vaccine.id}`);
 					success = false;
 				}
@@ -225,7 +214,7 @@ function AddCombo({ setIsOpen, open }) {
 			}
 		} catch (err) {
 			console.error("Error adding combo details:", err);
-			setError("An error occurred while adding combo details: " + err.message);
+			setError("An error occurred while adding combo details: " + (err.response?.data?.message || err.message));
 		} finally {
 			setIsLoading(false);
 		}

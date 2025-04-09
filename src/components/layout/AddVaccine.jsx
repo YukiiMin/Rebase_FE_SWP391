@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddCategory from "./AddCategory";
 import AddProtocol from "./AddProtocol";
+import { apiService } from "../../api";
 import {
 	Dialog,
 	DialogContent,
@@ -31,7 +32,6 @@ import { Loader2, Plus } from "lucide-react";
 function AddVaccine({ setIsOpen, open, onAdded }) {
 	const token = localStorage.getItem("token");
 	const navigate = useNavigate();
-	const vaccineAPI = "http://localhost:8080/vaccine";
 
 	const [categories, setCategories] = useState([]);
 	const [protocols, setProtocols] = useState([]);
@@ -102,10 +102,9 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 
 	const fetchCategory = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/categories`);
-			if (response.ok) {
-				const data = await response.json();
-				setCategories(data.result);
+			const response = await apiService.vaccine.getAllCategories();
+			if (response && response.data) {
+				setCategories(response.data.result);
 			} else {
 				setError("Failed to fetch categories");
 			}
@@ -116,10 +115,9 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 
 	const fetchProtocols = async () => {
 		try {
-			const response = await fetch(`${vaccineAPI}/protocols`);
-			if (response.ok) {
-				const data = await response.json();
-				setProtocols(data.result);
+			const response = await apiService.vaccine.getAllProtocols();
+			if (response && response.data) {
+				setProtocols(response.data.result);
 			} else {
 				setError("Failed to fetch protocols");
 			}
@@ -132,23 +130,10 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 		if (!protocolId) return;
 
 		try {
-			const response = await fetch(`${vaccineAPI}/protocol/${protocolId}/addVaccine/${vaccineId}`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			});
-
-			if (response.ok) {
-				await response.json();
-				return true;
-			} else {
-				setError(`Failed to add vaccine to protocol: ${response.status}`);
-				return false;
-			}
+			await apiService.vaccine.addVaccineToProtocol(protocolId, vaccineId);
+			return true;
 		} catch (err) {
-			setError(`Error adding vaccine to protocol: ${err.message}`);
+			setError(`Error adding vaccine to protocol: ${err.response?.data?.message || err.message}`);
 			return false;
 		}
 	};
@@ -179,36 +164,24 @@ function AddVaccine({ setIsOpen, open, onAdded }) {
 				totalDose: values.totalDose,
 			};
 			
-			const response = await fetch(`${vaccineAPI}/add/${categoryId}`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(vaccineData),
-			});
+			const response = await apiService.vaccine.add(categoryId, vaccineData);
+			const newVaccine = response.data;
 			
-			if (response.ok) {
-				const newVaccine = await response.json();
+			// If a protocol was selected, add the vaccine to the protocol
+			if (selectedProtocol) {
+				const vaccineId = newVaccine.result.id;
+				const success = await handleAddVaccineToProtocol(vaccineId, selectedProtocol);
 				
-				// If a protocol was selected, add the vaccine to the protocol
-				if (selectedProtocol) {
-					const vaccineId = newVaccine.result.id;
-					const success = await handleAddVaccineToProtocol(vaccineId, selectedProtocol);
-					
-					if (success) {
-						handleClose();
-						onAdded(newVaccine.result);
-					}
-				} else {
+				if (success) {
 					handleClose();
 					onAdded(newVaccine.result);
 				}
 			} else {
-				setError(`Failed to add vaccine: ${response.status}`);
+				handleClose();
+				onAdded(newVaccine.result);
 			}
 		} catch (err) {
-			setError(`Error adding vaccine: ${err.message}`);
+			setError(`Error adding vaccine: ${err.response?.data?.message || err.message}`);
 		} finally {
 			setIsLoading(false);
 		}

@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Search, Plus, Filter, Package, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import apiService from "../../api/apiService";
 
 function ComboManage() {
 	const [comboList, setComboList] = useState([]);
@@ -16,7 +17,6 @@ function ComboManage() {
 	const [sortOption, setSortOption] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
-	const comboAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
 
@@ -27,16 +27,18 @@ function ComboManage() {
 	const getCombo = async () => {
 		try {
 			setLoading(true);
-			const response = await fetch(`${comboAPI}`);
-			if (response.ok) {
-				const data = await response.json();
+			const response = await apiService.vaccine.getComboDetails();
+			const data = response.data;
+			if (data && data.result) {
 				const groupedCombos = groupCombos(data.result);
 				setComboList(groupedCombos);
 			} else {
-				setError("Failed to fetch combo list. Please try again later.");
+				setError("Invalid data format received from API");
+				setComboList([]);
 			}
 		} catch (err) {
-			setError("An error occurred while fetching combo list.");
+			console.error("Error fetching combo list:", err);
+			setError("Failed to fetch combo list: " + (err.response?.data?.message || err.message));
 		} finally {
 			setLoading(false);
 		}
@@ -44,34 +46,52 @@ function ComboManage() {
 
 	//Group vaccine with the same comboId
 	const groupCombos = (combosData) => {
+		if (!Array.isArray(combosData)) {
+			console.error("Expected combosData to be an array but got:", typeof combosData);
+			return [];
+		}
+		
 		const grouped = {};
 		combosData.forEach((combo) => {
+			if (!combo.comboId) {
+				console.warn("Combo missing comboId:", combo);
+				return;
+			}
+			
 			if (!grouped[combo.comboId]) {
 				grouped[combo.comboId] = {
 					comboId: combo.comboId,
-					comboName: combo.comboName,
-					description: combo.description,
-					comboCategory: combo.comboCategory,
-					saleOff: combo.saleOff,
-					total: combo.total,
+					comboName: combo.comboName || "Unnamed Combo",
+					description: combo.description || "",
+					comboCategory: combo.comboCategory || "",
+					saleOff: combo.saleOff || 0,
+					total: combo.total || 0,
 					vaccines: [],
 				};
 			}
-			grouped[combo.comboId].vaccines.push({ name: combo.vaccineName, manufacturer: combo.manufacturer, dose: combo.dose });
+			
+			// Add vaccine to combo only if it has necessary data
+			if (combo.vaccineName) {
+				grouped[combo.comboId].vaccines.push({ 
+					name: combo.vaccineName, 
+					manufacturer: combo.manufacturer || "Unknown", 
+					dose: combo.dose || 1 
+				});
+			}
 		});
 		return Object.values(grouped);
 	};
 
 	const searchCombo = () => {
 		let filtered = comboList.filter((combo) => {
-			const sName = combo.comboName.toLowerCase().includes(searchName.toLowerCase());
-			const sCategory = combo.comboCategory.toLowerCase().includes(searchCategory.toLowerCase());
+			const sName = combo.comboName?.toLowerCase().includes(searchName.toLowerCase()) ?? true;
+			const sCategory = combo.comboCategory?.toLowerCase().includes(searchCategory.toLowerCase()) ?? true;
 			return sName && sCategory;
 		});
 		if (sortOption) {
 			filtered = [...filtered].sort((a, b) => {
-				if (sortOption === "priceAsc") return a.total - b.total;
-				if (sortOption === "priceDes") return b.total - a.total;
+				if (sortOption === "priceAsc") return (a.total || 0) - (b.total || 0);
+				if (sortOption === "priceDes") return (b.total || 0) - (a.total || 0);
 				return 0;
 			});
 		}
@@ -79,10 +99,11 @@ function ComboManage() {
 	};
 
 	//Pagination
+	const filteredCombos = searchCombo();
 	const indexOfLastItems = currentPage * itemsPerPage;
 	const indexOfFirstItems = indexOfLastItems - itemsPerPage;
-	const currentCombos = searchCombo().slice(indexOfFirstItems, indexOfLastItems);
-	const totalPages = Math.ceil(searchCombo().length / itemsPerPage);
+	const currentCombos = filteredCombos.slice(indexOfFirstItems, indexOfLastItems);
+	const totalPages = Math.ceil(filteredCombos.length / itemsPerPage);
 
 	const handlePageChange = (pageNumber) => {
 		setCurrentPage(pageNumber);
@@ -198,11 +219,11 @@ function ComboManage() {
 														<TableCell className="font-medium">{combo.comboName}</TableCell>
 														<TableCell>
 															<span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-																combo.comboCategory === "kids" 
+																combo.comboCategory?.toLowerCase().includes("kids") 
 																	? "bg-blue-100 text-blue-800" 
 																	: "bg-green-100 text-green-800"
 															}`}>
-																{combo.comboCategory}
+																{combo.comboCategory || "Unknown"}
 															</span>
 														</TableCell>
 														<TableCell className="max-w-[200px] truncate">
@@ -231,12 +252,12 @@ function ComboManage() {
 														</TableCell>
 														<TableCell>
 															<span className="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-																{combo.saleOff}%
+																{combo.saleOff || 0}%
 															</span>
 														</TableCell>
 														<TableCell>
 															<span className="font-semibold text-blue-600">
-																${parseFloat(combo.total).toFixed(2)}
+																${parseFloat(combo.total || 0).toFixed(2)}
 															</span>
 														</TableCell>
 													</TableRow>

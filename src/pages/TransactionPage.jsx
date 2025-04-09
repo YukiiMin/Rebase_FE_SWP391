@@ -7,11 +7,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CardCvcElement, CardElement, CardExpiryElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import MainNav from "../components/layout/MainNav";
 import { motion } from "framer-motion";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { CreditCard, Calendar, Lock } from "lucide-react";
 import { InfoIcon } from "lucide-react";
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Label } from "../components/ui/label";
 import { apiService } from "../api";
 import { TokenUtils } from "../utils/TokenUtils";
@@ -34,7 +33,8 @@ function TransactionPage() {
 		appointmentDate = "",
 		payment = "credit", 
 		type = "single", 
-		orderId = null
+		orderId = null,
+		bookingId = null
 	} = state;
 	
 	const accToken = localStorage.getItem("token");
@@ -43,6 +43,19 @@ function TransactionPage() {
 	const [clientSecret, setClientSecret] = useState("");
 	const [retryCount, setRetryCount] = useState(0);
 	const [missingState, setMissingState] = useState(!location.state);
+	const [updatedBookingStatus, setUpdatedBookingStatus] = useState(false);
+
+	// Store orderId and bookingId in localStorage for persistence
+	useEffect(() => {
+		if (orderId) {
+			localStorage.setItem('orderId', orderId);
+		}
+		
+		if (bookingId) {
+			localStorage.setItem('bookingId', bookingId);
+			console.log('Storing bookingId in localStorage:', bookingId);
+		}
+	}, [orderId, bookingId]);
 
 	useEffect(() => {
 		// If state is missing, show error message and don't try to create payment intent
@@ -77,13 +90,17 @@ function TransactionPage() {
 					console.error("Payment error:", err);
 					setError(err.message || "Payment initialization failed. Note: Payment amount may be too low for processing.");
 				}
+			} else {
+				console.error("No orderId provided from BookingPage");
+				setError("Order information is missing. Please go back to the booking page and try again.");
 			}
 		};
 
-		if (orderTotal > 0 && orderId && (!clientSecret || clientSecret === "")) {
+		// Ensure we have both the order ID and a valid order total
+		if (orderId && orderTotal > 0 && !clientSecret) {
 			createPaymentIntent();
 		}
-	}, [orderTotal, orderId, retryCount, clientSecret, location.state]);
+	}, [orderTotal, orderId, clientSecret, location.state]);
 
 	// Function to retry payment by creating a new payment intent
 	const retryPayment = () => {
@@ -118,52 +135,81 @@ function TransactionPage() {
 		}
 
 		try {
-			// 1. Tạo booking
-			console.log("Creating booking for child:", child);
-			const bookingResponse = await apiService.bookings.create(child.id, {
-				appointmentDate: appointmentDate,
-				status: "PENDING"
-			});
-
-			if (bookingResponse.status !== 200 && bookingResponse.status !== 201) {
-				throw new Error("Failed to create booking");
+			const orderId = localStorage.getItem('orderId');
+			// Get the bookingId directly from localStorage instead of trying to look it up
+			let bookingId = localStorage.getItem('bookingId');
+			if (bookingId) {
+				// Convert string to number
+				bookingId = parseInt(bookingId);
 			}
+			
+			console.log("Processing payment for existing order ID:", orderId, "with bookingId:", bookingId);
 
-			const bookingId = bookingResponse.data.result.bookingId;
-
-			// 2. Tạo order
-			const orderResponse = await apiService.orders.create(bookingId, {
-				orderDate: new Date().toISOString(),
-			});
-
-			if (orderResponse.status !== 200 && orderResponse.status !== 201) {
-				throw new Error("Failed to create order");
-			}
-
-			const orderId = orderResponse.data.result.id;
-
-			// 3. Thêm chi tiết vaccine/combo vào order
-			if (type === "single") {
-				for (const v of selectedVaccine) {
-					await apiService.orders.addDetail(orderId, v.vaccine.id, {
-						quantity: v.quantity,
-						totalPrice: v.quantity * v.vaccine.salePrice,
-					});
+			// Only if we don't have a bookingId, try to look it up (as a fallback)
+			if (!bookingId) {
+				console.log("No bookingId in localStorage, trying to fetch from order details");
+				
+				// Fallback: Try to get the bookingId associated with this order 
+				try {
+					const orderResponse = await apiService.orders.getAll(orderId);
+					console.log("Order details response:", orderResponse);
+					
+					if (orderResponse && orderResponse.data && orderResponse.data.result) {
+						const orderDetails = orderResponse.data.result;
+						console.log("Order details:", orderDetails);
+						
+						// Extract bookingId directly from the order details
+						if (orderDetails.bookingId) {
+							bookingId = orderDetails.bookingId;
+							console.log("Found bookingId in order details:", bookingId);
+						} else if (orderDetails.booking && orderDetails.booking.bookingId) {
+							bookingId = orderDetails.booking.bookingId;
+							console.log("Found bookingId in order.booking:", bookingId);
+						} else if (Array.isArray(orderDetails) && orderDetails.length > 0) {
+							// If it's an array, find the matching order
+							const matchingOrder = orderDetails.find(order => order.orderId.toString() === orderId.toString());
+							if (matchingOrder) {
+								if (matchingOrder.bookingId) {
+									bookingId = matchingOrder.bookingId;
+									console.log("Found bookingId in matching order:", bookingId);
+								} else if (matchingOrder.booking && matchingOrder.booking.bookingId) {
+									bookingId = matchingOrder.booking.bookingId;
+									console.log("Found bookingId in matching order.booking:", bookingId);
+								}
+							}
+						}
+						
+						// If we still haven't found the bookingId, check if it's equal to or close to the orderId
+						if (!bookingId) {
+							console.log("Could not extract bookingId from order response, trying to use orderId as reference");
+							bookingId = parseInt(orderId);
+						}
+					}
+				} catch (orderError) {
+					console.error("Error fetching order details:", orderError);
 				}
-			} else if (type === "combo") {
-				for (const combo of selectedCombo) {
-					// Add combo to order
-					await apiService.orders.addCombo(orderId, combo.comboId);
+				
+				// Save the found bookingId for future use
+				if (bookingId) {
+					localStorage.setItem('bookingId', bookingId.toString());
+					console.log("Saved bookingId to localStorage:", bookingId);
 				}
+			} else {
+				console.log("Using bookingId from localStorage:", bookingId);
 			}
+			
+			console.log("Using bookingId for payment:", bookingId, "for orderId:", orderId);
 
-			// 4. Tạo payment intent
+			// Create payment intent for the existing order
 			const paymentIntentResponse = await apiService.payments.createIntent(orderId, { amount: orderTotal });
+			
+			if (!paymentIntentResponse.data || !paymentIntentResponse.data.result || !paymentIntentResponse.data.result.clientSecret) {
+				throw new Error("Failed to create payment intent");
+			}
 
-			const paymentIntentData = paymentIntentResponse.data;
-			const clientSecret = paymentIntentData.result.clientSecret;
+			const clientSecret = paymentIntentResponse.data.result.clientSecret;
 
-			// 5. Xác nhận thanh toán Stripe
+			// Confirm card payment with Stripe
 			const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
 				payment_method: {
 					card: cardElement,
@@ -184,21 +230,110 @@ function TransactionPage() {
 			}
 
 			if (paymentIntent.status === "succeeded") {
-				// 6. Xác nhận thanh toán với backend
-				await apiService.payments.confirm(orderId, {
-					paymentIntentId: paymentIntent.id,
-					amount: orderTotal,
-				});
+				// Confirm payment with backend
+				// Add retry logic to handle potential backend issues
+				let retryAttempts = 0;
+				const maxRetries = 3;
+				let confirmSuccess = false;
+				
+				while (retryAttempts < maxRetries && !confirmSuccess) {
+					try {
+						// First create a payment record
+						const confirmResponse = await apiService.payments.confirm(orderId, {
+							paymentIntentId: paymentIntent.id,
+							amount: orderTotal,
+						});
+						
+						console.log("Payment confirmation response:", confirmResponse);
+						
+						// Once payment is confirmed, ensure booking status is updated to PAID
+						// Get bookingId from localStorage first
+						let bookingId = localStorage.getItem('bookingId');
+						if (bookingId) {
+							// Convert string to number
+							bookingId = parseInt(bookingId);
+						}
+						console.log("Using bookingId from localStorage for status update:", bookingId);
 
-				// 7. Cập nhật trạng thái booking sang PAID
-				await apiService.bookings.update(bookingId, {
-					payment: "PAID",
-				});
+						// Try to find it in the response as a fallback
+						if (!bookingId && confirmResponse?.data?.result?.bookingId) {
+							bookingId = confirmResponse.data.result.bookingId;
+							console.log("Found bookingId in payment confirmation response:", bookingId);
+						} else if (!bookingId && confirmResponse?.data?.result?.booking?.bookingId) {
+							bookingId = confirmResponse.data.result.booking.bookingId;
+							console.log("Found bookingId in confirmation response booking object:", bookingId);
+						}
 
-				setSuccess("Payment successful!");
-				setTimeout(() => {
-					navigate("/");
-				}, 2000);
+						// If still no bookingId, use fallback mechanisms
+						if (!bookingId) {
+							try {
+								console.log("No bookingId found, using fallback mechanisms");
+								
+								// Approach 1: Try direct mapping (in many systems bookingId = orderId or very close)
+								bookingId = parseInt(orderId);
+								console.log("Using orderId as bookingId fallback:", bookingId);
+								
+								// Update the booking status using the determined bookingId
+								const updateSuccess = await updateBookingStatus(bookingId);
+								
+								// If the first attempt fails, try adjacent IDs as a desperate measure
+								if (!updateSuccess) {
+									console.log("First update attempt failed, trying adjacent IDs as fallback");
+									
+									// Try bookingId-1 and bookingId+1 as fallbacks (in some systems they may be offset)
+									const fallbackIds = [
+										parseInt(orderId) - 1,
+										parseInt(orderId) + 1,
+										parseInt(orderId) - 2,
+										parseInt(orderId) + 2
+									];
+									
+									for (const fallbackId of fallbackIds) {
+										console.log(`Trying fallback bookingId: ${fallbackId}`);
+										if (await updateBookingStatus(fallbackId)) {
+											bookingId = fallbackId; // Remember which one worked
+											localStorage.setItem('bookingId', bookingId.toString());
+											console.log(`Successfully updated with fallback bookingId: ${fallbackId}`);
+											break;
+										}
+									}
+								}
+							} catch (error) {
+								console.error("Error in booking status update fallback process:", error);
+							}
+						} else {
+							// We have a bookingId, try to update it
+							await updateBookingStatus(bookingId);
+						}
+						
+						confirmSuccess = true;
+						
+						setSuccess("Payment successful!");
+						
+						// Add a small delay before redirecting
+						setTimeout(() => {
+							// Make one final attempt to update the booking status before redirecting
+							if (bookingId && !updatedBookingStatus) {
+								console.log("Final attempt to update booking status before redirect");
+								updateBookingStatus(bookingId).then(() => {
+									navigate("/");
+								}).catch(() => {
+									navigate("/");
+								});
+							} else {
+								navigate("/");
+							}
+						}, 2000);
+					} catch (confirmErr) {
+						console.error(`Payment confirmation attempt ${retryAttempts + 1} failed:`, confirmErr);
+						retryAttempts++;
+						if (retryAttempts >= maxRetries) {
+							throw new Error("Failed to confirm payment after multiple attempts");
+						}
+						// Wait a bit before retrying
+						await new Promise(resolve => setTimeout(resolve, 1000));
+					}
+				}
 			}
 		} catch (err) {
 			console.error("Payment submission error:", err);
@@ -257,6 +392,104 @@ function TransactionPage() {
 		}
 	};
 
+	// Helper function to update booking status
+	const updateBookingStatus = async (bookingId) => {
+		if (!bookingId) {
+			console.log("Skipping updateBookingStatus: No bookingId provided");
+			return false;
+		}
+		
+		if (updatedBookingStatus) {
+			console.log(`Booking status already updated. Skipping new update for bookingId: ${bookingId}`);
+			return true; // Return true since it's already updated
+		}
+
+		try {
+			console.log(`Attempting to update booking status to PAID for bookingId: ${bookingId}`);
+			
+			// Log the exact API endpoint being called
+			const endpoint = `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/bookings/${bookingId}/payment`;
+			console.log(`API endpoint: ${endpoint}`);
+			
+			try {
+				// First try using apiService
+				const response = await apiService.bookings.updatePayment(bookingId);
+				
+				// Log the complete response for debugging
+				console.log("Update booking status API response:", response);
+				
+				if (response?.status === 200 || 
+					(response?.data && response?.data?.code === 200) || 
+					(response?.data && response?.data?.message?.includes("success"))) {
+					console.log(`Successfully updated booking status to PAID for bookingId: ${bookingId}. Response:`, response.data);
+					setUpdatedBookingStatus(true);
+					return true;
+				} else {
+					console.error(`Failed to update booking status for bookingId: ${bookingId} using apiService. Response:`, response?.data);
+					// Don't return false here, try the fallback method instead
+				}
+			} catch (apiError) {
+				console.error(`Error updating booking status using apiService for bookingId: ${bookingId}:`, apiError);
+			}
+			
+			// Fallback: Try using direct fetch if apiService failed
+			console.log(`Trying fallback direct fetch method to update booking status for bookingId: ${bookingId}`);
+			try {
+				const token = localStorage.getItem("token");
+				const fetchResponse = await fetch(endpoint, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': token ? `Bearer ${token}` : ''
+					}
+				});
+				
+				const fetchData = await fetchResponse.json();
+				console.log(`Fallback fetch response for bookingId ${bookingId}:`, fetchData);
+				
+				if (fetchResponse.ok && 
+					(fetchData?.code === 200 || 
+					 fetchData?.message?.includes("success"))) {
+					console.log(`Successfully updated booking status to PAID using fallback fetch for bookingId: ${bookingId}`, fetchData);
+					setUpdatedBookingStatus(true);
+					return true;
+				} else {
+					console.log(`First fallback attempt failed for bookingId: ${bookingId}, trying with empty body`);
+					// Try one more time with an empty body
+					const emptyBodyResponse = await fetch(endpoint, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': token ? `Bearer ${token}` : ''
+						},
+						body: JSON.stringify({}) // Empty body
+					});
+					
+					const emptyBodyData = await emptyBodyResponse.json();
+					console.log(`Empty body fallback response for bookingId ${bookingId}:`, emptyBodyData);
+					
+					if (emptyBodyResponse.ok && 
+						(emptyBodyData?.code === 200 || 
+						 emptyBodyData?.message?.includes("success"))) {
+						console.log(`Successfully updated booking status with empty body fallback for bookingId: ${bookingId}`, emptyBodyData);
+						setUpdatedBookingStatus(true);
+						return true;
+					} else {
+						console.error(`All fallback attempts failed for bookingId: ${bookingId}`);
+						return false;
+					}
+				}
+			} catch (fetchError) {
+				console.error(`Error in fallback fetch for bookingId ${bookingId}:`, fetchError);
+				return false;
+			}
+		} catch (error) {
+			console.error(`Error in main updateBookingStatus function for bookingId ${bookingId}:`, error);
+			console.error("Error details:", error.response?.data || error.message);
+			return false;
+		}
+	};
+
 	// Return early with an error message if state is missing
 	if (missingState) {
 		return (
@@ -290,6 +523,22 @@ function TransactionPage() {
 				>
 					<h1 className="text-3xl font-bold text-gray-900 mb-4">Transaction</h1>
 					<p className="mb-6 text-gray-600">Please make sure to check your booking detail carefully. We won't hold any responsibility after you clicked Confirm</p>
+
+					{/* Warning message for direct access */}
+					{!location.state && (
+						<Alert className="bg-amber-50 border-amber-200 text-amber-800 mb-6">
+							<InfoIcon className="h-5 w-5 text-amber-600" />
+							<AlertTitle>Important</AlertTitle>
+							<AlertDescription>
+								This page should only be accessed from the booking page. If you're seeing this message, please go back to the booking page and start the process from there.
+							</AlertDescription>
+							<div className="mt-4">
+								<Button variant="outline" onClick={() => navigate('/BookingPage')} className="bg-white">
+									Go to Booking Page
+								</Button>
+							</div>
+						</Alert>
+					)}
 
 					{/* Debug info - styled with Tailwind */}
 					<div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">

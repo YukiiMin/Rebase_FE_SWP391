@@ -8,31 +8,29 @@ import { apiService } from "../api";
 
 function VaccineDetail() {
 	const { t } = useTranslation();
-	const [vaccineList, setVaccineList] = useState([]);
-	const [vaccine, setVaccine] = useState();
+	const [vaccine, setVaccine] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
 	const { id } = useParams();
 
 	useEffect(() => {
 		fetchAPI();
 	}, [id]);
 
-	useEffect(() => {
-		if (vaccineList && id) {
-			const foundVaccine = vaccineList.find((vaccine) => vaccine.id === parseInt(id));
-			setVaccine(foundVaccine || null); // Set vaccine to null if not found
-		}
-	}, [vaccineList, id]);
-
 	const fetchAPI = async () => {
 		setLoading(true);
 		try {
-			const response = await apiService.vaccine.getAll();
+			const response = await apiService.vaccine.getById(id);
 			const data = response.data;
-			setVaccineList(data.result);
-			setLoading(false);
+			if (data && data.result) {
+				setVaccine(data.result);
+			} else {
+				setError("Vaccine not found");
+			}
 		} catch (err) {
-			console.log(err);
+			console.error("Error fetching vaccine details:", err);
+			setError(err.message || "Failed to fetch vaccine details");
+		} finally {
 			setLoading(false);
 		}
 	};
@@ -45,6 +43,11 @@ function VaccineDetail() {
 				{loading ? (
 					<div className="flex justify-center items-center min-h-[300px]">
 						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+					</div>
+				) : error ? (
+					<div className="text-center py-12">
+						<h2 className="text-2xl font-bold text-gray-700">{t('vaccine_detail.not_found')}</h2>
+						<p className="mt-2 text-gray-500">{error}</p>
 					</div>
 				) : vaccine ? (
 					<motion.div

@@ -20,7 +20,6 @@ import { Loader2 } from "lucide-react";
 
 function AddCategory({ open, setIsOpen, onAddedCategory }) {
 	const token = localStorage.getItem("token");
-	const vaccineAPI = "http://localhost:8080/vaccine";
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 

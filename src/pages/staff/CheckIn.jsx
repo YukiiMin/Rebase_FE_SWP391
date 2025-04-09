@@ -53,74 +53,63 @@ function CheckIn() {
 		}
 		
 		fetchBookings();
+		
+		// Add direct API test
+		testDirectApiCall();
 	}, [navigate, token]);
 
 	useEffect(() => {
-		filterBookings();
-	}, [bookingList, searchTerm, selectedDate, activeTab]);
-
-	const fetchBookings = async () => {
-		try {
-			setLoading(true);
-			
-			if (!TokenUtils.isLoggedIn()) {
-				navigate("/login");
-				return;
-			}
-			
-			const response = await apiService.bookings.getAll();
-			
-			if (response.status === 200) {
-				const bookings = response.data.result || [];
-				
-				// Filter bookings with status PENDING (not checked in yet)
-				const pendingBookings = bookings.filter(booking => booking.status === "PENDING");
-				
-				// Sort by date (most recent first)
-				pendingBookings.sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate));
-				
-				setBookingList(pendingBookings);
-				setFilteredList(filterBookings(pendingBookings, searchTerm));
-			} else {
-				setErrorMessage(response.data.message || "Failed to fetch bookings");
-			}
-		} catch (err) {
-			console.error("Error fetching bookings:", err);
-			setErrorMessage(err.response?.data?.message || "An error occurred while fetching bookings");
-			
-			// Handle token expiration
-			if (err.response?.status === 401) {
-				TokenUtils.removeToken();
-				navigate("/login");
-			}
-		} finally {
-			setLoading(false);
+		// Only run filterBookings if bookingList is populated
+		if (bookingList.length > 0) {
+			applyFilters();
 		}
-	};
+	}, [searchTerm, selectedDate, activeTab]); // Remove bookingList from dependencies
 
-	const filterBookings = () => {
+	const applyFilters = () => {
+		console.log("applyFilters called, activeTab:", activeTab);
+		console.log("bookingList before filtering:", bookingList);
+		
 		// Start with the entire booking list
 		let filtered = [...bookingList];
+		console.log("Starting with", filtered.length, "bookings");
 		
 		// Filter by tab
 		if (activeTab === "upcoming") {
-			filtered = filtered.filter(booking => 
-				booking.status === "APPROVED" || booking.status === "PENDING"
-			);
+			console.log("Filtering for 'upcoming' tab - should show PAID bookings");
+			const preFilterCount = filtered.length;
+			
+			// Now only showing PAID bookings in the 'upcoming' tab
+			filtered = filtered.filter(booking => booking.status === "PAID");
+			
+			console.log(`Filtered from ${preFilterCount} to ${filtered.length} bookings`);
+			console.log("PAID bookings:", filtered);
 		} else if (activeTab === "checkedin") {
+			console.log("Filtering for 'checkedin' tab");
+			const preFilterCount = filtered.length;
+			
 			filtered = filtered.filter(booking => 
 				booking.status === "CHECKED_IN" || booking.status === "ASSIGNED" || 
-				booking.status === "DIAGNOSED" || booking.status === "VACCINATING"
+				booking.status === "DIAGNOSED"
 			);
+			
+			console.log(`Filtered from ${preFilterCount} to ${filtered.length} bookings`);
 		} else if (activeTab === "completed") {
+			console.log("Filtering for 'completed' tab");
+			const preFilterCount = filtered.length;
+			
 			filtered = filtered.filter(booking => 
 				booking.status === "COMPLETED" || booking.status === "CANCELLED" || 
 				booking.status === "VACCINE_INJECTED"
 			);
+			
+			console.log(`Filtered from ${preFilterCount} to ${filtered.length} bookings`);
 		}
 		
 		// Filter by search term (child or parent name)
 		if (searchTerm) {
+			console.log("Applying search term filter:", searchTerm);
+			const preFilterCount = filtered.length;
+			
 			const term = searchTerm.toLowerCase();
 			filtered = filtered.filter(booking => {
 				const childName = (booking.child?.name || "").toLowerCase();
@@ -131,12 +120,19 @@ function CheckIn() {
 					   parentFirstName.includes(term) || 
 					   parentLastName.includes(term);
 			});
+			
+			console.log(`Filtered from ${preFilterCount} to ${filtered.length} bookings after applying search term`);
 		}
 		
 		// Filter by selected date
 		if (selectedDate) {
+			console.log("Applying date filter:", selectedDate);
+			const preFilterCount = filtered.length;
+			
 			const dateStr = format(selectedDate, "yyyy-MM-dd");
 			filtered = filtered.filter(booking => booking.appointmentDate === dateStr);
+			
+			console.log(`Filtered from ${preFilterCount} to ${filtered.length} bookings after applying date filter`);
 		}
 		
 		// Sort by appointment date, recent first
@@ -146,8 +142,69 @@ function CheckIn() {
 			return dateB - dateA;
 		});
 		
+		console.log("Final filtered list:", filtered);
 		setFilteredList(filtered);
 		setCurrentPage(1); // Reset to first page when filter changes
+	};
+
+	const fetchBookings = async () => {
+		try {
+			setLoading(true);
+			
+			if (!TokenUtils.isLoggedIn()) {
+				navigate("/login");
+				return;
+			}
+			
+			console.log("Fetching all bookings...");
+			const response = await apiService.bookings.getAll();
+			
+			if (response.status === 200) {
+				// Get all bookings without filtering
+				const bookings = response.data.result || [];
+				
+				// Log the full response and detailed status information
+				console.log("API Response:", response);
+				console.log("Raw bookings data:", bookings);
+				console.log("Booking statuses:", bookings.map(b => ({ id: b.bookingId, status: b.status, date: b.appointmentDate })));
+				
+				// Count bookings by status
+				const statusCounts = bookings.reduce((acc, booking) => {
+					acc[booking.status] = (acc[booking.status] || 0) + 1;
+					return acc;
+				}, {});
+				console.log("Booking status counts:", statusCounts);
+				
+				// Check if there are any PAID bookings
+				const paidBookings = bookings.filter(b => b.status === "PAID");
+				console.log("PAID bookings:", paidBookings.length, paidBookings);
+				
+				// Store all bookings unfiltered
+				setBookingList(bookings);
+				
+				// Apply filters to the new booking list
+				setTimeout(() => {
+					applyFilters();
+				}, 0);
+			} else {
+				console.error("API returned non-200 status:", response.status, response.data);
+				setErrorMessage(response.data.message || "Failed to fetch bookings");
+			}
+		} catch (err) {
+			console.error("Error fetching bookings:", err);
+			if (err.response) {
+				console.error("Error response:", err.response.status, err.response.data);
+			}
+			setErrorMessage(err.response?.data?.message || "An error occurred while fetching bookings");
+			
+			// Handle token expiration
+			if (err.response?.status === 401) {
+				TokenUtils.removeToken();
+				navigate("/login");
+			}
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const handleCheckIn = async (e) => {
@@ -220,13 +277,12 @@ function CheckIn() {
 	const renderStatusBadge = (status) => {
 		const statusStyles = {
 			"PENDING": "bg-yellow-100 text-yellow-800",
-			"APPROVED": "bg-green-100 text-green-800",
+			"PAID": "bg-green-100 text-green-800",
 			"CANCELLED": "bg-red-100 text-red-800",
 			"COMPLETED": "bg-blue-100 text-blue-800",
 			"CHECKED_IN": "bg-purple-100 text-purple-800",
 			"ASSIGNED": "bg-indigo-100 text-indigo-800",
 			"DIAGNOSED": "bg-cyan-100 text-cyan-800",
-			"VACCINATING": "bg-pink-100 text-pink-800",
 			"VACCINE_INJECTED": "bg-emerald-100 text-emerald-800"
 		};
 		
@@ -327,6 +383,42 @@ function CheckIn() {
 				</Button>
 			</div>
 		);
+	};
+
+	// Function to test API directly
+	const testDirectApiCall = async () => {
+		try {
+			const token = localStorage.getItem('token');
+			console.log("Testing direct API call with token", token ? "exists" : "missing");
+			
+			const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/bookings/`, {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+			
+			const data = await response.json();
+			console.log("Direct API call response:", data);
+			
+			if (data && data.result) {
+				// Log all booking statuses
+				const statuses = data.result.map(b => ({ id: b.bookingId, status: b.status }));
+				console.log("All booking statuses from direct API call:", statuses);
+				
+				// Count statuses
+				const counts = data.result.reduce((acc, booking) => {
+					acc[booking.status] = (acc[booking.status] || 0) + 1;
+					return acc;
+				}, {});
+				console.log("Status counts from direct API call:", counts);
+				
+				// Check PAID bookings specifically
+				const paidBookings = data.result.filter(b => b.status === "PAID");
+				console.log("PAID bookings from direct API call:", paidBookings);
+			}
+		} catch (err) {
+			console.error("Error in direct API call:", err);
+		}
 	};
 
 	return (
@@ -484,7 +576,7 @@ function CheckIn() {
 																		{renderStatusBadge(booking.status)}
 																	</TableCell>
 																	<TableCell className="text-right">
-																		{booking.status === "APPROVED" && (
+																		{(booking.status === "PAID" || booking.status === "PENDING") && (
 																			<Button
 																				onClick={() => handleOpenCheckIn(booking)}
 																				size="sm"

@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useEffect, useState } from "react"
 import Sidebar from "../../components/layout/Sidebar"
 import MainNav from "../../components/layout/MainNav"
@@ -23,6 +21,7 @@ import {
   ArrowUpDown,
   Eye,
   RefreshCw,
+  X,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
@@ -38,14 +37,25 @@ import {
 import { Skeleton } from "../../components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip"
 import { Alert, AlertDescription } from "../../components/ui/alert"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose 
+} from "../../components/ui/dialog"
+import { Separator } from "../../components/ui/separator"
+import apiService from "../../api/apiService"
+import { useNavigate } from "react-router-dom"
 
 function VaccineManage() {
   const [vaccines, setVaccines] = useState([])
   const [loading, setLoading] = useState(true)
-  const apiUrl = "http://localhost:8080/vaccine/get"
-  const token = localStorage.getItem("token")
   const { t } = useTranslation()
-
+  const navigate = useNavigate()
+  
   const [isOpen, setIsOpen] = useState(false)
   const [searchName, setSearchName] = useState("")
   const [searchManufacturer, setSearchManufacturer] = useState("")
@@ -54,6 +64,19 @@ function VaccineManage() {
   const itemsPerPage = 10
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState("")
+  
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [selectedVaccine, setSelectedVaccine] = useState(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingVaccine, setDeletingVaccine] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingVaccine, setEditingVaccine] = useState(null)
+
+  const [protocolDialogOpen, setProtocolDialogOpen] = useState(false)
+  const [selectedProtocol, setSelectedProtocol] = useState(null)
+  const [protocolLoading, setProtocolLoading] = useState(false)
+  const [protocolError, setProtocolError] = useState("")
 
   useEffect(() => {
     fetchVaccine()
@@ -61,21 +84,22 @@ function VaccineManage() {
 
   const fetchVaccine = async () => {
     setLoading(true)
+    setError("")
     try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setVaccines(data.result || [])
-      } else {
-        setError("Failed to fetch vaccines. Please try again later.")
-      }
+      const response = await apiService.vaccine.getAll()
+      const vaccinesData = response.data.result || []
+      
+      // Thêm trường isActive nếu không có trong API response
+      const processedVaccines = vaccinesData.map(vaccine => ({
+        ...vaccine,
+        // Nếu API đã có trường status thì sử dụng nó, nếu không thì mặc định là active
+        isActive: vaccine.status === 'ACTIVE' || vaccine.status === true || vaccine.isActive === true || true
+      }))
+      
+      setVaccines(processedVaccines)
     } catch (err) {
-      setError("An error occurred while fetching vaccines.")
+      console.error("Error fetching vaccines:", err)
+      setError("Failed to fetch vaccines: " + (err.response?.data?.message || err.message))
     } finally {
       setLoading(false)
     }
@@ -111,7 +135,6 @@ function VaccineManage() {
     return filtered
   }
 
-  // Pagination
   const filteredVaccines = searchVaccine()
   const indexOfLastItems = currentPage * itemsPerPage
   const indexOfFirstItems = indexOfLastItems - itemsPerPage
@@ -128,6 +151,75 @@ function VaccineManage() {
     } else {
       fetchVaccine()
     }
+  }
+
+  const handleViewDetails = (vaccine) => {
+    setSelectedVaccine(vaccine)
+    setViewDialogOpen(true)
+  }
+
+  const handleViewProtocol = async (vaccineId) => {
+    try {
+      setProtocolLoading(true)
+      setProtocolError("")
+      
+      // Gọi API để lấy thông tin protocol của vaccine
+      const response = await apiService.vaccine.getProtocolDoseByVaccine(vaccineId)
+      
+      if (response.data && response.data.result) {
+        setSelectedProtocol(response.data.result)
+        setProtocolDialogOpen(true)
+      } else {
+        setProtocolError("Protocol data not available for this vaccine")
+      }
+    } catch (err) {
+      console.error("Error fetching protocol details:", err)
+      setProtocolError("Failed to fetch protocol details: " + (err.response?.data?.message || err.message))
+    } finally {
+      setProtocolLoading(false)
+    }
+  }
+
+  const handleEditVaccine = (vaccine) => {
+    setEditingVaccine(vaccine)
+    setEditDialogOpen(true)
+  }
+
+  const handleToggleStatus = (vaccine) => {
+    setDeletingVaccine(vaccine)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmToggleStatus = async () => {
+    if (!deletingVaccine) return
+    
+    setIsDeleting(true)
+    try {
+      if (deletingVaccine.isActive) {
+        await apiService.vaccine.deactivateVaccine(deletingVaccine.id)
+      } else {
+        await apiService.vaccine.activateVaccine(deletingVaccine.id)
+      }
+      
+      setVaccines(vaccines.map(v => 
+        v.id === deletingVaccine.id 
+          ? {...v, isActive: !v.isActive} 
+          : v
+      ))
+      setDeleteDialogOpen(false)
+    } catch (err) {
+      console.error("Error updating vaccine status:", err)
+      setError("Failed to update vaccine status: " + (err.response?.data?.message || err.message))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleUpdateVaccine = (updatedVaccine) => {
+    setVaccines(vaccines.map(vaccine => 
+      vaccine.id === updatedVaccine.id ? updatedVaccine : vaccine
+    ))
+    setEditDialogOpen(false)
   }
 
   return (
@@ -186,7 +278,6 @@ function VaccineManage() {
               </Alert>
             )}
 
-            {/* Search and Filters */}
             <Card className="mb-6 border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -243,7 +334,6 @@ function VaccineManage() {
               </CardContent>
             </Card>
 
-            {/* Vaccines Table */}
             <Card className="border border-gray-200 shadow-sm">
               <CardHeader className="pb-4 border-b">
                 <CardTitle className="text-lg font-semibold text-gray-800">Vaccine List</CardTitle>
@@ -284,7 +374,8 @@ function VaccineManage() {
                               <ArrowUpDown className="ml-1 h-3 w-3" />
                             </div>
                           </TableHead>
-                          <TableHead className="w-32 font-medium text-gray-600">{t("admin.vaccine.status")}</TableHead>
+                          <TableHead className="w-32 font-medium text-gray-600">Inventory Status</TableHead>
+                          <TableHead className="w-32 font-medium text-gray-600">Active Status</TableHead>
                           <TableHead className="w-20 font-medium text-gray-600 text-right">
                             {t("admin.vaccine.actions")}
                           </TableHead>
@@ -297,8 +388,8 @@ function VaccineManage() {
                             <TableCell>{vaccine.name}</TableCell>
                             <TableCell>{vaccine.manufacturer}</TableCell>
                             <TableCell>{vaccine.quantity}</TableCell>
-                            <TableCell>${vaccine.unitPrice.toFixed(2)}</TableCell>
-                            <TableCell>${vaccine.salePrice.toFixed(2)}</TableCell>
+                            <TableCell>${vaccine.unitPrice?.toFixed(2)}</TableCell>
+                            <TableCell>${vaccine.salePrice?.toFixed(2)}</TableCell>
                             <TableCell>
                               {vaccine.quantity > 0 ? (
                                 <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
@@ -307,6 +398,17 @@ function VaccineManage() {
                               ) : (
                                 <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
                                   {t("admin.vaccine.outOfStock")}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {vaccine.isActive ? (
+                                <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                                  Active
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                                  Inactive
                                 </Badge>
                               )}
                             </TableCell>
@@ -321,22 +423,43 @@ function VaccineManage() {
                                 <DropdownMenuContent align="end" className="w-[160px]">
                                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="flex items-center">
+                                  <DropdownMenuItem 
+                                    className="flex items-center"
+                                    onClick={() => handleViewDetails(vaccine)}
+                                  >
                                     <Eye className="mr-2 h-4 w-4" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="flex items-center">
+                                  <DropdownMenuItem 
+                                    className="flex items-center"
+                                    onClick={() => handleViewProtocol(vaccine.id)}
+                                  >
                                     <FileText className="mr-2 h-4 w-4" />
                                     Protocol
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="flex items-center">
+                                  <DropdownMenuItem 
+                                    className="flex items-center"
+                                    onClick={() => handleEditVaccine(vaccine)}
+                                  >
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="flex items-center text-red-600">
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete
+                                  <DropdownMenuItem 
+                                    className={`flex items-center ${vaccine.isActive ? "text-red-600" : "text-green-600"}`}
+                                    onClick={() => handleToggleStatus(vaccine)}
+                                  >
+                                    {vaccine.isActive ? (
+                                      <>
+                                        <AlertCircle className="mr-2 h-4 w-4" />
+                                        Deactivate
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Activate
+                                      </>
+                                    )}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -442,6 +565,229 @@ function VaccineManage() {
           </div>
         </main>
       </div>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Syringe className="h-5 w-5 text-blue-600" />
+              Vaccine Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedVaccine && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">ID</h4>
+                  <p>{selectedVaccine.id}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Status</h4>
+                  <div className="mt-1">
+                    {selectedVaccine.quantity > 0 ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        In Stock
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                        Out of Stock
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500">Vaccine Name</h4>
+                <p className="font-medium text-lg">{selectedVaccine.name}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Manufacturer</h4>
+                  <p>{selectedVaccine.manufacturer}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Category</h4>
+                  <p>{selectedVaccine.categoryName || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 bg-gray-50 p-3 rounded-md">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Quantity</h4>
+                  <p className="font-semibold">{selectedVaccine.quantity} units</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Unit Price</h4>
+                  <p className="font-semibold">${selectedVaccine.unitPrice?.toFixed(2)}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Sale Price</h4>
+                  <p className="font-semibold text-blue-600">${selectedVaccine.salePrice?.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {selectedVaccine.description && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-500">Description</h4>
+                  <p className="text-sm text-gray-600">{selectedVaccine.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+            <Button onClick={() => handleEditVaccine(selectedVaccine)}>Edit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-blue-600">
+              {deletingVaccine?.isActive ? "Deactivate" : "Activate"} Vaccine
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to {deletingVaccine?.isActive ? "deactivate" : "activate"} this vaccine?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {deletingVaccine && (
+            <div className="bg-gray-50 p-4 rounded-md mb-4">
+              <p className="font-medium">{deletingVaccine.name}</p>
+              <p className="text-sm text-gray-600">ID: {deletingVaccine.id}</p>
+              <p className="text-sm text-gray-600">Manufacturer: {deletingVaccine.manufacturer}</p>
+              <p className="text-sm text-gray-600">
+                Current status: <span className={deletingVaccine.isActive ? "text-green-600" : "text-red-600"}>
+                  {deletingVaccine.isActive ? "Active" : "Inactive"}
+                </span>
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={isDeleting}>Cancel</Button>
+            </DialogClose>
+            <Button 
+              variant={deletingVaccine?.isActive ? "destructive" : "default"}
+              onClick={confirmToggleStatus}
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {deletingVaccine?.isActive ? "Deactivate" : "Activate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              Edit Vaccine
+            </DialogTitle>
+          </DialogHeader>
+          
+          {editingVaccine && (
+            <div className="py-2">
+              <p className="text-center text-gray-500">
+                Edit functionality would be implemented here, using the apiService.vaccine.update API.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={() => setEditDialogOpen(false)}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={protocolDialogOpen} onOpenChange={setProtocolDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center">
+              <span>Vaccine Protocol Details</span>
+              <Button
+                variant="ghost" 
+                size="icon"
+                onClick={() => setProtocolDialogOpen(false)}
+                className="h-6 w-6"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+
+          {protocolLoading ? (
+            <div className="py-6 flex justify-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+            </div>
+          ) : protocolError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription>{protocolError}</AlertDescription>
+            </Alert>
+          ) : selectedProtocol ? (
+            <div className="py-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Vaccine ID</h3>
+                  <p className="mt-1">{selectedProtocol.vaccineId || "N/A"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Vaccine Name</h3>
+                  <p className="mt-1 font-medium">{selectedProtocol.vaccineName || "N/A"}</p>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Dose Schedule</h3>
+                <div className="space-y-3">
+                  {selectedProtocol.doses && selectedProtocol.doses.length > 0 ? (
+                    selectedProtocol.doses.map((dose, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded-md">
+                        <div className="flex justify-between items-center">
+                          <Badge variant="outline" className="bg-blue-50">
+                            Dose {dose.doseNumber || index + 1}
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            {dose.intervalDays === 0 
+                              ? "Starting dose" 
+                              : `+${dose.intervalDays} days after previous dose`}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 italic">No dose details available</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-6 text-center text-gray-500">
+              No protocol data available for this vaccine
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setProtocolDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

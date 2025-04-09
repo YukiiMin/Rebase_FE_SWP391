@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
+import { apiService } from "../../api";
 
 // ShadCN Components
 import {
@@ -24,7 +25,6 @@ function AddChild({ setIsOpen, open, onAdded }) {
 	const navigate = useNavigate();
 	const token = localStorage.getItem("token");
 	const decodedToken = token ? jwtDecode(token) : null;
-	const childAPI = "http://localhost:8080/children";
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState("");
@@ -86,33 +86,19 @@ function AddChild({ setIsOpen, open, onAdded }) {
 			const accountId = decodedToken.sub;
 			console.log(accountId);
 			
-			const response = await fetch(`${childAPI}/${accountId}/create`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(childData),
-			});
+			const response = await apiService.children.create(accountId, childData);
 			
-			if (response.ok) {
-				console.log("Adding child successful");
-				setSuccess("Child added successfully!");
-				setTimeout(() => {
-					handleClose();
-					const newChild = response.json().then((data) => {
-						onAdded(data);
-						console.log(data);
-					});
-				}, 1500);
-			} else {
-				const errorData = await response.json();
-				setError(errorData.message || "Failed to add child. Please try again.");
-				console.error("Something went wrong when adding child: ", response.status);
-			}
+			console.log("Adding child successful");
+			setSuccess("Child added successfully!");
+			setTimeout(() => {
+				handleClose();
+				onAdded(response.data);
+				console.log(response.data);
+			}, 1500);
 		} catch (err) {
 			console.error("Add child error:", err);
-			setError(err.message || "An error occurred. Please try again.");
+			const errorMessage = err.response?.data?.message || "Failed to add child. Please try again.";
+			setError(errorMessage);
 		} finally {
 			setLoading(false);
 		}

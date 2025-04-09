@@ -46,40 +46,38 @@ function DiagnosisPage() {
                 return;
             }
             
+            console.log("Fetching details for bookingId:", bookingId);
             const response = await apiService.bookings.getById(bookingId);
             
             if (response.status === 200) {
                 const bookingData = response.data.result;
+                console.log("Booking data received:", bookingData);
                 setBooking(bookingData);
                 
-                // Check if child information exists
-                if (bookingData.child) {
-                    setChild(bookingData.child);
+                // Check if booking has the right status for diagnosis
+                if (bookingData.status !== "ASSIGNED" && bookingData.status !== "CHECKED_IN") {
+                    console.warn(`Booking has status ${bookingData.status} which may not be appropriate for diagnosis`);
                 }
                 
-                // Get vaccine details from order
-                if (bookingData.orders && bookingData.orders.length > 0) {
-                    // Find the active order
-                    const activeOrder = bookingData.orders.find(order => 
-                        order.status === "ACTIVE" || order.status === "PAID"
-                    );
+                // Check if diagnosisResults is initialized correctly
+                if (!diagnosisResults || diagnosisResults.length === 0) {
+                    console.log("Initializing diagnosis results from order details");
                     
-                    if (activeOrder && activeOrder.orderDetails) {
-                        // Format vaccine data for the diagnosis form
-                        const initialVaccines = activeOrder.orderDetails.map(detail => ({
-                            orderId: detail.id,
-                            vaccineId: detail.vaccine.id,
-                            vaccineName: detail.vaccine.name,
+                    // Get vaccine details from order
+                    if (bookingData.vaccineOrders && bookingData.vaccineOrders.length > 0) {
+                        const vaccineOrdersForDiagnosis = bookingData.vaccineOrders.map(order => ({
+                            vaccineOrderId: order.vaccineOrderId || order.id,
+                            vaccineName: order.vaccine?.name || "Unknown vaccine",
                             result: "CAN_INJECT", // Default result
-                            reason: "" // Default reason (empty)
+                            note: ""  // Default note (empty)
                         }));
                         
-                        setVaccines(initialVaccines);
+                        console.log("Prepared diagnosis results:", vaccineOrdersForDiagnosis);
+                        setDiagnosisResults(vaccineOrdersForDiagnosis);
                     } else {
-                        setError("No active order or vaccine details found");
+                        console.error("No vaccine orders found in booking data:", bookingData);
+                        setError("No vaccine orders found for this booking");
                     }
-                } else {
-                    setError("No orders found for this booking");
                 }
             } else {
                 setError(response.data.message || "Failed to fetch booking details");

@@ -51,7 +51,7 @@ const AddAccount = ({ open, setIsOpen, onAccountAdded }) => {
 			.max(100, "Address must not exceed 100 characters"),
 		roleName: Yup.string()
 			.required(t('register.errors.required'))
-			.oneOf(["DOCTOR", "NURSE"], "Please select a valid role"),
+			.oneOf(["DOCTOR", "NURSE", "RECEPTIONIST"], "Please select a valid role"),
 	});
 
 	const formik = useFormik({

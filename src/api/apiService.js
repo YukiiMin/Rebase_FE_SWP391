@@ -153,14 +153,8 @@ const apiService = {
       console.log("API Service: Adding staff with data:", data);
       return apiClient.post(API_ENDPOINTS.working.addStaff, data);
     },
-    getSchedules: (startDate, endDate) =>
-      apiClient.get(API_ENDPOINTS.working.getSchedules, {
-        params: { startDate, endDate },
-      }),
-    getAvailableDates: (startDate, endDate) =>
-      apiClient.get(API_ENDPOINTS.working.getAvailableDates, {
-        params: { startDate, endDate },
-      }),
+    getSchedules: () =>
+      apiClient.get(API_ENDPOINTS.working.getSchedules),
     getAllWorkingDates: () =>
       apiClient.get(API_ENDPOINTS.working.getAllWorkingDates),
     getStaffSchedule: (staffId, startDate, endDate) =>
@@ -175,16 +169,19 @@ const apiService = {
     getAllCategories: () => apiClient.get(API_ENDPOINTS.vaccine.getAllCategories),
     add: (categoryId, data) => apiClient.post(API_ENDPOINTS.vaccine.add(categoryId), data),
     getAll: () => apiClient.get(API_ENDPOINTS.vaccine.getAll),
+    getById: (id) => apiClient.get(API_ENDPOINTS.vaccine.getById(id)),
     addCombo: (data) => apiClient.post(API_ENDPOINTS.vaccine.addCombo, data),
     addComboDetail: (vaccineId, comboId, data) =>
       apiClient.post(API_ENDPOINTS.vaccine.addComboDetail(vaccineId, comboId), data),
     getCombos: () => apiClient.get(API_ENDPOINTS.vaccine.getCombos),
+    getComboById: (id) => apiClient.get(API_ENDPOINTS.vaccine.getComboById(id)),
     getComboDetails: () => apiClient.get(API_ENDPOINTS.vaccine.getComboDetails),
+    searchComboByCategory: (category) => apiClient.get(API_ENDPOINTS.vaccine.searchComboByCategory(category)),
     addProtocol: (data) => apiClient.post(API_ENDPOINTS.vaccine.addProtocol, data),
     getAllProtocols: () => apiClient.get(API_ENDPOINTS.vaccine.getAllProtocols),
     getProtocolById: (protocolId) => apiClient.get(API_ENDPOINTS.vaccine.getProtocolById(protocolId)),
-    addVaccineToProtocol: (vaccineId, protocolId) =>
-      apiClient.post(API_ENDPOINTS.vaccine.addVaccineToProtocol(vaccineId, protocolId)),
+    addVaccineToProtocol: (protocolId, vaccineId) =>
+      apiClient.post(API_ENDPOINTS.vaccine.addVaccineToProtocol(protocolId, vaccineId)),
     getProtocolDoseByVaccine: (vaccineId) => apiClient.get(API_ENDPOINTS.vaccine.getProtocolDoseByVaccine(vaccineId)),
     activateVaccine: (vaccineId) => apiClient.put(API_ENDPOINTS.vaccine.activateVaccine(vaccineId)),
     deactivateVaccine: (vaccineId) => apiClient.put(API_ENDPOINTS.vaccine.deactivateVaccine(vaccineId)),

@@ -14,6 +14,7 @@ import TokenUtils from "../utils/TokenUtils";
 import MainNav from "../components/layout/MainNav";
 import Footer from "../components/layout/Footer";
 import CTASection from "../components/layout/CTASection";
+import apiService from "../api/apiService";
 
 export default function HomePage() {
 	const { t } = useTranslation();
@@ -25,84 +26,44 @@ export default function HomePage() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [activeTab, setActiveTab] = useState("vaccines");
 	
-	const apiURL = "http://localhost:8080/vaccine";
-
 	useEffect(() => {
 		// Check if user is logged in
 		const token = TokenUtils.getToken();
 		setIsLoggedIn(!!token);
 		
 		const fetchData = async () => {
+			setLoading(true);
+			setError(null);
+			
 			try {
-				// Fetch vaccines
-				const vaccineResponse = await fetch(`${apiURL}/get`);
-				if (!vaccineResponse.ok) {
-					throw new Error(`Vaccine API error: ${vaccineResponse.status}`);
-				}
-				
-				// Kiểm tra và xử lý dữ liệu JSON an toàn hơn
-				try {
-					const vaccineText = await vaccineResponse.text();
-					let vaccineResult = [];
-					
-					if (vaccineText && vaccineText.trim() !== '') {
-						try {
-							const parsedData = JSON.parse(vaccineText);
-							if (Array.isArray(parsedData)) {
-								vaccineResult = parsedData;
-							} else {
-								console.error("API didn't return an array for vaccines");
-								throw new Error("Invalid vaccine data format");
-							}
-						} catch (parseError) {
-							console.error("Error parsing vaccine JSON:", parseError);
-							throw new Error("Failed to parse vaccine data");
-						}
-					}
-					
+				// Fetch vaccines using apiService
+				const vaccineResponse = await apiService.vaccine.getAll();
+				if (vaccineResponse && vaccineResponse.data) {
+					const vaccineResult = Array.isArray(vaccineResponse.data) 
+						? vaccineResponse.data 
+						: [];
 					setVaccineData(vaccineResult.slice(0, 3)); // Get only first 3 items
-				} catch (error) {
-					console.error("Error processing vaccine data:", error);
-					throw error; // Propagate error to the main catch block
+				} else {
+					console.log("Vaccine data format is not as expected");
+					setVaccineData([]);
 				}
 
-				// Fetch combos
-				const comboResponse = await fetch(`${apiURL}/combo`);
-				if (!comboResponse.ok) {
-					throw new Error(`Combo API error: ${comboResponse.status}`);
-				}
-				
-				// Kiểm tra và xử lý dữ liệu JSON an toàn hơn
-				try {
-					const comboText = await comboResponse.text();
-					let comboResult = [];
-					
-					if (comboText && comboText.trim() !== '') {
-						try {
-							const parsedData = JSON.parse(comboText);
-							if (Array.isArray(parsedData)) {
-								comboResult = parsedData;
-							} else {
-								console.error("API didn't return an array for combos");
-								throw new Error("Invalid combo data format");
-							}
-						} catch (parseError) {
-							console.error("Error parsing combo JSON:", parseError);
-							throw new Error("Failed to parse combo data");
-						}
-					}
-					
+				// Fetch combos using apiService
+				const comboResponse = await apiService.vaccine.getCombos();
+				if (comboResponse && comboResponse.data) {
+					const comboResult = Array.isArray(comboResponse.data) 
+						? comboResponse.data 
+						: [];
 					setComboData(comboResult.slice(0, 3)); // Get only first 3 items
-				} catch (error) {
-					console.error("Error processing combo data:", error);
-					throw error; // Propagate error to the main catch block
+				} else {
+					console.log("Combo data format is not as expected");
+					setComboData([]);
 				}
-
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				setError(error.message || "Failed to load data");
 				
-				// Always use demo data on any error
+				// Use demo data on any error
 				setVaccineData([]);
 				setComboData([]);
 			} finally {
@@ -200,8 +161,8 @@ export default function HomePage() {
 	];
 
 	// Use demo data if API fails
-	const displayVaccines = error ? demoVaccines : (vaccineData.length > 0 ? vaccineData : demoVaccines);
-	const displayCombos = error ? demoCombos : (comboData.length > 0 ? comboData : demoCombos);
+	const displayVaccines = error || vaccineData.length === 0 ? demoVaccines : vaccineData;
+	const displayCombos = error || comboData.length === 0 ? demoCombos : comboData;
 
 	const nextSlide = () => {
 		setCurrentSlide((prev) => (prev === bannerSlides.length - 1 ? 0 : prev + 1));
@@ -429,7 +390,7 @@ export default function HomePage() {
 													
 													<div className="flex items-center justify-between">
 														<span className="text-lg font-bold text-blue-600">
-															{new Intl.NumberFormat('vi-VN').format(vaccine.price)} $
+															{vaccine.price ? new Intl.NumberFormat('vi-VN').format(vaccine.price) : "N/A"} $
 														</span>
 														<Link to={`/Vaccine/${vaccine.id}`} className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
 															View Details
@@ -461,7 +422,7 @@ export default function HomePage() {
 													
 													<div className="flex items-center justify-between">
 														<span className="text-lg font-bold text-green-600">
-															{new Intl.NumberFormat('vi-VN').format(combo.price)} VNĐ
+															{combo.price ? new Intl.NumberFormat('vi-VN').format(combo.price) : "N/A"} $
 														</span>
 														<Link to={`/Combo/${combo.id}`} className="inline-flex items-center text-green-600 hover:text-green-800 font-medium">
 															View Package

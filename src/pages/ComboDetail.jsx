@@ -9,10 +9,10 @@ import { Separator } from "../components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import apiService from "../api/apiService";
 
 function ComboDetail() {
 	const { id } = useParams();
-	const comboDetailsAPI = "http://localhost:8080/vaccine/comboDetails";
 	const [combo, setCombo] = useState(null);
 	const [error, setError] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -24,62 +24,79 @@ function ComboDetail() {
 	const fetchComboDetail = async () => {
 		try {
 			setLoading(true);
-			const response = await fetch(comboDetailsAPI);
-			if (!response.ok) {
-				throw new Error(`Failed to fetch combo details: ${response.status}`);
+			setError(null);
+			
+			// First get the combo basic info
+			const comboResponse = await apiService.vaccine.getComboById(id);
+			
+			if (!comboResponse.data || !comboResponse.data.result) {
+				setError("Combo package not found or invalid response format.");
+				setLoading(false);
+				return;
 			}
+
+			const comboBasicInfo = comboResponse.data.result;
 			
-			const data = await response.json();
-			
-			// Filter results for the specific combo ID
-			const comboDetails = data.result.filter(item => item.comboId === parseInt(id, 10));
-			
-			if (comboDetails.length === 0) {
-				setError("Combo package not found.");
+			// Then get combo details to get included vaccines
+			const comboDetailsResponse = await apiService.vaccine.getComboDetails();
+			if (!comboDetailsResponse.data || !comboDetailsResponse.data.result) {
+				setError("Could not fetch combo details.");
 				setLoading(false);
 				return;
 			}
 			
-			// Group vaccine details for this combo
-			const processedCombo = processComboDetails(comboDetails);
+			// Filter only details for this combo
+			const comboDetails = comboDetailsResponse.data.result.filter(
+				detail => detail.comboId === parseInt(id)
+			);
+			
+			if (comboDetails.length === 0) {
+				setError("No vaccines found for this combo package.");
+			}
+			
+			// Process the combo data
+			const processedCombo = processComboDetails(comboBasicInfo, comboDetails);
 			setCombo(processedCombo);
 			setLoading(false);
 		} catch (err) {
 			console.error("Error fetching combo details:", err);
-			setError(err.message);
+			setError(err.response?.data?.message || err.message || "Failed to fetch combo details");
 			setLoading(false);
 		}
 	};
 
-	const processComboDetails = (comboData) => {
-		if (!comboData || comboData.length === 0) return null;
+	const processComboDetails = (comboBasicInfo, comboDetails) => {
+		if (!comboBasicInfo) return null;
 		
-		// Extract basic combo info from the first item
-		const firstItem = comboData[0];
+		// Extract basic combo info
 		const result = {
-			comboId: firstItem.comboId,
-			comboName: firstItem.comboName,
-			ageGroup: firstItem.ageGroup,
-			description: firstItem.description,
-			saleOff: firstItem.saleOff,
-			totalPrice: 0,
+			comboId: comboBasicInfo.id,
+			comboName: comboBasicInfo.comboName || "Unnamed Combo",
+			comboCategory: comboBasicInfo.comboCategory || "General",
+			description: comboBasicInfo.description || "",
+			saleOff: comboBasicInfo.saleOff || 0,
+			totalPrice: comboBasicInfo.total || 0,
 			discountedPrice: 0,
 			vaccines: []
 		};
 		
-		// Process all vaccines in this combo
-		comboData.forEach(item => {
-			result.vaccines.push({
-				vaccineId: item.vaccineId,
-				vaccineName: item.vaccineName,
-				price: item.price,
-				disease: item.disease,
-				origin: item.origin
+		// Process all vaccines in this combo if we have details
+		if (Array.isArray(comboDetails) && comboDetails.length > 0) {
+			comboDetails.forEach(item => {
+				// Only add if we have at least the vaccine name
+				if (item.vaccineName) {
+					result.vaccines.push({
+						vaccineId: item.vaccineId || 0,
+						vaccineName: item.vaccineName,
+						price: item.price || 0,
+						// These fields might not be in the actual API response
+						// Setting defaults to avoid UI issues
+						disease: item.disease || "Not specified",
+						origin: item.manufacturer || "Not specified"
+					});
+				}
 			});
-			
-			// Add to total price
-			result.totalPrice += item.price || 0;
-		});
+		}
 		
 		// Calculate discounted price
 		if (result.saleOff > 0) {
@@ -97,7 +114,8 @@ function ComboDetail() {
 				<MainNav />
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 					<div className="flex justify-center items-center h-64">
-						<div className="animate-pulse text-xl text-gray-500">Loading combo details...</div>
+						<div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent mr-3"></div>
+						<div className="text-xl text-gray-500">Loading combo details...</div>
 					</div>
 				</div>
 			</div>
@@ -188,39 +206,45 @@ function ComboDetail() {
 							<CardHeader className="pb-3">
 								<CardTitle className="text-2xl">{combo.comboName}</CardTitle>
 								<CardDescription>
-									For {combo.ageGroup || "all ages"}
+									For {combo.comboCategory || "all ages"}
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
 								<div className="mb-6">
 									<h3 className="text-base font-medium mb-2">Description</h3>
-									<p className="text-gray-700">{combo.description}</p>
+									<p className="text-gray-700">{combo.description || "No description available"}</p>
 								</div>
 
 								<Separator className="my-4" />
 
 								<div className="mb-6">
 									<h3 className="text-base font-medium mb-4">Included Vaccines</h3>
-									<Table>
-										<TableHeader>
-											<TableRow>
-												<TableHead>Vaccine</TableHead>
-												<TableHead>Disease Prevention</TableHead>
-												<TableHead>Origin</TableHead>
-												<TableHead className="text-right">Price</TableHead>
-											</TableRow>
-										</TableHeader>
-										<TableBody>
-											{combo.vaccines.map((vaccine) => (
-												<TableRow key={vaccine.vaccineId}>
-													<TableCell className="font-medium">{vaccine.vaccineName}</TableCell>
-													<TableCell>{vaccine.disease}</TableCell>
-													<TableCell>{vaccine.origin}</TableCell>
-													<TableCell className="text-right">{formatCurrency(vaccine.price)}</TableCell>
+									{combo.vaccines && combo.vaccines.length > 0 ? (
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>Vaccine</TableHead>
+													<TableHead>Disease Prevention</TableHead>
+													<TableHead>Origin</TableHead>
+													<TableHead className="text-right">Price</TableHead>
 												</TableRow>
-											))}
-										</TableBody>
-									</Table>
+											</TableHeader>
+											<TableBody>
+												{combo.vaccines.map((vaccine, index) => (
+													<TableRow key={vaccine.vaccineId || index}>
+														<TableCell className="font-medium">{vaccine.vaccineName}</TableCell>
+														<TableCell>{vaccine.disease}</TableCell>
+														<TableCell>{vaccine.origin}</TableCell>
+														<TableCell className="text-right">{formatCurrency(vaccine.price)}</TableCell>
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
+									) : (
+										<div className="py-4 text-center text-gray-500">
+											No vaccine details available for this combo.
+										</div>
+									)}
 								</div>
 
 								<Separator className="my-4" />
