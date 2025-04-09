@@ -10,7 +10,7 @@ import Footer from '../components/layout/Footer';
 import StepOne from "../components/ui/RegisterSteps/StepOne";
 import StepTwo from "../components/ui/RegisterSteps/StepTwo";
 import ProgressIndicator from "../components/ui/RegisterSteps/ProgressIndicator";
-import { apiService } from "../api";
+import apiService from "../api/apiService";
 
 function RegisterPage() {
 	const navigate = useNavigate();
@@ -56,6 +56,7 @@ function RegisterPage() {
 		confirmPassword: Yup.string()
 			.required(t('register.errors.required'))
 			.oneOf([Yup.ref("password"), null], t('register.errors.passwordMatch')),
+		address: Yup.string().required(t('register.errors.required')),
 	});
 
 	const formik = useFormik({
@@ -66,9 +67,10 @@ function RegisterPage() {
 			phone: "",
 			email: "",
 			username: "",
-			gender: "",
+			gender: "MALE", // Default value for gender select
 			password: "",
 			confirmPassword: "",
+			address: "", // Add address field
 		},
 		validationSchema: validation,
 		onSubmit: (values) => {
@@ -81,7 +83,7 @@ function RegisterPage() {
 		setErrorMsg("");
 
 		try {
-			const response = await apiService.auth.register({
+			const response = await apiService.users.register({
 				firstName: values.firstName,
 				lastName: values.lastName,
 				dob: values.dob,
@@ -91,7 +93,8 @@ function RegisterPage() {
 				password: values.password,
 				gender: values.gender,
 				status: true,
-				roleName: "USER"
+				roleName: "USER",
+				address: values.address
 			});
 
 			if (response.status === 200 || response.status === 201) { 
@@ -229,52 +232,6 @@ function RegisterPage() {
 									isLoading={loading}
 								/>
 							)}
-
-							{/* Form actions */}
-							{/* <div className="flex justify-between mt-8">
-								{currentStep === 2 ? (
-									<button 
-										type="button" 
-										onClick={previousStep}
-										className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-									>
-										{t('register.previous')}
-									</button>
-								) : (
-									<button 
-										type="button" 
-										onClick={handleClose}
-										className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-									>
-										{t('register.cancel')}
-									</button>
-								)}
-								
-								{currentStep === 1 ? (
-									<button 
-										type="button" 
-										onClick={nextStep}
-										className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-									>
-										{t('register.next')}
-									</button>
-								) : (
-									<button 
-										type="submit" 
-										disabled={loading}
-										className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-70"
-									>
-										{loading ? (
-											<>
-												<Loader2 className="animate-spin h-4 w-4 mr-2" />
-												{t('register.submitting')}
-											</>
-										) : (
-											t('register.createAccount')
-										)}
-									</button>
-								)}
-							</div> */}
 						</form>
 					)}
 				</div>

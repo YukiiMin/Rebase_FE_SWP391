@@ -31,10 +31,10 @@ const StepTwo = ({
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               placeholder={t('register.firstName')}
-              className={`auth-input py-2 ${formik.touched.firstName && formik.errors.firstName ? "auth-input-error" : ""}`}
+              className={`auth-input py-2 ${formik.touched.firstName && formik.errors.firstName ? "auth-input-error border-red-500" : ""}`}
             />
             {formik.touched.firstName && formik.errors.firstName && (
-              <p className="auth-error-message mt-1">{formik.errors.firstName}</p>
+              <p className="auth-error-message mt-1 text-red-500">{formik.errors.firstName}</p>
             )}
           </div>
 
@@ -47,10 +47,10 @@ const StepTwo = ({
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               placeholder={t('register.lastName')}
-              className={`auth-input py-2 ${formik.touched.lastName && formik.errors.lastName ? "auth-input-error" : ""}`}
+              className={`auth-input py-2 ${formik.touched.lastName && formik.errors.lastName ? "auth-input-error border-red-500" : ""}`}
             />
             {formik.touched.lastName && formik.errors.lastName && (
-              <p className="auth-error-message mt-1">{formik.errors.lastName}</p>
+              <p className="auth-error-message mt-1 text-red-500">{formik.errors.lastName}</p>
             )}
           </div>
         </div>
@@ -65,10 +65,10 @@ const StepTwo = ({
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               placeholder={t('register.username')}
-              className={`auth-input py-2 ${formik.touched.username && formik.errors.username ? "auth-input-error" : ""}`}
+              className={`auth-input py-2 ${formik.touched.username && formik.errors.username ? "auth-input-error border-red-500" : ""}`}
             />
             {formik.touched.username && formik.errors.username && (
-              <p className="auth-error-message mt-1">{formik.errors.username}</p>
+              <p className="auth-error-message mt-1 text-red-500">{formik.errors.username}</p>
             )}
           </div>
         )}
@@ -99,7 +99,7 @@ const StepTwo = ({
                 </div>
               </RadioGroup>
               {formik.touched.gender && formik.errors.gender && (
-                <p className="auth-error-message mt-1">{formik.errors.gender}</p>
+                <p className="auth-error-message mt-1 text-red-500">{formik.errors.gender}</p>
               )}
             </div>
           ) : (
@@ -112,15 +112,15 @@ const StepTwo = ({
                 value={formik.values.gender}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                className={`auth-select py-2 w-full ${formik.touched.gender && formik.errors.gender ? "auth-input-error" : ""}`}
+                className={`auth-select py-2 w-full h-10 px-3 rounded-md border border-gray-300 shadow-sm ${formik.touched.gender && formik.errors.gender ? "border-red-500" : ""}`}
               >
-                {/* <option value="">{t('register.selectGender')}</option> */}
+                <option value="">{t('register.selectGender')}</option>
                 <option value="MALE">{t('register.male')}</option>
                 <option value="FEMALE">{t('register.female')}</option>
                 <option value="OTHER">{t('register.other')}</option>
               </select>
               {formik.touched.gender && formik.errors.gender && (
-                <p className="auth-error-message mt-1">{formik.errors.gender}</p>
+                <p className="auth-error-message mt-1 text-red-500">{formik.errors.gender}</p>
               )}
             </div>
           )}
@@ -135,10 +135,10 @@ const StepTwo = ({
               value={formik.values.dob}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              className={`auth-input py-2 ${formik.touched.dob && formik.errors.dob ? "auth-input-error" : ""}`}
+              className={`auth-input py-2 ${formik.touched.dob && formik.errors.dob ? "auth-input-error border-red-500" : ""}`}
             />
             {formik.touched.dob && formik.errors.dob && (
-              <p className="auth-error-message mt-1">{formik.errors.dob}</p>
+              <p className="auth-error-message mt-1 text-red-500">{formik.errors.dob}</p>
             )}
           </div>
         </div>
@@ -155,16 +155,16 @@ const StepTwo = ({
               placeholder="0xxxxxxxxx"
               className={`auth-input py-2 ${
                 isStaffForm 
-                  ? (formik.touched.phoneNumber && formik.errors.phoneNumber ? "auth-input-error" : "")
-                  : (formik.touched.phone && formik.errors.phone ? "auth-input-error" : "")
+                  ? (formik.touched.phoneNumber && formik.errors.phoneNumber ? "auth-input-error border-red-500" : "")
+                  : (formik.touched.phone && formik.errors.phone ? "auth-input-error border-red-500" : "")
               }`}
             />
             {isStaffForm 
               ? (formik.touched.phoneNumber && formik.errors.phoneNumber && (
-                <p className="auth-error-message mt-1">{formik.errors.phoneNumber}</p>
+                <p className="auth-error-message mt-1 text-red-500">{formik.errors.phoneNumber}</p>
               ))
               : (formik.touched.phone && formik.errors.phone && (
-                <p className="auth-error-message mt-1">{formik.errors.phone}</p>
+                <p className="auth-error-message mt-1 text-red-500">{formik.errors.phone}</p>
               ))
             }
           </div>
@@ -179,10 +179,10 @@ const StepTwo = ({
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               placeholder={t('register.email')}
-              className={`auth-input py-2 ${formik.touched.email && formik.errors.email ? "auth-input-error" : ""}`}
+              className={`auth-input py-2 ${formik.touched.email && formik.errors.email ? "auth-input-error border-red-500" : ""}`}
             />
             {formik.touched.email && formik.errors.email && (
-              <p className="auth-error-message mt-1">{formik.errors.email}</p>
+              <p className="auth-error-message mt-1 text-red-500">{formik.errors.email}</p>
             )}
           </div>
         </div>
@@ -196,10 +196,10 @@ const StepTwo = ({
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             placeholder={t('register.addressPlaceholder')}
-            className={`auth-input py-2 ${formik.touched.address && formik.errors.address ? "auth-input-error" : ""}`}
+            className={`auth-input py-2 ${formik.touched.address && formik.errors.address ? "auth-input-error border-red-500" : ""}`}
           />
           {formik.touched.address && formik.errors.address && (
-            <p className="auth-error-message mt-1">{formik.errors.address}</p>
+            <p className="auth-error-message mt-1 text-red-500">{formik.errors.address}</p>
           )}
         </div>
 
@@ -223,7 +223,7 @@ const StepTwo = ({
                 </SelectContent>
               </Select>
               {formik.touched.roleName && formik.errors.roleName && (
-                <p className="auth-error-message mt-1">{formik.errors.roleName}</p>
+                <p className="auth-error-message mt-1 text-red-500">{formik.errors.roleName}</p>
               )}
             </div>
 
